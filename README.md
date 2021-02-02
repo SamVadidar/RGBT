@@ -1,14 +1,14 @@
 # RGBT
 
-Here we deal with RGB and Thermal(IR) Fusion.
+Here we deal with RGB and Thermal (IR) Fusion.
 
 ## ToDo List
 
 - [ ] Finish literature review of both Object Detection and Fusion 
 - [ ] Convert Darknet Weights to TF
 - [ ] Implement Yolov3 in TF from scratch
-- [ ] Start with the network adaptation for IR
 - [ ] Dataset preprocessing - All Datasets must be converted to same labeling and folder structure
+- [ ] Start with the network adaptation for IR
 
 ## 1. Papers
 
@@ -27,7 +27,7 @@ Here we deal with RGB and Thermal(IR) Fusion.
 - <a name=""></a> Yolov2 [[Paper](https://drive.google.com/file/d/1VF-lJsSCS-xzKDYE_Eq7WZykLvHH8O7x/view?usp=sharing)]
 - <a name=""></a> Yolov1 [[Paper](https://drive.google.com/file/d/1VDlmjDIvMrUDps2geiQELo5KvOVbpSAE/view?usp=sharing)]
 
-### 1.2 Thermal(IR) Object Detection
+### 1.2 Thermal (IR) Object Detection
 
 #### 2020
 - <a name=""></a> Thermal object detection in difficult weather using Yolo [[Paper](https://drive.google.com/file/d/1HgePMFEwBB1XbkwVt8svWzNMo5Qmi6bw/view?usp=sharing)]
@@ -66,13 +66,10 @@ Here we deal with RGB and Thermal(IR) Fusion.
 
 - <a name=""></a> Object detection on thermal images_2020 [[Link](https://medium.com/@joehoeller/object-detection-on-thermal-images-f9526237686a)] [[Code](https://github.com/joehoeller/Object-Detection-on-Thermal-Images)]
 - <a name=""></a> Object detection on thermal images_2019 [[Link](https://medium.com/swlh/object-detection-on-thermal-images-4f3410a89db4)] [[Code](https://github.com/enesozi/object-detection)]
-- <a name=""></a> 
-- <a name=""></a> 
 
 ## 3. Related Works
 
 - <a name=""></a> Yolov4-TF [[Repo](https://github.com/hunglc007/tensorflow-yolov4-tflite)]
-- <a name=""></a> 
 
 ## 4. Dataset
 
