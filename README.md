@@ -5,62 +5,61 @@ Here we deal with RGB and Thermal (IR) Fusion.
 ## ToDo List
 
 - [ ] Finish literature review of both Object Detection and Fusion 
+- [ ] Find the conversion Matrix btw. RGB and IR Frame
 - [ ] Convert Darknet Weights to TF
 - [ ] Implement Yolov3 in TF from scratch
 - [ ] Dataset preprocessing - All Datasets must be converted to same labeling and folder structure
-- [ ] Start with the network adaptation for IR
+- [ ] Starting to concatinate features
 
 ## 1. Papers
 
 ### 1.1 RGB Object Detection
 
-**My Summary** [[Link](https://drive.google.com/file/d/1JqPu_-s-JKxE3qVvJS_efO3kZUitP1VH/view?usp=sharing)]
+**Summary** [[Link](https://drive.google.com/file/d/1mGZx7mDXnWvDElDW12yBqb0TLn7rtnPc/view?usp=sharing)]
 
 #### 2020
-- <a name=""></a> Yolov4-Scaled [[Paper](https://drive.google.com/file/d/19n-CJ8Bt3egjaxcWETfEv5QXyu7KQ2jS/view?usp=sharing)]
-- <a name=""></a> Yolov4 [[Paper](https://drive.google.com/file/d/1FDsMBfLjIBgIBuUJjw2r_pm9wLlKN_1T/view?usp=sharing)]
+- <a name=""></a> 20-11-Scaled-Yolov4 [[Paper](https://arxiv.org/abs/2011.08036)]
+- <a name=""></a> 20-04-Yolov4 [[Paper](https://arxiv.org/abs/2004.10934)]
 
 #### 2018
-- <a name=""></a> Yolov3 [[Paper](https://drive.google.com/file/d/1ztX_qpFn7XenS3fjRCNj4E9PhnpKwkjy/view?usp=sharing)]
+- <a name=""></a> 18-04-Yolov3 [[Paper](https://arxiv.org/abs/1804.02767)]
 
 #### 2016
-- <a name=""></a> Yolov2 [[Paper](https://drive.google.com/file/d/1VF-lJsSCS-xzKDYE_Eq7WZykLvHH8O7x/view?usp=sharing)]
-- <a name=""></a> Yolov1 [[Paper](https://drive.google.com/file/d/1VDlmjDIvMrUDps2geiQELo5KvOVbpSAE/view?usp=sharing)]
+- <a name=""></a> 16-12-Yolov2 [[Paper](https://arxiv.org/abs/1612.08242)]
+- <a name=""></a> 16-05-Yolov1 [[Paper](https://arxiv.org/abs/1506.02640)]
 
 ### 1.2 Thermal (IR) Object Detection
 
 #### 2020
-- <a name=""></a> Thermal object detection in difficult weather using Yolo [[Paper](https://drive.google.com/file/d/1HgePMFEwBB1XbkwVt8svWzNMo5Qmi6bw/view?usp=sharing)]
-- <a name=""></a> Real time target detection for infrared images [[Paper](https://drive.google.com/file/d/1ub95QLOVAXUSxMLbcr8GFDXN4vLRoAlE/view?usp=sharing)]
-- <a name=""></a> Human gesture recognition using Yolov3 [[Paper](https://drive.google.com/file/d/1XaMM0bGEWz-1fOfKXm9IzU4j69v06K-r/view?usp=sharing)]
-
-#### 2019
-- <a name=""></a> Human detection in thermal imaging using Yolo [[Paper](https://drive.google.com/file/d/1S2fGjzgNi8ri273Cl3NVMef3QET19oMF/view?usp=sharing)]
-- <a name=""></a> (Review Paper) Lightweight CNN for vehicle recognition [[Paper](https://drive.google.com/file/d/1Q4ekOgBh21eXvaou02AbMCYSCuVoJgvd/view?usp=sharing)]
+- <a name=""></a> 20-07-Thermal Object Detection in Difficult Weather Conditions Using YOLO [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9133581)]
+- <a name=""></a> 20-04-Using Deep Learning in Infrared Images to Enable Human Gesture Recognition for Autonomous Vehicles [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9079509)]
 
 #### 2018
-- <a name=""></a> Object recognition on LWIR using Yolo [[Paper](https://drive.google.com/file/d/1qrbEuAILS947vU5JurtAK3o5Uacrd-zm/view?usp=sharing)]
-- <a name=""></a> CNN-based thermal infrared person detection by domain adaptation [[Paper](https://drive.google.com/file/d/1Zb_PZqeh214FLLuvugMNGsZzlhkosoJR/view?usp=sharing)]
+- <a name=""></a> 18-12-Object Recognition on Long Range Thermal Image Using State of the Art DNN [[Paper](https://ieeexplore.ieee.org/document/8572026)]
 
-### 1.3 RGBT Fusion (With Obj. Detection)
+### 1.3 RGBT Fusion
+
+**Summary** [[Link](https://drive.google.com/file/d/1TWDQcAVUJwCN9DdyT3kNgoq_5BUKMdc0/view?usp=sharing)]
 
 #### 2021
-- <a name=""></a> Guided attentive feature fusion [[Paper](https://drive.google.com/file/d/1h7Wkq2zlO5T5dp67FVHXgw3SknVEADnD/view?usp=sharing)]
+- <a name=""></a> 21-01-Guided Attentive Feature Fusion for Multispectral Pedestrian Detection [[Paper](https://openaccess.thecvf.com/content/WACV2021/papers/Zhang_Guided_Attentive_Feature_Fusion_for_Multispectral_Pedestrian_Detection_WACV_2021_paper.pdf)]
 
 #### 2020
-- <a name=""></a> Object detection in automotive driving [[Paper](https://drive.google.com/file/d/1-vLFw_QOADS9mfxrxFVDxys_6oqzFlkz/view?usp=sharing)]
+- <a name=""></a> 20-11-ABiFN: Attention-based bi-modal fusion network for object detection at night time [[Paper](https://ietresearch.onlinelibrary.wiley.com/doi/pdf/10.1049/el.2020.1952)]
+- <a name=""></a> 20-09-Multispectral Fusion for Object Detection with Cyclic Fuse-and-Refine Blocks [[Paper](https://arxiv.org/abs/2009.12664)]
+- <a name=""></a> 20-07-Borrow from Anywhere: Pseudo Multi-modal Object Detection in Thermal Imagery [[Paper](https://arxiv.org/abs/1905.08789)] [[Code](https://github.com/tdchaitanya/MMTOD)]
+- <a name=""></a> 20-07-CNN based Color and Thermal Image Fusion for Object Detection in Automated Driving [[Paper](https://www.researchgate.net/publication/342736973_CNN_based_Color_and_Thermal_Image_Fusion_for_Object_Detection_in_Automated_Driving)]
 
 #### 2019
-- <a name=""></a> Enhancing object detection in adverse condition [[Paper](https://drive.google.com/file/d/1v6rwjBx-SVBXeD3UJEVkqaV0fAQIwEJ2/view?usp=sharing)]
+- <a name=""></a> 19-09-Multi-Domain Attentive Detection Network [[Paper](https://ieeexplore.ieee.org/document/8803206)]
 
-### 1.4 RGBT Fusion (Without Obj. Detection)
+#### 2017
+- <a name=""></a> 17-11-Deep object classification in low resolution LWIR imagery via transfer learning[[Paper](https://pureadmin.qub.ac.uk/ws/portalfiles/portal/134854047/main.pdf)]
 
-#### 2019
-- <a name=""></a> Dense Fuse [[Paper](https://drive.google.com/file/d/14vhuKERvxszemPcAypAbhSA5ban4eG55/view?usp=sharing)]
-- <a name=""></a> Fast and efficient zero-learning fusion [[Paper](https://drive.google.com/file/d/1dy_JcuO0vEXpJiBhcsbDyHJqEfNnrqFK/view?usp=sharing)]
+### 1.4 GAN
 
-#### 2018
-- <a name=""></a> Infrared and visible image fusion [[Paper](https://drive.google.com/file/d/1iHY_EEgOfcwvAiLGXnv3gAJu7RGY_YVc/view?usp=sharing)]
+#### 2020
+- <a name=""></a> 20-01-Thermal Image Super-resolution: A Novel Architecture and Dataset [[Paper](http://158.109.8.37/files/RSV2020.pdf)]
 
 ## 2. Related Blog Posts 
 
@@ -73,9 +72,12 @@ Here we deal with RGB and Thermal (IR) Fusion.
 
 ## 4. Dataset
 
+- <a name=""></a> 19-10-Driving Datasets Literature Review [[Link](https://arxiv.org/abs/1910.11968)]
+
 **IR**
-- <a name=""></a> FLIR [[Link](https://www.flir.com/oem/adas/adas-dataset-form/)]
-- <a name=""></a> KAIST Multispectral Pedestrian Detection Benchmark [[Link](https://sites.google.com/site/pedestrianbenchmark/)] [[Code](https://github.com/SoonminHwang/rgbt-ped-detection)]
+- <a name=""></a> 2018-FLIR [[Link](https://www.flir.com/oem/adas/adas-dataset-form/)]
+- <a name=""></a> 2017-Multispectral Semantic Segmentation Dataset [[Link](https://www.mi.t.u-tokyo.ac.jp/static/projects/mil_multispectral/)]
+- <a name=""></a> 2015-KAIST Multispectral Pedestrian Detection Benchmark [[Link](https://sites.google.com/site/pedestrianbenchmark/)] [[Code](https://github.com/SoonminHwang/rgbt-ped-detection)]
 
 **RGB**
 - <a name=""></a> COCO [[Link](https://cocodataset.org/#home)]
