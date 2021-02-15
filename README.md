@@ -30,6 +30,8 @@ Here we deal with RGB and Thermal (IR) Fusion.
 
 ### 1.2 Thermal (IR) Object Detection
 
+**Summary** [[Link](https://drive.google.com/file/d/1_ci6XkaW29tP6wxKqHz5fgeigytHS6_A/view?usp=sharing)]
+
 #### 2020
 - <a name=""></a> 20-07-Thermal Object Detection in Difficult Weather Conditions Using YOLO [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9133581)]
 - <a name=""></a> 20-04-Using Deep Learning in Infrared Images to Enable Human Gesture Recognition for Autonomous Vehicles [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9079509)]
