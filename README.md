@@ -28,18 +28,7 @@ Here we deal with RGB and Thermal (IR) Fusion.
 - <a name=""></a> 16-12-Yolov2 [[Paper](https://arxiv.org/abs/1612.08242)]
 - <a name=""></a> 16-05-Yolov1 [[Paper](https://arxiv.org/abs/1506.02640)]
 
-### 1.2 Thermal (IR) Object Detection
-
-**Summary** [[Link](https://drive.google.com/file/d/1_ci6XkaW29tP6wxKqHz5fgeigytHS6_A/view?usp=sharing)]
-
-#### 2020
-- <a name=""></a> 20-07-Thermal Object Detection in Difficult Weather Conditions Using YOLO [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9133581)]
-- <a name=""></a> 20-04-Using Deep Learning in Infrared Images to Enable Human Gesture Recognition for Autonomous Vehicles [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9079509)]
-
-#### 2018
-- <a name=""></a> 18-12-Object Recognition on Long Range Thermal Image Using State of the Art DNN [[Paper](https://ieeexplore.ieee.org/document/8572026)]
-
-### 1.3 RGBT Fusion
+### 1.2 RGBT Fusion
 
 **Summary** [[Link](https://drive.google.com/file/d/1TWDQcAVUJwCN9DdyT3kNgoq_5BUKMdc0/view?usp=sharing)]
 
@@ -51,12 +40,25 @@ Here we deal with RGB and Thermal (IR) Fusion.
 - <a name=""></a> 20-09-Multispectral Fusion for Object Detection with Cyclic Fuse-and-Refine Blocks [[Paper](https://arxiv.org/abs/2009.12664)]
 - <a name=""></a> 20-07-Borrow from Anywhere: Pseudo Multi-modal Object Detection in Thermal Imagery [[Paper](https://arxiv.org/abs/1905.08789)] [[Code](https://github.com/tdchaitanya/MMTOD)]
 - <a name=""></a> 20-07-CNN based Color and Thermal Image Fusion for Object Detection in Automated Driving [[Paper](https://www.researchgate.net/publication/342736973_CNN_based_Color_and_Thermal_Image_Fusion_for_Object_Detection_in_Automated_Driving)]
+- <a name=""></a> 20-06-Night Vision Surveillance: Object Detection using thermal and visible images [[Paper](https://ieeexplore.ieee.org/document/9154066)]
 
 #### 2019
 - <a name=""></a> 19-09-Multi-Domain Attentive Detection Network [[Paper](https://ieeexplore.ieee.org/document/8803206)]
+- <a name=""></a> 19-04-Deep Learning based Pedestrian Detection at all Light Conditions [[Paper](https://ieeexplore.ieee.org/document/8698101)]
 
 #### 2017
 - <a name=""></a> 17-11-Deep object classification in low resolution LWIR imagery via transfer learning[[Paper](https://pureadmin.qub.ac.uk/ws/portalfiles/portal/134854047/main.pdf)]
+
+### 1.3 Thermal (IR) Object Detection
+
+**Summary** [[Link](https://drive.google.com/file/d/1_ci6XkaW29tP6wxKqHz5fgeigytHS6_A/view?usp=sharing)]
+
+#### 2020
+- <a name=""></a> 20-07-Thermal Object Detection in Difficult Weather Conditions Using YOLO [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9133581)]
+- <a name=""></a> 20-04-Using Deep Learning in Infrared Images to Enable Human Gesture Recognition for Autonomous Vehicles [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9079509)]
+
+#### 2018
+- <a name=""></a> 18-12-Object Recognition on Long Range Thermal Image Using State of the Art DNN [[Paper](https://ieeexplore.ieee.org/document/8572026)]
 
 ### 1.4 GAN
 
