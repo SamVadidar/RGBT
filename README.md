@@ -15,7 +15,8 @@ Here we deal with RGB and Thermal (IR) Fusion.
 
 ### 1.1 RGB Object Detection
 
-**Summary** [[Link](https://drive.google.com/file/d/1mGZx7mDXnWvDElDW12yBqb0TLn7rtnPc/view?usp=sharing)]
+**Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/Yolo_History.docx)]
+![YOLO](https://github.com/SamVadidar/RGBT/blob/main/Yolo.png)
 
 #### 2020
 - <a name=""></a> 20-11-Scaled-Yolov4 [[Paper](https://arxiv.org/abs/2011.08036)]
@@ -30,7 +31,7 @@ Here we deal with RGB and Thermal (IR) Fusion.
 
 ### 1.2 RGBT Fusion
 
-**Summary** [[Link](https://drive.google.com/file/d/1TWDQcAVUJwCN9DdyT3kNgoq_5BUKMdc0/view?usp=sharing)]
+**Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/RGBT_Fusion_Summary.docx)]
 
 #### 2021
 - <a name=""></a> 21-01-Guided Attentive Feature Fusion for Multispectral Pedestrian Detection [[Paper](https://openaccess.thecvf.com/content/WACV2021/papers/Zhang_Guided_Attentive_Feature_Fusion_for_Multispectral_Pedestrian_Detection_WACV_2021_paper.pdf)]
@@ -51,7 +52,7 @@ Here we deal with RGB and Thermal (IR) Fusion.
 
 ### 1.3 Thermal (IR) Object Detection
 
-**Summary** [[Link](https://drive.google.com/file/d/1_ci6XkaW29tP6wxKqHz5fgeigytHS6_A/view?usp=sharing)]
+**Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/IR_detection_summary.docx)]
 
 #### 2020
 - <a name=""></a> 20-07-Thermal Object Detection in Difficult Weather Conditions Using YOLO [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9133581)]
