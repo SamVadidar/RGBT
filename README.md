@@ -16,6 +16,7 @@ Here we deal with RGB and Thermal (IR) Fusion.
 ### 1.1 RGB Object Detection
 
 **Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/Yolo_History.docx)]
+
 ![YOLO](https://github.com/SamVadidar/RGBT/blob/main/Yolo.png)
 
 #### 2020
@@ -55,8 +56,13 @@ Here we deal with RGB and Thermal (IR) Fusion.
 **Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/IR_detection_summary.docx)]
 
 #### 2020
+- <a name=""></a> 20-08-Real Time Target Detection for Infrared Images [[Paper](https://ieeexplore.ieee.org/document/9171208)]
+- <a name=""></a> 20-07-Vehicle detection in thermal images with an improved yolov3-tiny [[Paper](https://ieeexplore.ieee.org/document/9201995)]
 - <a name=""></a> 20-07-Thermal Object Detection in Difficult Weather Conditions Using YOLO [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9133581)]
 - <a name=""></a> 20-04-Using Deep Learning in Infrared Images to Enable Human Gesture Recognition for Autonomous Vehicles [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9079509)]
+
+#### 2019
+- <a name=""></a> 19-11-Every Feature Counts: An Improved One-Stage Detector in Thermal Imagery [[Paper](https://ieeexplore.ieee.org/document/9064036)]
 
 #### 2018
 - <a name=""></a> 18-12-Object Recognition on Long Range Thermal Image Using State of the Art DNN [[Paper](https://ieeexplore.ieee.org/document/8572026)]
