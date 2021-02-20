@@ -17,7 +17,7 @@ Here we deal with RGB and Thermal (IR) Fusion.
 
 **Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/Yolo_History.docx)]
 
-![YOLO](https://github.com/SamVadidar/RGBT/blob/main/Yolo.png)
+![YOLO](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/Yolo.png)
 
 #### 2020
 - <a name=""></a> 20-11-Scaled-Yolov4 [[Paper](https://arxiv.org/abs/2011.08036)]
