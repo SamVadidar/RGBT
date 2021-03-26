@@ -94,16 +94,15 @@ DataSet Review:
     * Dataset 03: pedestrian, above long shot
 
 
-### Master thesis has to be:
-Specific:
-    What question are you exactly trying to answer?
-    What concept do you want to address in-depth?
-Measurable:
-    Performance metrics and qualitative assessments
+Master thesis:
+===================================
+* Specific:
+    * What question are you exactly trying to answer?
+    * What concept do you want to address in-depth?
+* Measurable:
+    * Performance metrics and qualitative assessments
 
-
-### Evaluation of master thesis:
-
+## Evaluation of master thesis:
 mAP comparison between rgb only and RGBT network in Day and Night scenarios.
 Since we do not have any weather related data (i.e. Fog, Sun glare, etc.) we cannot evaluate that.
 
@@ -121,7 +120,7 @@ But here there is high risk of failure since our datasets are very small to be a
 this well to work with our self taken IR and RGB images, which are very different w.r.t. the data
 we have trained the network with.
 
-### Meeting Takeaways:
+## Meeting Takeaways:
 19.03.2021:
     * compare Fused vs. only RGB -> Pedestrian Class
     * DenseNet plus YoloV4 attention combination
@@ -130,5 +129,5 @@ we have trained the network with.
     * Training each pipeline seperately is discoraged due to time constrains
     * Maybe I can Pre-process the FLIR Dataset
 
-### Considered Papers to workon:
+## Considered Papers to workon:
 * 20-03-(Yolov3 PedestrianOnly)Pedestrian Detection in Severe Weather Condition.pdf
