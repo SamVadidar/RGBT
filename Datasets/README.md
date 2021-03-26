@@ -140,6 +140,6 @@ we have trained the network with.
     DenseNet plus YoloV4 attention combination
 
 
+Considered Papers to workon:
 ===================================
-### Considered Papers to workon:
 * 20-03-(Yolov3 PedestrianOnly)Pedestrian Detection in Severe Weather Condition.pdf
