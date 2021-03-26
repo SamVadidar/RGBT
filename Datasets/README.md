@@ -109,10 +109,10 @@ DataSet Review:
 ### Master thesis has to be:
 ===================================
 Specific:
-    What question are you exactly trying to answer?
-    What concept do you want to address in-depth?
+    * What question are you exactly trying to answer?
+    * What concept do you want to address in-depth?
 Measurable:
-    Performance metrics and qualitative assessments
+    * Performance metrics and qualitative assessments
 
 
 ### Evaluation of master thesis:
@@ -136,8 +136,8 @@ this well to work with our self taken IR and RGB images, which are very differen
 we have trained the network with.
 
 19.03.2021 Meeting output:
-    compare Fused vs. only RGB -> Pedestrian Class
-    DenseNet plus YoloV4 attention combination
+    * compare Fused vs. only RGB -> Pedestrian Class
+    * DenseNet plus YoloV4 attention combination
 
 
 ===================================
