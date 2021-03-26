@@ -13,7 +13,7 @@ Here we deal with RGB and Thermal (IR) Fusion.
 
 ## 1. Papers
 
-### 1.1 RGB Object Detection
+### 1.1 RGB Object Detection:
 
   **Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/Yolo_History.docx)]
 
@@ -30,7 +30,7 @@ Here we deal with RGB and Thermal (IR) Fusion.
   - <a name=""></a> 16-12-Yolov2 [[Paper](https://arxiv.org/abs/1612.08242)]
   - <a name=""></a> 16-05-Yolov1 [[Paper](https://arxiv.org/abs/1506.02640)]
 
-### 1.2 RGBT Fusion
+### 1.2 RGBT Fusion:
 
   **Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/RGBT_Fusion_Summary.docx)]
 
@@ -51,7 +51,7 @@ Here we deal with RGB and Thermal (IR) Fusion.
   #### 2017
   - <a name=""></a> 17-11-Deep object classification in low resolution LWIR imagery via transfer learning[[Paper](https://pureadmin.qub.ac.uk/ws/portalfiles/portal/134854047/main.pdf)]
 
-### 1.3 Thermal (IR) Object Detection
+### 1.3 Thermal (IR) Object Detection:
 
 **Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/IR_detection_summary.docx)]
 
@@ -73,16 +73,16 @@ Here we deal with RGB and Thermal (IR) Fusion.
   #### 2020
   - <a name=""></a> 20-01-Thermal Image Super-resolution: A Novel Architecture and Dataset [[Paper](http://158.109.8.37/files/RSV2020.pdf)]
 
-## 2. Related Blog Posts 
+## 2. Related Blog Posts:
 
   - <a name=""></a> Object detection on thermal images_2020 [[Link](https://medium.com/@joehoeller/object-detection-on-thermal-images-f9526237686a)] [[Code](https://github.com/joehoeller/Object-Detection-on-Thermal-Images)]
   - <a name=""></a> Object detection on thermal images_2019 [[Link](https://medium.com/swlh/object-detection-on-thermal-images-4f3410a89db4)] [[Code](https://github.com/enesozi/object-detection)]
 
-## 3. Related Works
+## 3. Related Works:
 
   - <a name=""></a> Yolov4-TF [[Repo](https://github.com/hunglc007/tensorflow-yolov4-tflite)]
 
-## 4. Dataset
+## 4. Dataset:
 
   - <a name=""></a> 19-10-Driving Datasets Literature Review [[Link](https://arxiv.org/abs/1910.11968)]
   - <a name=""></a> Image Databases [[Link](http://homepages.inf.ed.ac.uk/rbf/CVonline/Imagedbase.htm)]
