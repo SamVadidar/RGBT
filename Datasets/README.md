@@ -1,12 +1,12 @@
 Summary of what should be done:
 ===================================
-[x] Configure the GPU, Server, and Linux Laptop (Hardware-Software connection)
-[x] Review the possible datasets and a testbench you want to test on (Dataset)
-[ ] Summary of Summaries and find a hole (Target)
-[ ] Implement RGB Network
-[ ] Implement the state of the art Fusion Network
-[ ] Train the IR branch of the Fusion network with IR only Datasets
-[ ] Test on FLIR-aligned version (Testbench?)
+- [x] Configure the GPU, Server, and Linux Laptop (Hardware-Software connection)
+- [x] Review the possible datasets and a testbench you want to test on (Dataset)
+- [ ] Summary of Summaries and find a hole (Target)
+- [ ] Implement RGB Network
+- [ ] Implement the state of the art Fusion Network
+- [ ] Train the IR branch of the Fusion network with IR only Datasets
+- [ ] Test on FLIR-aligned version (Testbench?)
 
 
 DataSet Review:
