@@ -5,7 +5,7 @@ Summary of what should be done:
 3) Train the IR branch of the Fusion network with IR only Datasets
 4) Test on FLIR-aligned version
 
-===================================
+
 DataSet Review:
 ===================================
 # CAMEL:
@@ -104,9 +104,8 @@ DataSet Review:
 # OTCBVS:
     Dataset 01: Pedestrian, above long shot
     Dataset 03: Pedestrian, above long shot
-        
 
-===================================
+
 ## Master thesis has to be:
 ===================================
 Specific:
@@ -115,7 +114,7 @@ Specific:
 Measurable:
     Performance metrics and qualitative assessments
 
-===================================
+
 ## Evaluation of master thesis:
 ===================================
     
@@ -139,6 +138,7 @@ Measurable:
 19.03.2021 Meeting output:
     compare Fused vs. only RGB -> Pedestrian Class
     DenseNet plus YoloV4 attention combination
+
 
 ===================================
 ## Considered Papers to workon:
