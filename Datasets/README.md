@@ -1,13 +1,13 @@
 Summary of what should be done:
-======================================================
+===================================
 1) Implement RGB Network
 2) Implement Fusion Network
 3) Train the IR branch of the Fusion network with IR only Datasets
 4) Test on FLIR-aligned version
 
-======================================================
+===================================
 DataSet Review:
-======================================================
+===================================
 # CAMEL:
     Specification:
         Published on 2018 
@@ -106,18 +106,18 @@ DataSet Review:
     Dataset 03: Pedestrian, above long shot
         
 
-======================================================
-Master thesis has to be:
-======================================================
+===================================
+## Master thesis has to be:
+===================================
 Specific:
     What question are you exactly trying to answer?
     What concept do you want to address in-depth?
 Measurable:
     Performance metrics and qualitative assessments
 
-======================================================
-Evaluation of master thesis:
-======================================================
+===================================
+## Evaluation of master thesis:
+===================================
     
     mAP comparison between RGB only and RGBT network in Day and Night scenarios.
     Since we do not have any weather related data (i.e. Fog, Sun glare, etc.) we cannot evaluate that.
@@ -140,6 +140,6 @@ Evaluation of master thesis:
     compare Fused vs. only RGB -> Pedestrian Class
     DenseNet plus YoloV4 attention combination
 
-======================================================
-Considered Papers to workon:
+===================================
+## Considered Papers to workon:
 * 20-03-(Yolov3 PedestrianOnly)Pedestrian Detection in Severe Weather Condition.pdf
