@@ -46,41 +46,39 @@ DataSet Review:
         * An aligned version exist where the RGB frames are cropped and aligned with IR frames
         but the IOU of the RGB BBs are not optimal
         60% Day 40% Night but is not seperated in the Dataset
-    
+
 ## ZUT-FIR-ADAS:
-    Specification:
-        Published on 22.01.2020
-        IR Frames Only
-        Pedestrian Only
-        Each recording folder contains:
-            16BitFrames - 16bit original capture without processing.
-            16bittransformed - 16bit capture with low pass filter applied and scaled to 640x480.
-            annotations - annotations and 8bit images made from 16bittransformed.
-            carparams.csv - a can details with coresponding frame id.
-            weather.txt - weather information in which the recording was made.
+   * Specification:
+       * Published on 22.01.2020
+       * IR Frames Only
+       * Pedestrian Only
+       * Each recording folder contains:
+               * 16bitframes - 16bit original capture without processing.
+               * 16bittransformed - 16bit capture with low pass filter applied and scaled to 640x480.
+               * annotations - annotations and 8bit images made from 16bittransformed.
+               * carparams.csv - a can details with coresponding frame id.
+               * weather.txt - weather information in which the recording was made.
 
-        To have images without low pass filter applied:
-            Take 16bit images from 16BitFrames folder and open with OpenCV function like: Mat input = imread(<image_full_path>, -1);
-            Then use convertTo function like: input.convertTo(output, input.depth(), sc, sh), where output is transformed Mat, sc is scale and sh is shift from carParams.csv file.
-            Finally, scale image to 640x480
-            
-    *ZUT claims that the labeling is very high quality, where KAIST and SCUT failed to do so
-    Group of people are all in one box, which can make the filter extraction very hard
-    Therefore all the mentioned dataset has to go through some quality check
+       * To have images without low pass filter applied:
+          * take 16bit images from 16BitFrames folder and open with OpenCV function like: Mat input = imread(<image_full_path>, -1);
+          * then use convertTo function like: input.convertTo(output, input.depth(), sc, sh), where output is transformed Mat, sc is scale and sh is shift from carParams.csv file.
+          * finally, scale image to 640x480
+    
+    * ZUT claims that the labeling is very high quality, where KAIST and SCUT failed to do so group of people are all in one box, which can make the filter extraction very hard therefore all the mentioned dataset has to go through some quality check
 
-## KAIST Multispectral Pedestrian Detection:
+## KAIST Multispectral pedestrian Detection:
     Specification:
         Published on 2015 
-        FIR-Visible, Day-Night
+        FIR-visible, day-night
         95k color-thermal pairs (640*480)
-        62578 Day Frames = 70679 Objects
-        32750 Night Frames = 44871 Objects
+        62578 day frames = 70679 Objects
+        32750 night frames = 44871 Objects
 
 ## CVC-14:
     Specification:
         Published on 2016
-        Day-Night, FIR-Visible, FramesNeg-FramesPos available
-        Pedestrian Only
+        Day-night, fir-visible, FramesNeg-FramesPos available
+        Pedestrian only
         For training 3695 imegas during the day, and 3390 images during night, with ~1500 mandatory pedestrian annotated for each sequence.
         For testing ~700 images for both sequences with ~2000 pedestrian during day, and ~1500 pedestrian during night
         Frame format is tif, therefore I assume that they are 16-bit
@@ -88,25 +86,25 @@ DataSet Review:
 ## CVC-09:
     Specification:
         Published on 2014
-        Day-Night, FIR Only, FramesNeg-FramesPos available
-        Pedestrian Only
-        2 Sets: The first set contains 5990 frames and the second 5081, divided in training and testing sets each sequence.
+        Day-night, fir only, FramesNeg-FramesPos available
+        Pedestrian only
+        2 Sets: the first set contains 5990 frames and the second 5081, divided in training and testing sets each sequence.
         Frame format is png, therefore I assume that they are 8-bit
 
-## Multispectral Image Recognition:
+## Multispectral image recognition:
     Specification:
         Published on 2017
-        FIR-MIR-NIR-Visible, Label in xml and txt format for each sensor
+        FIR-mir-nir-visible, Label in xml and txt format for each sensor
         xml has additional info. such as truncated, crowd, and not normalized cordinates
         Paper is hard to find for more details about the dataset!
         Labels (.txt format) are same as Annotation_ConvertedSummarized but in yolo format
         ir_label.py is available to convert xml to txt (yolo format)
-        noAnnotationsList.txt contains the images without labels
+        noAnnotationslist.txt contains the images without labels
         7512 images in total for each sensor
 
 ## OTCBVS:
-    Dataset 01: Pedestrian, above long shot
-    Dataset 03: Pedestrian, above long shot
+    Dataset 01: pedestrian, above long shot
+    Dataset 03: pedestrian, above long shot
 
 
 Master thesis has to be:
@@ -120,8 +118,8 @@ Measurable:
 
 Evaluation of master thesis:
 ===================================
-    
-mAP comparison between RGB only and RGBT network in Day and Night scenarios.
+
+mAP comparison between rgb only and RGBT network in Day and Night scenarios.
 Since we do not have any weather related data (i.e. Fog, Sun glare, etc.) we cannot evaluate that.
 
 If we want to have 3 classes, we have only FLIR.
