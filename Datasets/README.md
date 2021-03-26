@@ -62,7 +62,7 @@ DataSet Review:
         * 32750 night frames = 44871 Objects
 
 ## CVC-14:
-   * Specification:
+    * Specification:
         * Published on 2016
         * Day-night, fir-visible, FramesNeg-FramesPos available
         * Pedestrian only
@@ -71,7 +71,7 @@ DataSet Review:
         Frame format is tif, therefore I assume that they are 16-bit
 
 ## CVC-09:
-   * Specification:
+    * Specification:
         * Published on 2014
         * Day-night, fir only, FramesNeg-FramesPos available
         * Pedestrian only
@@ -95,7 +95,6 @@ DataSet Review:
 
 
 ### Master thesis has to be:
-===================================
 Specific:
     What question are you exactly trying to answer?
     What concept do you want to address in-depth?
@@ -104,7 +103,6 @@ Measurable:
 
 
 ### Evaluation of master thesis:
-===================================
 
 mAP comparison between rgb only and RGBT network in Day and Night scenarios.
 Since we do not have any weather related data (i.e. Fog, Sun glare, etc.) we cannot evaluate that.
@@ -124,7 +122,6 @@ this well to work with our self taken IR and RGB images, which are very differen
 we have trained the network with.
 
 ### Meeting Takeaways:
-===================================
 19.03.2021:
     * compare Fused vs. only RGB -> Pedestrian Class
     * DenseNet plus YoloV4 attention combination
@@ -134,5 +131,4 @@ we have trained the network with.
     * Maybe I can Pre-process the FLIR Dataset
 
 ### Considered Papers to workon:
-===================================
 * 20-03-(Yolov3 PedestrianOnly)Pedestrian Detection in Severe Weather Condition.pdf
