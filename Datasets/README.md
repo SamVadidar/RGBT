@@ -8,7 +8,7 @@ Summary of what should be done:
 
 DataSet Review:
 ===================================
-# CAMEL:
+## CAMEL:
     Specification:
         Published on 2018 
         FIR-Visible, Well aligned, One label per pair image in the following format:
@@ -17,7 +17,7 @@ DataSet Review:
         Details like Humidity, Visibility, Weather condition, Temp., Time of recording are available
         Both sensors are recorded with a jpg format, which seems like 8-bit recording
 
-# FLIR:
+## FLIR:
     Specification:
         Published on 2020
         IR-Visible, Only IR is labeled
@@ -36,7 +36,7 @@ DataSet Review:
         The white images from RGB images have to be deleted if RGB is to be used, but I do not
         see the need to use RGB images, since YOLO is already trained on RGB images pretty well!
 
-# SCUT-CV:
+## SCUT-CV:
     Specification:
         Published on 2019
         IR-Visible, Only IR is labeled
@@ -44,7 +44,7 @@ DataSet Review:
         but the IOU of the RGB BBs are not optimal
         60% Day 40% Night but is not seperated in the Dataset
     
-# ZUT-FIR-ADAS:
+## ZUT-FIR-ADAS:
     Specification:
         Published on 22.01.2020
         IR Frames Only
@@ -65,7 +65,7 @@ DataSet Review:
     Group of people are all in one box, which can make the filter extraction very hard
     Therefore all the mentioned dataset has to go through some quality check
 
-# KAIST Multispectral Pedestrian Detection:
+## KAIST Multispectral Pedestrian Detection:
     Specification:
         Published on 2015 
         FIR-Visible, Day-Night
@@ -73,7 +73,7 @@ DataSet Review:
         62578 Day Frames = 70679 Objects
         32750 Night Frames = 44871 Objects
 
-# CVC-14:
+## CVC-14:
     Specification:
         Published on 2016
         Day-Night, FIR-Visible, FramesNeg-FramesPos available
@@ -82,7 +82,7 @@ DataSet Review:
         For testing ~700 images for both sequences with ~2000 pedestrian during day, and ~1500 pedestrian during night
         Frame format is tif, therefore I assume that they are 16-bit
 
-# CVC-09:
+## CVC-09:
     Specification:
         Published on 2014
         Day-Night, FIR Only, FramesNeg-FramesPos available
@@ -90,7 +90,7 @@ DataSet Review:
         2 Sets: The first set contains 5990 frames and the second 5081, divided in training and testing sets each sequence.
         Frame format is png, therefore I assume that they are 8-bit
 
-# Multispectral Image Recognition:
+## Multispectral Image Recognition:
     Specification:
         Published on 2017
         FIR-MIR-NIR-Visible, Label in xml and txt format for each sensor
@@ -101,12 +101,12 @@ DataSet Review:
         noAnnotationsList.txt contains the images without labels
         7512 images in total for each sensor
 
-# OTCBVS:
+## OTCBVS:
     Dataset 01: Pedestrian, above long shot
     Dataset 03: Pedestrian, above long shot
 
 
-## Master thesis has to be:
+### Master thesis has to be:
 ===================================
 Specific:
     What question are you exactly trying to answer?
@@ -115,25 +115,25 @@ Measurable:
     Performance metrics and qualitative assessments
 
 
-## Evaluation of master thesis:
+### Evaluation of master thesis:
 ===================================
     
-    mAP comparison between RGB only and RGBT network in Day and Night scenarios.
-    Since we do not have any weather related data (i.e. Fog, Sun glare, etc.) we cannot evaluate that.
+mAP comparison between RGB only and RGBT network in Day and Night scenarios.
+Since we do not have any weather related data (i.e. Fog, Sun glare, etc.) we cannot evaluate that.
 
-    If we want to have 3 classes, we have only FLIR.
-    The problem with FLIR is that the RGB images are not labeled and cannot be labeled with any
-    cross-correlation labeling algorithm precisely. Whatever trick we use will be an estimated label.
+If we want to have 3 classes, we have only FLIR.
+The problem with FLIR is that the RGB images are not labeled and cannot be labeled with any
+cross-correlation labeling algorithm precisely. Whatever trick we use will be an estimated label.
 
-    If we focus on pedestrian only, we have other datasets, which can help us, but then we have to
-    take care of cleaning many datasets and bring the labels from different dataset to the same format.
-    This can take time.
-    
-    What we can idealy do is to train RGBT with what we have and compare RGB with RGBT networks
-    using some pictures taken from our own sensor in all the challenging scenarios.
-    But here there is high risk of failure since our datasets are very small to be able to generalize
-    this well to work with our self taken IR and RGB images, which are very different w.r.t. the data
-    we have trained the network with.
+If we focus on pedestrian only, we have other datasets, which can help us, but then we have to
+take care of cleaning many datasets and bring the labels from different dataset to the same format.
+This can take time.
+
+What we can idealy do is to train RGBT with what we have and compare RGB with RGBT networks
+using some pictures taken from our own sensor in all the challenging scenarios.
+But here there is high risk of failure since our datasets are very small to be able to generalize
+this well to work with our self taken IR and RGB images, which are very different w.r.t. the data
+we have trained the network with.
 
 19.03.2021 Meeting output:
     compare Fused vs. only RGB -> Pedestrian Class
@@ -141,5 +141,5 @@ Measurable:
 
 
 ===================================
-## Considered Papers to workon:
+### Considered Papers to workon:
 * 20-03-(Yolov3 PedestrianOnly)Pedestrian Detection in Severe Weather Condition.pdf
