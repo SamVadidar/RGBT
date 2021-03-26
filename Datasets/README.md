@@ -121,10 +121,10 @@ this well to work with our self taken IR and RGB images, which are very differen
 we have trained the network with.
 
 ## Meeting Takeaways:
-19.03.2021:
+* 19.03.2021:
     * compare Fused vs. only RGB -> Pedestrian Class
     * DenseNet plus YoloV4 attention combination
-26.03.2021:
+* 26.03.2021:
     * The priority is the dataset with pair images with united label for Day, Night and preferably diverse weather condition
     * Training each pipeline seperately is discoraged due to time constrains
     * Maybe I can Pre-process the FLIR Dataset
