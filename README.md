@@ -60,6 +60,7 @@ Here we deal with RGB and Thermal (IR) Fusion.
 - <a name=""></a> 20-07-Vehicle detection in thermal images with an improved yolov3-tiny [[Paper](https://ieeexplore.ieee.org/document/9201995)]
 - <a name=""></a> 20-07-Thermal Object Detection in Difficult Weather Conditions Using YOLO [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9133581)]
 - <a name=""></a> 20-04-Using Deep Learning in Infrared Images to Enable Human Gesture Recognition for Autonomous Vehicles [[Paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9079509)]
+- <a name=""></a> 20-03-Pedestrian Detection in Severe Weather Conditions [[Paper](https://ieeexplore.ieee.org/abstract/document/9044295)]
 
 #### 2019
 - <a name=""></a> 19-11-Every Feature Counts: An Improved One-Stage Detector in Thermal Imagery [[Paper](https://ieeexplore.ieee.org/document/9064036)]
