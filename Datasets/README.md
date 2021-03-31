@@ -44,7 +44,7 @@ DataSet Review:
         * For testing ~700 images for both sequences with ~2000 pedestrian during day, and ~1500 pedestrian during night
         Frame format is tif, therefore I assume that they are 16-bit
         
-### Others:
+## Others:
 
 #### ZUT-FIR-ADAS:
     * Specification:
