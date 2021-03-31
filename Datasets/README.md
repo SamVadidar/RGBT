@@ -43,6 +43,8 @@ DataSet Review:
         * For training 3695 imegas during the day, and 3390 images during night, with ~1500 mandatory pedestrian annotated for each sequence.
         * For testing ~700 images for both sequences with ~2000 pedestrian during day, and ~1500 pedestrian during night
         Frame format is tif, therefore I assume that they are 16-bit
+        
+### Others:
 
 #### ZUT-FIR-ADAS:
     * Specification:
