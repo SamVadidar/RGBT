@@ -23,6 +23,18 @@ DataSet Review:
        * 60705 Car Obj.
        * 5662 Bicycle Obj.
 
+## Dense:
+    * Specification:
+      * Published on 2020
+      * Pedestrian, Vehicle
+          * PassengerCar: SUV, VAN, No Trailors
+          * LargeVehicle: Caravan, Truck, Trailor, Tram, Bus
+          * RidableVehicle: Bicycle, Tricycle, Motorcycle, WheelChair, Scooter
+      * Diverse weather condition available (Fog, Rain, Snow), Day-Night
+      * 12000 real world driving and 1500 controlled fog chamber
+      * cam_sterio available with 12-bit and 8-bit
+      * FIR frame 8-bit
+
 ## CVC-14:
     * Specification:
         * Published on 2016
@@ -32,27 +44,23 @@ DataSet Review:
         * For testing ~700 images for both sequences with ~2000 pedestrian during day, and ~1500 pedestrian during night
         Frame format is tif, therefore I assume that they are 16-bit
 
-## ZUT-FIR-ADAS:
+#### ZUT-FIR-ADAS:
     * Specification:
         * Published on 22.01.2020
         * IR Frames Only
         * Pedestrian Only
         * ZUT claims that the labeling is very high quality, where KAIST and SCUT failed to do so group of people are all in one box, which can make the filter extraction very hard therefore all the mentioned dataset has to go through some quality check
         * Each recording folder contains:
-                * 16bitframes - 16bit original capture without processing.
-                * 16bittransformed - 16bit capture with low pass filter applied and scaled to 640x480.
-                * annotations - annotations and 8bit images made from 16bittransformed.
-                * carparams.csv - a can details with coresponding frame id.
-                * weather.txt - weather information in which the recording was made.
+            * 16bitframes - 16bit original capture without processing.
+            * 16bittransformed - 16bit capture with low pass filter applied and scaled to 640x480.
+            * annotations - annotations and 8bit images made from 16bittransformed.
+            * carparams.csv - a can details with coresponding frame id.
+            * weather.txt - weather information in which the recording was made.
  
     * To have images without low pass filter applied:
         * take 16bit images from 16BitFrames folder and open with OpenCV function like: Mat input = imread(<image_full_path>, -1);
         * then use convertTo function like: input.convertTo(output, input.depth(), sc, sh), where output is transformed Mat, sc is scale and sh is shift from carParams.csv file.
         * finally, scale image to 640x480
-
-## SCUT-CV:
-    * Specification:
-       * Published on 2019
 
 #### CAMEL:
     * Specification:
@@ -66,7 +74,7 @@ DataSet Review:
 
 #### KAIST Multispectral pedestrian Detection:
     * Specification:
-        * Downloaded file is corrupt and cannot be extracted!   
+        * Downloaded file is corrupt and cannot be extracted!
         * Published on 2015 
         * FIR-visible, day-night
         * 95k color-thermal pairs (640*480)
@@ -91,6 +99,12 @@ DataSet Review:
         * ir_label.py is available to convert xml to txt (yolo format)
         * noAnnotationslist.txt contains the images without labels
         * 7512 images in total for each sensor
+
+#### SCUT-CV:
+    * Specification:
+       * Published on 2019
+       * IR Frames Only
+       * Pedestrian Only
 
 #### OTCBVS:
     * Dataset 01: pedestrian, above long shot
