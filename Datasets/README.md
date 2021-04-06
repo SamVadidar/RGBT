@@ -23,7 +23,28 @@ DataSet Review:
        * 60705 Car Obj.
        * 5662 Bicycle Obj.
 
-## Dense:
+## CVC-14:
+    * Specification:
+        * Published on 2016
+        * Day-night, fir-visible, FramesNeg-FramesPos available, frame_size = 640*471 for both cameras
+        * Pedestrian only
+        * For training 3695 imegas during the day, and 3390 images during night, with ~1500 mandatory pedestrian annotated for each sequence.
+        * For testing ~700 images for both sequences with ~2000 pedestrian during day, and ~1500 pedestrian during night
+        Frame format is tif, therefore I assume that they are 16-bit
+
+## KAIST Multispectral pedestrian Detection:
+    * Specification:
+        * Downloaded file is corrupt and cannot be extracted!
+        * Published on 2015 
+        * FIR-visible, day-night
+        * 95k color-thermal pairs (640*480)
+        * 62578 day frames = 70679 Objects
+        * 32750 night frames = 44871 Objects
+        * Check labels of crowds (Group of people)
+
+## Others:
+
+#### Dense:
     * Specification:
       * Published on 2020
       * Pedestrian, Vehicle
@@ -34,17 +55,7 @@ DataSet Review:
       * 12000 real world driving and 1500 controlled fog chamber
       * cam_sterio available with 12-bit and 8-bit
       * FIR frame 8-bit
-
-## CVC-14:
-    * Specification:
-        * Published on 2016
-        * Day-night, fir-visible, FramesNeg-FramesPos available, frame_size = 640*471 for both cameras
-        * Pedestrian only
-        * For training 3695 imegas during the day, and 3390 images during night, with ~1500 mandatory pedestrian annotated for each sequence.
-        * For testing ~700 images for both sequences with ~2000 pedestrian during day, and ~1500 pedestrian during night
-        Frame format is tif, therefore I assume that they are 16-bit
-        
-## Others:
+      * Very bad resolution and FOV for IR frames
 
 #### ZUT-FIR-ADAS:
     * Specification:
@@ -73,15 +84,6 @@ DataSet Review:
         * 30 Sequences which are mostly not on board images
         * Details like Humidity, Visibility, Weather condition, Temp., Time of recording are available
         * Both sensors are recorded with a jpg format, which seems like 8-bit recording
-
-#### KAIST Multispectral pedestrian Detection:
-    * Specification:
-        * Downloaded file is corrupt and cannot be extracted!
-        * Published on 2015 
-        * FIR-visible, day-night
-        * 95k color-thermal pairs (640*480)
-        * 62578 day frames = 70679 Objects
-        * 32750 night frames = 44871 Objects
 
 #### CVC-09:
     * Specification:
