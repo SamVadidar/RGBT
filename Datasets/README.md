@@ -26,6 +26,7 @@ DataSet Review:
 ## CVC-14:
     * Specification:
         * Published on 2016
+        * GrayScale RGB frames
         * Day-night, fir-visible, FramesNeg-FramesPos available, frame_size = 640*471 for both cameras
         * Pedestrian only
         * For training 3695 imegas during the day, and 3390 images during night, with ~1500 mandatory pedestrian annotated for each sequence.

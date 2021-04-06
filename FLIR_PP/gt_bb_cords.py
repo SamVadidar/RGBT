@@ -1,5 +1,7 @@
 def get_cords(image_number):
-
+    '''
+    The coordinates are extracted from the Flir groundtruth labels.
+    '''
     # x y w h
     imageNumber = "00007"
     bb_gtruth_00007 = []
@@ -27,8 +29,8 @@ def get_cords(image_number):
     bb_gtruth_00070.append([281, 239, 21, 16])
 
     imageNumber = "01655"
-    bb_gtruth_01656 = []
-    bb_gtruth_01656.append([1, 228, 39, 59])
+    bb_gtruth_01655 = []
+    bb_gtruth_01655.append([1, 228, 39, 59])
 
     imageNumber = "04423"
     bb_gtruth_04423 = []
@@ -48,6 +50,23 @@ def get_cords(image_number):
     bb_gtruth_04431.append([475, 208, 20, 80])
     bb_gtruth_04431.append([497, 251, 17, 36])
     bb_gtruth_04431.append([108, 176, 367, 126])
+
+    imageNumber = "04433"
+    bb_gtruth_04433 = [] 
+    bb_gtruth_04433.append([390, 205, 24, 79])
+    bb_gtruth_04433.append([415, 250, 23, 29])
+    bb_gtruth_04433.append([357, 252, 32, 29])
+    bb_gtruth_04433.append([370, 216, 21, 31])
+    bb_gtruth_04433.append([351, 213, 22, 37])
+    bb_gtruth_04433.append([345, 221, 12, 27])
+    bb_gtruth_04433.append([332, 221, 16, 22])
+    bb_gtruth_04433.append([325, 222, 9, 13])
+    bb_gtruth_04433.append([318, 221, 8, 13])
+    bb_gtruth_04433.append([313, 224, 8, 10])
+    bb_gtruth_04433.append([270, 221, 45, 34])
+    bb_gtruth_04433.append([204, 215, 32, 40])
+    bb_gtruth_04433.append([145, 217, 61, 47])
+    bb_gtruth_04433.append([258, 209, 23, 27])
 
     imageNumber = "05856"
     bb_gtruth_05856 = [] 
@@ -102,9 +121,11 @@ def get_cords(image_number):
         '00026': bb_gtruth_00026,
         '00051': bb_gtruth_00051,
         '00070': bb_gtruth_00070,
-        '01656': bb_gtruth_01656,
+        '01655': bb_gtruth_01655,
         '04423': bb_gtruth_04423,
         '04431': bb_gtruth_04431,
+        '04433': bb_gtruth_04433,
+        # ValSet
         '09833': bb_gtruth_09833,
 
         # 2048 * 1536
