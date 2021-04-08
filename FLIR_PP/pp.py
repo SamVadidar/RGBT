@@ -1,171 +1,302 @@
 import cv2
-import matplotlib.pyplot as plt
-import time
+import os
+import glob
+import pickle
+from pathlib import Path
+import shutil
 
-from gt_bb_cords import get_cords
 
+def res_list_creator(list_name, dataset_path, method=0):
+    '''
+    Here we creat a list of all the different RGB-frame resolutions in FLIR Dataset.
+    We also count how many images are there per resolution(i.e. Camera).
+    '''
+    if os.path.isfile(list_name):
+        os.remove(list_name)
+    file = open(list_name, "a")
+    previous_res = 0
+    counter_1536 = 0
+    counter_1600 = 0
+    counter_1024 = 0
+    counter_480 = 0
 
-def plot(ir_edge, rgb_edge, ir, rgb_th3):
+    # method 0
+    if method == 0:
+        for folder in glob.glob(str(dataset_path) + "*"):
+            for img in Path(folder).rglob('*.jpg'):
+                _, img_name = os.path.split(img)
 
-    fig = plt.figure(figsize=(50,50))
-    rows = 2
-    cols = 2
+                rgb_frame = cv2.imread(str(img))
+                res = rgb_frame.shape
+                if res == (1536, 2048, 3):
+                    counter_1536 +=1
+                elif res == (1600, 1800, 3):
+                    counter_1600 +=1
+                elif res == (1024, 1280, 3):
+                    counter_1024 +=1
+                elif res == (480, 720, 3):
+                    counter_480 +=1
 
-    fig.add_subplot(rows, cols, 1)
-    plt.imshow(cv2.cvtColor(ir_edge, cv2.COLOR_BGR2RGB))
-    plt.title('ir_edge')
-
-    fig.add_subplot(rows, cols, 2)
-    plt.imshow(cv2.cvtColor(rgb_edge, cv2.COLOR_BGR2RGB)) # rgb_edge
-    plt.title('rgb_edge')
-
-    fig.add_subplot(rows, cols, 3)
-    plt.imshow(cv2.cvtColor(ir, cv2.COLOR_BGR2RGB))
-    plt.title('IR')
-
-    fig.add_subplot(rows, cols, 4)
-    plt.imshow(cv2.cvtColor(rgb_th3, cv2.COLOR_BGR2RGB)) # th1
-    plt.title('rgb_th3')
-
-    plt.show()
-
-def calc_para(path, imageNumber):
-
-    path_ir = path + 'thermal_8_bit/FLIR_' + imageNumber+ '.jpeg'
-    path_rgb = path + 'RGB/FLIR_' + imageNumber + '.jpg'
-
-    # 0 if ir is tempelate image (Smaller)
-    # 1 if rgb is tempelate image (Smaller)
-    mode = 0
-
-    ir = cv2.imread(path_ir)
-    ir_blur = cv2.GaussianBlur(ir, (5,5), 0)
-
-    ir_low_threshold = 50 # 70 for 1800*1600
-    ir_ratio = 3
-    ir_kernelSize = 3
-    ir_edge = cv2.Canny(ir_blur, ir_low_threshold, ir_low_threshold*ir_ratio, ir_kernelSize) # 75, 170
-    ir_edge = cv2.GaussianBlur(ir_edge, (5,5), 0)
+                if res != previous_res:
+                    file.write(str(res) + '\t' + str(img_name) + '\n')
+                    print((str(res) + '\t' + str(img_name)))
+                        
+                previous_res = res
     
-    ir_y, ir_x, _ = ir.shape
-    aspect_ratio_ir = ir_x/ir_y
+    # method 1
+    else:
+        for root, d, files in os.walk(str(dataset_path), topdown=True):
+            for img in files:
+                # find jpg files
+                if img[-2] == 'p':
+                    path = os.path.join(root, img)
+                    print(path)
 
-    rgb = cv2.imread(path_rgb, 0)
-    rgb_blur = cv2.GaussianBlur(rgb, (5, 5), 0)
+                    rgb_frame = cv2.imread(str(path))
+                    res = rgb_frame.shape
 
-    rgb_th3 = cv2.adaptiveThreshold(rgb, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,19,2)
-    rgb_th3 = cv2.medianBlur(rgb_th3,11)
-    rgb_th3 = cv2.GaussianBlur(rgb_th3, (5, 5), 0)
-    rgb_th3 = cv2.GaussianBlur(rgb_th3, (5, 5), 0)
+                    if res != previous_res:
+                        file.write(str(res) + '\t' + str(path) + '\n')
+                        print((str(res) + '\t' + str(path)))
+                            
+                    previous_res = res    
 
-    rgb_low_threshold = 65
-    rgb_ratio = 3
-    rgb_kernelSize = 3
-    rgb_edge = cv2.Canny(rgb_th3, rgb_low_threshold, rgb_low_threshold*rgb_ratio, rgb_kernelSize) # 100, 150
-    rgb_edge = cv2.GaussianBlur(rgb_edge, (5,5), 0)
+    print(counter_1536, counter_1600, counter_1024, counter_480)
+    file.close()
+
+def res_dictionary(list_name):
+    '''
+    This function read the long list of repeated resolution in the Dataset and
+    print all the unique resolutions with one example (image_name).
+    '''
+    file = open(list_name, "r")
+    lines = file.readlines()
+
+    res_dict = {}
+    for line in lines:
+        frame_height = line.split(')', 1)[0]
+        frame_height += ')'
+        frame_name_index = line.find('.jpg')
+        frame_name = line[frame_name_index-10:frame_name_index+4]
+
+        # If the resolution was not already in the list
+        if res_dict.get(str(frame_height)) == None:
+            res_dict.update({str(frame_height): str(frame_name)})
+
+    for key in res_dict:
+        print(key, '->', res_dict.get(key))
+
+def find_missing_frames(dataset_path, file_name, Sensor):
+    # separate because in video folder the frame numbers start over!
+    img_num_list_val_train = []
+    img_num_list_video = []
+
+    if os.path.isfile(file_name):
+        user_input = input("Are you sure you want to redo and remove the previous rgb_missing_frames? (y/n)\n")
+        if user_input == 'y':
+            os.remove(file_name)
+        if user_input == 'n':
+            exit()
+    file = open(file_name, "a")
+
+    for folder in glob.glob(str(dataset_path) + "/*"):
+        # for train and val folder
+        # separate because in video folder the frame numbers start over!
+        if(folder!= dataset_path + '/video' and Sensor == 'IR'):
+            for img in Path(folder).rglob('*.jpeg'):
+                _, img_name = os.path.split(img)
+                img_num = int(str(img_name)[-10:-5])
+                img_num_list_val_train.append(img_num)
+        elif(folder!= dataset_path + '/video' and Sensor == 'RGB'):
+            for img in Path(folder).rglob('*.jpg'):
+                rgb_frame = cv2.imread(str(img))
+                res = rgb_frame.shape
+                # Only if the resolution is relevant for us
+                if res == (1600, 1800, 3):
+                    _, img_name = os.path.split(img)
+                    img_num = int(str(img_name)[-9:-4])
+                    img_num_list_val_train.append(img_num)
+        # for video folder
+        if(folder == dataset_path + '/video' and Sensor == 'IR'):
+            for img in Path(folder).rglob('*.jpeg'):
+                _, img_name = os.path.split(img)
+                img_num = int(str(img_name)[-10:-5])
+                img_num_list_video.append(img_num)
+        elif(folder == dataset_path + '/video' and Sensor == 'RGB'):
+            for img in Path(folder).rglob('*.jpg'):
+                rgb_frame = cv2.imread(str(img))
+                res = rgb_frame.shape
+                # Only if the resolution is relevant for us
+                if res == (1600, 1800, 3):
+                    _, img_name = os.path.split(img)
+                    img_num = int(str(img_name)[-9:-4])
+                    img_num_list_video.append(img_num)
+    img_num_list_val_train.sort()
+    img_num_list_video.sort()
+
+    file.write('TRAIN_VAL SET:' + '\n')
+
+    for index, num in enumerate(img_num_list_val_train):
+        # 1) index starts from 0 but num from 1
+        # 2) We want to check if the next file is named as the current file
+        if index<len(img_num_list_val_train)-1:
+            if ((num+1)!=img_num_list_val_train[index+1]):
+                file.write(str((num+1)) + '\n')
+                print(index)
     
-    rgb_y, rgb_x = rgb.shape
-    aspect_ration_rgb = rgb_x/rgb_y
+    file.write('END OF TRAIN_VAL SET.' + '\n')
+    file.write('VIDEO SET:' + '\n')
 
-    plot(ir_edge, rgb_edge, ir, rgb_th3)
+    for index, num in enumerate(img_num_list_video):
+        # 1) index starts from 0 but num from 1
+        # 2) We want to check if the next file is named as the current file
+        if index<len(img_num_list_video)-1:
+            if ((num+1)!=img_num_list_video[index+1]):
+                file.write(str((num+1)) + '\n')
+                print(index)
+    file.close()
 
-    scale_w = 1
-    # scale_w = 3
-    size_w = scale_w_glob = max_val_glob = max_loc_glob = 0
+def delete_rgb_missing_frames_from_ir(dataset_path, delete_list):
+    file = open(delete_list, "r")
+    lines = file.readlines()
 
-    # Until both frames have the same width
-    #scale_w < (rgb_y/ir_y)
-    while(size_w < rgb.shape[0]): # rgb.shape[1]
+    for folder in glob.glob(str(dataset_path) + "/*"):
+        if(folder!= dataset_path + '/video'):
+            for img in Path(folder).rglob('*.jpeg'):
+                _, img_name = os.path.split(img)
+                img_num = int(str(img_name)[-10:-5])
+                for line in lines:
+                    if(line.isnumeric and line == img_num):
+                        os.remove(img)
 
-        # 0 if ir is tempelate image (Smaller)
-        # 1 if rgb is tempelate image (Smaller)
-        if(mode==1):
-            temp = rgb.copy()
-            temp_y, temp_x, _ = temp.shape
-            shrink_percentage_w = (temp_x-(temp_x/scale_w))/temp_x
+def delete_rgb_low_res(dataset_path, file_name):
+    if os.path.isfile(file_name):
+        os.remove(file_name)
+    file = open(file_name, "a")
+    for folder in glob.glob(str(dataset_path) + "/*"):
+        # video set is 1800*1600 already
+        if(folder!= dataset_path + '/video'):
+            for img in Path(folder).rglob('*.jpg'):
+                _, img_name = os.path.split(img)
+                img_num = int(str(img_name)[-9:-4])
+                rgb_frame = cv2.imread(str(img))
+                res = rgb_frame.shape
+                # Only if the resolution is relevant for us
+                if res != (1600, 1800, 3):
+                    os.remove(str(img))
+                    file.write(str(img_num) + '\n')
+    file.close()
 
-            size_w = (1-shrink_percentage_w) * temp_x
-            size_h = (1-shrink_percentage_w) * temp_y
-            temp_resized = cv2.resize(temp, (int(size_w), int(size_h)))
+def merge_two_files(file1, file2, merged_file):
+    data = data2 = ""
+  
+    # Reading data from file1
+    with open(file1) as fp:
+        data = fp.read()
+    
+    # Reading data from file2
+    with open(file2) as fp:
+        data2 = fp.read()
+    
+    # Merging 2 files
+    # To add the data of file2 from next line
+    data += "\n"
+    data += data2
+    
+    with open (merged_file, 'w') as fp:
+        fp.write(data)
 
-            res = cv2.matchTemplate(ir, temp_resized, cv2.TM_CCORR_NORMED)
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-            if max_val > max_val_glob:
-                max_val_glob = max_val
-                max_loc_glob = max_loc
-                scale_w_glob = scale_w
-            scale_w += 0.001
+    fp.close()
 
-        elif(mode==0):
-            temp_edge = ir_edge.copy()
-            temp_y, temp_x = temp_edge.shape
-            size_w = temp_x * scale_w
-            size_h = size_w / aspect_ratio_ir
+def delete_frames_ir(dataset_path, delete_list):
+    pass
 
-            # temp_edge = cv2.Canny(cv2.GaussianBlur(temp, (3,3), 0), 75, 170)
-            temp_edge_resized = cv2.resize(temp_edge, (int(size_w), int(size_h)))
-            print(temp_edge_resized.shape)
+def rename_rgb_frames_to_sync(dataset_path, start_frame_num, end_frame_num, gap):
+    done_jobs = 0
+    rgb_folder = dataset_path + '/video/rgb/'
 
-            res = cv2.matchTemplate(rgb_edge, temp_edge_resized, cv2.TM_CCORR_NORMED)
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-            if max_val > max_val_glob:
-                max_val_glob = max_val
-                max_loc_glob = max_loc
-                scale_w_glob = scale_w
-            scale_w += 0.001
+    # +1 because the frame numbering start from 0 but the while loop has to go through 828 images
+    num_of_frame = (end_frame_num - start_frame_num)
+    img_num = end_frame_num
+    while done_jobs <= num_of_frame:
+        img_name = rgb_folder + 'FLIR_video_0' + str(img_num) + '.jpg'
 
-    print(f"scale: {scale_w_glob}")
-    print(f"Offset: {max_loc_glob}")
-    print(f"Val: {max_val_glob}")
+        img_num_new = img_num + gap
+        img_name_new = rgb_folder + 'FLIR_video_0' + str(img_num_new) + '.jpg'
 
-    # pt1 = (int(max_loc_glob[0]), (max_loc_glob[1]))
-    # pt2 = (int(max_loc_glob[0]+scale_w_glob*temp_x), int(max_loc_glob[1]+scale_w_glob*temp_y))
-    # cv2.rectangle(rgb, pt1, pt2, (0, 255, 0), 2)
-    # plt.imshow(cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB),)
-    # plt.show()
-    return max_val_glob, max_loc_glob, scale_w_glob
+        if os.path.exists(img_name_new) == True:
+            raise ValueError('The following file exist, cannot rename!: ' + str(img_name_new))
+        else:
+            os.rename(img_name, img_name_new)
+            print(str(img_num), ' is renamed to: ', str(img_num_new), ' ', done_jobs)
+            
+            # until we reach the start_frame_num
+            done_jobs += 1
+            img_num -= 1
 
+def remove_frames(dataset_path, start_frame_num, end_frame_num, sensor):
+    done_jobs = 0
+    num_of_frame = (end_frame_num - start_frame_num)
+    img_num = end_frame_num
+    folder = ' '
+    while done_jobs <= num_of_frame:
+        if sensor=='rgb':
+            folder = dataset_path + '/video/rgb/'
+            img_name = folder + 'FLIR_video_0' + str(img_num) + '.jpg'
+            os.remove(img_name)
+            print(str(img_name), ' is removed. ', done_jobs)
+            # until we reach the start_frame_num
+            done_jobs += 1
+            img_num -= 1
+        elif sensor=='ir':
+            folder = dataset_path + '/video/thermal_8_bit/'
+            img_name = folder + 'FLIR_video_0' + str(img_num) + '.jpeg'
+            os.remove(img_name)
+            print(str(img_name), ' is removed. ', done_jobs)
+            # until we reach the start_frame_num
+            done_jobs += 1
+            img_num -= 1
+        else:
+            raise ValueError('PLEASE SELECT THE SENSOR ARGUMENT IN THE FUNCTION!')
 
-if __name__ == '__main__':
+def sync_video_set(dataset_path):
+    rgb_folder = dataset_path + '/video/rgb/'
+    ir_folder = dataset_path + '/video/thermal_8_bit/'
 
-    path_train_set = '/home/ub145/Documents/Dataset/FLIR/FLIR/train/'
-    path_val_set = '/home/ub145/Documents/Dataset/FLIR/FLIR/val/'
-    imageNumber = '01656'
+    rename_rgb_frames_to_sync(dataset_path, 2800, 3151, gap=1)
+    rename_rgb_frames_to_sync(dataset_path, 1945, 2772, gap=28)
+    remove_frames(dataset_path, 2800, 2800, 'rgb')
+    remove_frames(dataset_path, 1945, 1972, 'ir')
+    remove_frames(dataset_path, 3153, 3153, 'ir')
 
-    bb_gtruth = get_cords(imageNumber)
+if __name__ == "__main__":
+    pp_dataset_path = "/home/ub145/Documents/Dataset/FLIR/FLIR_PP"
 
-    _, max_loc_glob, scale_w_glob = calc_para(path_train_set, imageNumber)
-    rgb = cv2.imread(path_train_set + 'RGB/FLIR_' + imageNumber + ".jpg")
+    # # find all the different available RGB resolutions
+    # rgb_res_file_name = "./rgb_resolution_list.txt"
+    # res_list_creator(rgb_res_file_name, dataset_path, method=0)
+    # res_dictionary(rgb_res_file_name)
 
-    # if rgb.shape == (1600, 1800, 3):    
-    #     #scale
-    #     scale_w_glob = 2.5 #2.476
-    #     #offset
-    #     max_loc_glob = (148, 155) #(157, 145)
-    # elif rgb.shape == (1536, 2048, 3):
-    #     pass
-    # elif rgb.shape == (1024, 1280, 3):
-    #     pass
-    # elif rgb.shape == (480, 720, 3):
-    #     pass
+    # # find all the missing rgb images
+    # rgb_missing_frame_list = "./missing_frame_list_rgb.txt" # Result: 333 rgb frames are missing
+    # ir_missing_frame_list = "./missing_frame_list_ir.txt" # Result: no IR is missing
+    # find_missing_frames(pp_dataset_path, rgb_missing_frame_list, Sensor='RGB')
 
-    #ir frame size
-    temp_x = 640
-    temp_y = 512
+    # # Sync ir-rgb frames in video set
+    # sync_video_set(pp_dataset_path) # video set is ready for cross labelling
 
-    pt1 = (int(max_loc_glob[0]), (max_loc_glob[1]))
-    pt2 = (int(max_loc_glob[0]+scale_w_glob*temp_x), int(max_loc_glob[1]+scale_w_glob*temp_y))
+    # # delete all the frames which have smaller HFOV than IR
+    # rgb_deleted_low_res = "./deleted_low_res_rgb.txt"
+    # delete_rgb_low_res(pp_dataset_path, rgb_deleted_low_res)
 
-    for bb in bb_gtruth:
-        cv2.rectangle(rgb, pt1, pt2, (0, 255, 0), 2)
+    # # merge all the deleted lists
+    # total_deleted_rgb = './deleted_total_rgb.txt'
+    # merge_two_files(rgb_missing_frame_list, rgb_deleted_low_res, total_deleted_rgb)
 
-    # Fix the scale
-    for bb in bb_gtruth:
-        bb = [int(x * scale_w_glob) for x in bb]
-        bb[0] += max_loc_glob[0]
-        bb[1] += max_loc_glob[1]
+    # # delete all the rgb-deleted frames from IR
 
-        cv2.rectangle(rgb, (bb[0], bb[1]), (bb[0]+bb[2], bb[1]+bb[3]), (0, 0, 255), 2)
+    # # find the parameters to pre-process the RGB images
 
-    plt.imshow(cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB))
-    plt.show()
+    # # Pre-process RGB frames
+
+    # # Check labels on RGB frames
