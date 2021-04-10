@@ -183,41 +183,6 @@ def delete_rgb_lowRes_and_blankFrames(dataset_path, file_name):
                     file.write(str(img_num).zfill(5) + '\n')
     file.close()
 
-def exclude_videoSet_from_file(filename):
-    f = open(filename, 'r')
-    f2 = open('./missing_frame_list_TrainVal_rgb.txt', 'a')
-    lines = f.readlines()
-
-    for line in range(333):
-        try:
-            img_num = int(lines[line])
-            f2.write(str(img_num).zfill(5) + '\n')
-        except:
-            continue
-
-    f.close()
-    f2.close()
-
-def merge_two_files(file1, file2, merged_file):
-    data = data2 = ""
-  
-    # Reading data from file1
-    with open(file1) as fp:
-        data = fp.read()
-    
-    # Reading data from file2
-    with open(file2) as fp:
-        data2 = fp.read()
-    
-    # Merging 2 files
-    # To add the data of file2 from next line
-    data += data2
-    
-    with open (merged_file, 'w') as fp:
-        fp.write(data)
-
-    fp.close()
-
 # both end frame and start frames are also included in the rename range
 def rename_rgb_frames_to_sync(dataset_path, start_frame_num, end_frame_num, added_amount):
     done_jobs = 0
@@ -293,52 +258,21 @@ def remove_frames(dataset_path, start_frame_num, end_frame_num, sensor, which_se
             img_num -= 1
             continue
 
-# def sync_video_set(dataset_path):
-    # # #step 1
-    # remove_frames(dataset_path, 4224, 4224, 'ir')
-    # rename_rgb_frames_to_sync(dataset_path, 3154, 4224, added_amount=-1)
+def sync_video_set(dataset_path):
+    # #step 1
+    remove_frames(dataset_path, 4224, 4224, 'ir', 'video')
+    rename_rgb_frames_to_sync(dataset_path, 3154, 4224, added_amount=-1)
 
-    # # step 2
-    # rename_rgb_frames_to_sync(dataset_path, 2800, 3151, added_amount=1)
-    # remove_frames(dataset_path, 3153, 3153, 'rgb')
-    # remove_frames(dataset_path, 3153, 3153, 'ir')
+    # step 2
+    rename_rgb_frames_to_sync(dataset_path, 2800, 3151, added_amount=1)
+    remove_frames(dataset_path, 3153, 3153, 'rgb', 'video')
+    remove_frames(dataset_path, 3153, 3153, 'ir', 'video')
 
-    # # step 3
-    # rename_rgb_frames_to_sync(dataset_path, 1945, 2772, added_amount=28)
-    # remove_frames(dataset_path, 2800, 2800, 'rgb')
-    # remove_frames(dataset_path, 2800, 2800, 'ir')
-    # remove_frames(dataset_path, 1945, 1972, 'ir')
-
-def delete_rgb_missing_frames_from_ir(dataset_path, delete_list):
-    file = open(delete_list, "r")
-    lines = file.readlines()
-
-    for line in lines:
-        img_num = int(line)
-        # train set
-        if img_num < 8863:
-            img_path = dataset_path + '/train/thermal_8_bit/FLIR_' + str(img_num).zfill(5) + '.jpeg'
-        else : 
-            img_path = dataset_path + '/val/thermal_8_bit/FLIR_' + str(img_num).zfill(5) + '.jpeg'
-        os.remove(img_path)
-        print(str(img_path), ' is removed')
-
-def compare_missing_lists(longer_list, shorter_list, some_left_frames):
-    f1 = open(longer_list, 'r')
-    f2 = open(shorter_list, 'r')
-    f3 = open(some_left_frames, 'a')
-
-    lines1 = f1.readlines()
-    lines2 = f2.readlines()
-
-    for line1 in lines1:
-        match_flag=False
-        for line2 in lines2:
-            if line2 == line1:
-                match_flag=True
-        if match_flag == False:
-            print(line1)
-            f3.write(line1)
+    # step 3
+    rename_rgb_frames_to_sync(dataset_path, 1945, 2772, added_amount=28)
+    remove_frames(dataset_path, 2800, 2800, 'rgb', 'video')
+    remove_frames(dataset_path, 2800, 2800, 'ir', 'video')
+    remove_frames(dataset_path, 1945, 1972, 'ir', 'video')
 
 def sync_train_val_set(dataset_path, file_name):
     rgb_list = []
@@ -363,46 +297,27 @@ def sync_train_val_set(dataset_path, file_name):
                     print(img, ' is removed')
 
 if __name__ == "__main__":
-    pp_dataset_path = "/home/sam/Documents/Dataset/FLIR/FLIR_PP"
+    pp_dataset_path = "/home/ub145/Documents/Dataset/FLIR/FLIR_PP"
 
     # # find all the different available RGB resolutions
     # rgb_res_file_name = "./rgb_resolution_list.txt"
     # res_list_creator(rgb_res_file_name, pp_dataset_path, method=0)
     # res_dictionary(rgb_res_file_name)
 
-    # # find all the missing rgb images
+    # find all the missing rgb images
     # rgb_missing_frame_list = "./missing_frame_list_rgb.txt" # Result: 333 rgb frames are missing
     # ir_missing_frame_list = "./missing_frame_list_ir.txt" # Result: no IR frame is missing
     # find_frame_num_gap(pp_dataset_path, rgb_missing_frame_list, Sensor='RGB')
 
-    # # Sync ir-rgb frames in video set
-    # sync_video_set(pp_dataset_path) # video set is ready for cross labelling
+    # Sync ir-rgb frames in video set
+    sync_video_set(pp_dataset_path) # video set is ready for cross labelling
 
-    # # delete all the frames which have smaller HFOV than IR + all the blank RGB images
-    # rgb_deleted_lowRes_and_blankFrames = "./deleted_lowRes_and_blankFrames_rgb.txt"
-    # delete_rgb_lowRes_and_blankFrames(pp_dataset_path, rgb_deleted_lowRes_and_blankFrames)
+    # delete all the frames which have smaller HFOV than IR + all the blank RGB images
+    rgb_deleted_lowRes_and_blankFrames = "./deleted_lowRes_and_blankFrames_rgb.txt"
+    delete_rgb_lowRes_and_blankFrames(pp_dataset_path, rgb_deleted_lowRes_and_blankFrames)
 
-    # # merge all the deleted lists
-    # exclude_videoSet_from_file('./missing_frame_list_rgb.txt')
-    # merge_two_files('./deleted_lowRes_and_blankFrames_rgb.txt',
-    #                 './missing_frame_list_TrainVal_rgb.txt',
-    #                  './total_deleted_rgb_frames.txt')
-
-    # # delete all the rgb-deleted frames from IR
-    # sync_train_val_set(pp_dataset_path, './final_ir_delete_from_train_val.txt')
-
-    
-    # delete_rgb_missing_frames_from_ir(pp_dataset_path, './total_deleted_rgb_frames.txt')
-    # find_frame_num_gap(pp_dataset_path, 'missing_frame_list_rgb3.txt', 'rgb')
-    # find_frame_num_gap(pp_dataset_path, 'missing_frame_list_ir3.txt', 'ir')
-    # compare_missing_lists('missing_frame_list_ir3.txt', 'missing_frame_list_rgb3.txt', './some_left_frames3.txt')
-    # remove_frames(pp_dataset_path, 1098, 1099, 'ir', 'train')
-    # remove_frames(pp_dataset_path, 1507, 1647, 'ir', 'train')
-    # remove_frames(pp_dataset_path, 5154, 5154, 'ir', 'train')
-    # remove_frames(pp_dataset_path, 5965, 8857, 'ir', 'train')
-
-    # sync_train_val_set(pp_dataset_path, './final_ir_delete_from_train_val.txt')
-
+    # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
+    sync_train_val_set(pp_dataset_path, './final_ir_delete_from_train_val.txt')
 
     # # find the parameters to pre-process the RGB images
 
