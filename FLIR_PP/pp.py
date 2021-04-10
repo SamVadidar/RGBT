@@ -86,7 +86,7 @@ def res_dictionary(list_name):
     for key in res_dict:
         print(key, '->', res_dict.get(key))
 
-def find_missing_frames(dataset_path, file_name, Sensor):
+def find_frame_num_gap(dataset_path, file_name, Sensor, resolution_check=False):
     # separate because in video folder the frame numbers start over!
     img_num_list_val_train = []
     img_num_list_video = []
@@ -102,28 +102,33 @@ def find_missing_frames(dataset_path, file_name, Sensor):
     for folder in glob.glob(str(dataset_path) + "/*"):
         # for train and val folder
         # separate because in video folder the frame numbers start over!
-        if(folder!= dataset_path + '/video' and Sensor == 'IR'):
+        if(folder!= dataset_path + '/video' and Sensor == 'ir'):
             for img in Path(folder).rglob('*.jpeg'):
                 _, img_name = os.path.split(img)
                 img_num = int(str(img_name)[-10:-5])
                 img_num_list_val_train.append(img_num)
-        elif(folder!= dataset_path + '/video' and Sensor == 'RGB'):
+        elif(folder!= dataset_path + '/video' and Sensor == 'rgb'):
             for img in Path(folder).rglob('*.jpg'):
-                rgb_frame = cv2.imread(str(img))
-                res = rgb_frame.shape
-                # Only if the resolution is relevant for us
-                if res == (1600, 1800, 3):
+                if resolution_check == True:
+                    rgb_frame = cv2.imread(str(img))
+                    res = rgb_frame.shape
+                    # Only if the resolution is relevant for us
+                    if res == (1600, 1800, 3):
+                        _, img_name = os.path.split(img)
+                        img_num = int(str(img_name)[-9:-4])
+                        img_num_list_val_train.append(img_num)
+                else:
                     _, img_name = os.path.split(img)
                     img_num = int(str(img_name)[-9:-4])
                     img_num_list_val_train.append(img_num)
         # for video folder
         # All RGB are 1800*1600, therefore we do not check the resolution
-        if(folder == dataset_path + '/video' and Sensor == 'IR'):
+        if(folder == dataset_path + '/video' and Sensor == 'ir'):
             for img in Path(folder).rglob('*.jpeg'):
                 _, img_name = os.path.split(img)
                 img_num = int(str(img_name)[-10:-5])
                 img_num_list_video.append(img_num)
-        elif(folder == dataset_path + '/video' and Sensor == 'RGB'):
+        elif(folder == dataset_path + '/video' and Sensor == 'rgb'):
             for img in Path(folder).rglob('*.jpg'):
                 _, img_name = os.path.split(img)
                 img_num = int(str(img_name)[-9:-4])
@@ -153,36 +158,45 @@ def find_missing_frames(dataset_path, file_name, Sensor):
                 print(index)
     file.close()
 
-def delete_rgb_missing_frames_from_ir(dataset_path, delete_list):
-    file = open(delete_list, "r")
-    lines = file.readlines()
-
-    for folder in glob.glob(str(dataset_path) + "/*"):
-        if(folder!= dataset_path + '/video'):
-            for img in Path(folder).rglob('*.jpeg'):
-                _, img_name = os.path.split(img)
-                img_num = int(str(img_name)[-10:-5])
-                for line in lines:
-                    if(line.isnumeric and line == img_num):
-                        os.remove(img)
-
-def delete_rgb_low_res(dataset_path, file_name):
+def delete_rgb_lowRes_and_blankFrames(dataset_path, file_name):
     if os.path.isfile(file_name):
-        os.remove(file_name)
+        user_input = input("Are you sure you want to redo and remove the previous file? (y/n)\n")
+        if user_input == 'y':
+            os.remove(file_name)
+        else:
+            exit()
     file = open(file_name, "a")
     for folder in glob.glob(str(dataset_path) + "/*"):
-        # video set is 1800*1600 already
+        # video set is 1800*1600 and clean already
         if(folder!= dataset_path + '/video'):
             for img in Path(folder).rglob('*.jpg'):
                 _, img_name = os.path.split(img)
                 img_num = int(str(img_name)[-9:-4])
+                img_size = os.path.getsize(str(img))
                 rgb_frame = cv2.imread(str(img))
                 res = rgb_frame.shape
                 # Only if the resolution is relevant for us
-                if res != (1600, 1800, 3):
+                # Or size is less than 60kB
+                if res != (1600, 1800, 3) or img_size<60000:
                     os.remove(str(img))
-                    file.write(str(img_num) + '\n')
+                    print(str(img), ' is removed.')
+                    file.write(str(img_num).zfill(5) + '\n')
     file.close()
+
+def exclude_videoSet_from_file(filename):
+    f = open(filename, 'r')
+    f2 = open('./missing_frame_list_TrainVal_rgb.txt', 'a')
+    lines = f.readlines()
+
+    for line in range(333):
+        try:
+            img_num = int(lines[line])
+            f2.write(str(img_num).zfill(5) + '\n')
+        except:
+            continue
+
+    f.close()
+    f2.close()
 
 def merge_two_files(file1, file2, merged_file):
     data = data2 = ""
@@ -197,16 +211,12 @@ def merge_two_files(file1, file2, merged_file):
     
     # Merging 2 files
     # To add the data of file2 from next line
-    data += "\n"
     data += data2
     
     with open (merged_file, 'w') as fp:
         fp.write(data)
 
     fp.close()
-
-def delete_frames_ir(dataset_path, delete_list):
-    pass
 
 # both end frame and start frames are also included in the rename range
 def rename_rgb_frames_to_sync(dataset_path, start_frame_num, end_frame_num, added_amount):
@@ -241,32 +251,49 @@ def rename_rgb_frames_to_sync(dataset_path, start_frame_num, end_frame_num, adde
             else:
                 img_num += 1
 
-def remove_frames(dataset_path, start_frame_num, end_frame_num, sensor):
-    done_jobs = 0
+def remove_frames(dataset_path, start_frame_num, end_frame_num, sensor, which_set):
+    done_loops = 0
     num_of_frame = (end_frame_num - start_frame_num)
     img_num = end_frame_num
     folder = ' '
-    while done_jobs <= num_of_frame:
-        if sensor=='rgb':
+    while done_loops <= num_of_frame:
+        # for Video set
+        if sensor=='rgb' and which_set == 'video':
             folder = dataset_path + '/video/rgb/'
-            img_name = folder + 'FLIR_video_0' + str(img_num) + '.jpg'
-            os.remove(img_name)
-            print(str(img_name), ' is removed. ', done_jobs)
-            # until we reach the start_frame_num
-            done_jobs += 1
-            img_num -= 1
-        elif sensor=='ir':
+            img_name = folder + 'FLIR_video_' + str(img_num).zfill(5) + '.jpg'
+        elif sensor=='ir' and which_set == 'video':
             folder = dataset_path + '/video/thermal_8_bit/'
-            img_name = folder + 'FLIR_video_0' + str(img_num) + '.jpeg'
-            os.remove(img_name)
-            print(str(img_name), ' is removed. ', done_jobs)
-            # until we reach the start_frame_num
-            done_jobs += 1
-            img_num -= 1
+            img_name = folder + 'FLIR_video_' + str(img_num).zfill(5)  + '.jpeg'
+        # for Train
+        elif sensor=='rgb' and which_set == 'train':
+            folder = dataset_path + '/train/rgb/'
+            img_name = folder + 'FLIR_' + str(img_num).zfill(5)  + '.jpg'
+        elif sensor == 'ir' and which_set == 'train':
+            folder = dataset_path + '/train/thermal_8_bit/'
+            img_name = folder + 'FLIR_' + str(img_num).zfill(5)  + '.jpeg'
+        # for Val
+        elif sensor=='rgb' and which_set != 'val':
+            folder = dataset_path + '/val/rgb/'
+            img_name = folder + 'FLIR_' + str(img_num).zfill(5)  + '.jpg'
+        elif sensor == 'ir' and which_set != 'val':
+            folder = dataset_path + '/val/thermal_8_bit/'
+            img_name = folder + 'FLIR_' + str(img_num).zfill(5)  + '.jpeg'
         else:
-            raise ValueError('PLEASE SELECT THE LAST ARGUMENT OF THE FUNCTION!')
+            raise ValueError('Something went wrong in remove_frames function!')
+        try:
+            os.remove(img_name)
+            print(str(img_name), ' is removed. ', done_loops)
+            # until we reach the start_frame_num
+            done_loops += 1
+            img_num -= 1
 
-def sync_video_set(dataset_path):
+        except:
+            # until we reach the start_frame_num
+            done_loops += 1
+            img_num -= 1
+            continue
+
+# def sync_video_set(dataset_path):
     # # #step 1
     # remove_frames(dataset_path, 4224, 4224, 'ir')
     # rename_rgb_frames_to_sync(dataset_path, 3154, 4224, added_amount=-1)
@@ -282,6 +309,59 @@ def sync_video_set(dataset_path):
     # remove_frames(dataset_path, 2800, 2800, 'ir')
     # remove_frames(dataset_path, 1945, 1972, 'ir')
 
+def delete_rgb_missing_frames_from_ir(dataset_path, delete_list):
+    file = open(delete_list, "r")
+    lines = file.readlines()
+
+    for line in lines:
+        img_num = int(line)
+        # train set
+        if img_num < 8863:
+            img_path = dataset_path + '/train/thermal_8_bit/FLIR_' + str(img_num).zfill(5) + '.jpeg'
+        else : 
+            img_path = dataset_path + '/val/thermal_8_bit/FLIR_' + str(img_num).zfill(5) + '.jpeg'
+        os.remove(img_path)
+        print(str(img_path), ' is removed')
+
+def compare_missing_lists(longer_list, shorter_list, some_left_frames):
+    f1 = open(longer_list, 'r')
+    f2 = open(shorter_list, 'r')
+    f3 = open(some_left_frames, 'a')
+
+    lines1 = f1.readlines()
+    lines2 = f2.readlines()
+
+    for line1 in lines1:
+        match_flag=False
+        for line2 in lines2:
+            if line2 == line1:
+                match_flag=True
+        if match_flag == False:
+            print(line1)
+            f3.write(line1)
+
+def sync_train_val_set(dataset_path, file_name):
+    rgb_list = []
+    f = open(file_name, 'a')
+
+    for folder in glob.glob(str(dataset_path) + "/*"):
+        if(folder!= dataset_path + '/video'):
+            for img in Path(folder).rglob('*.jpg'):
+                _, img_name = os.path.split(img)
+                img_num = int(str(img_name)[-9:-4])
+                rgb_list.append(str(img_num).zfill(5))
+
+    for folder in glob.glob(str(dataset_path) + "/*"):
+        if(folder!= dataset_path + '/video'):
+            for img in Path(folder).rglob('*.jpeg'):
+                _, ir_name = os.path.split(img)
+                ir_num = int(str(ir_name)[-10:-5])
+                ir_num = str(ir_num).zfill(5)
+                if not ir_num in rgb_list:
+                    os.remove(img)
+                    f.write(ir_num + '\n')
+                    print(img, ' is removed')
+
 if __name__ == "__main__":
     pp_dataset_path = "/home/sam/Documents/Dataset/FLIR/FLIR_PP"
 
@@ -293,20 +373,36 @@ if __name__ == "__main__":
     # # find all the missing rgb images
     # rgb_missing_frame_list = "./missing_frame_list_rgb.txt" # Result: 333 rgb frames are missing
     # ir_missing_frame_list = "./missing_frame_list_ir.txt" # Result: no IR frame is missing
-    # find_missing_frames(pp_dataset_path, rgb_missing_frame_list, Sensor='RGB')
+    # find_frame_num_gap(pp_dataset_path, rgb_missing_frame_list, Sensor='RGB')
 
-    # Sync ir-rgb frames in video set
-    sync_video_set(pp_dataset_path) # video set is ready for cross labelling
+    # # Sync ir-rgb frames in video set
+    # sync_video_set(pp_dataset_path) # video set is ready for cross labelling
 
-    # # delete all the frames which have smaller HFOV than IR
-    # rgb_deleted_low_res = "./deleted_low_res_rgb.txt"
-    # delete_rgb_low_res(pp_dataset_path, rgb_deleted_low_res)
+    # # delete all the frames which have smaller HFOV than IR + all the blank RGB images
+    # rgb_deleted_lowRes_and_blankFrames = "./deleted_lowRes_and_blankFrames_rgb.txt"
+    # delete_rgb_lowRes_and_blankFrames(pp_dataset_path, rgb_deleted_lowRes_and_blankFrames)
 
     # # merge all the deleted lists
-    # total_deleted_rgb = './deleted_total_rgb.txt'
-    # merge_two_files(rgb_missing_frame_list, rgb_deleted_low_res, total_deleted_rgb)
+    # exclude_videoSet_from_file('./missing_frame_list_rgb.txt')
+    # merge_two_files('./deleted_lowRes_and_blankFrames_rgb.txt',
+    #                 './missing_frame_list_TrainVal_rgb.txt',
+    #                  './total_deleted_rgb_frames.txt')
 
     # # delete all the rgb-deleted frames from IR
+    # sync_train_val_set(pp_dataset_path, './final_ir_delete_from_train_val.txt')
+
+    
+    # delete_rgb_missing_frames_from_ir(pp_dataset_path, './total_deleted_rgb_frames.txt')
+    # find_frame_num_gap(pp_dataset_path, 'missing_frame_list_rgb3.txt', 'rgb')
+    # find_frame_num_gap(pp_dataset_path, 'missing_frame_list_ir3.txt', 'ir')
+    # compare_missing_lists('missing_frame_list_ir3.txt', 'missing_frame_list_rgb3.txt', './some_left_frames3.txt')
+    # remove_frames(pp_dataset_path, 1098, 1099, 'ir', 'train')
+    # remove_frames(pp_dataset_path, 1507, 1647, 'ir', 'train')
+    # remove_frames(pp_dataset_path, 5154, 5154, 'ir', 'train')
+    # remove_frames(pp_dataset_path, 5965, 8857, 'ir', 'train')
+
+    # sync_train_val_set(pp_dataset_path, './final_ir_delete_from_train_val.txt')
+
 
     # # find the parameters to pre-process the RGB images
 
