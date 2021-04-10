@@ -1,4 +1,4 @@
 (1600, 1800, 3) -> FLIR_09482.jpg	Total = 10322	RGB_FOV > IR_FOV
 (1536, 2048, 3) -> FLIR_08455.jpg	Total = 1973	RGB_FOV < IR_FOV
 (1024, 1280, 3) -> FLIR_08638.jpg	Total = 1401	RGB_FOV < IR_FOV
-(480, 720, 3) -> FLIR_01632.jpg	Total = 119	RGB_FOV > IR_FOV
+(480, 720, 3)   -> FLIR_01632.jpg	Total = 119	    RGB_FOV > IR_FOV

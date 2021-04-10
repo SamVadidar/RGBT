@@ -45,7 +45,7 @@ def res_list_creator(list_name, dataset_path, method=0):
     
     # method 1
     else:
-        for root, d, files in os.walk(str(dataset_path), topdown=True):
+        for root, _, files in os.walk(str(dataset_path), topdown=True):
             for img in files:
                 # find jpg files
                 if img[-2] == 'p':
@@ -117,6 +117,7 @@ def find_missing_frames(dataset_path, file_name, Sensor):
                     img_num = int(str(img_name)[-9:-4])
                     img_num_list_val_train.append(img_num)
         # for video folder
+        # All RGB are 1800*1600, therefore we do not check the resolution
         if(folder == dataset_path + '/video' and Sensor == 'IR'):
             for img in Path(folder).rglob('*.jpeg'):
                 _, img_name = os.path.split(img)
@@ -124,13 +125,9 @@ def find_missing_frames(dataset_path, file_name, Sensor):
                 img_num_list_video.append(img_num)
         elif(folder == dataset_path + '/video' and Sensor == 'RGB'):
             for img in Path(folder).rglob('*.jpg'):
-                rgb_frame = cv2.imread(str(img))
-                res = rgb_frame.shape
-                # Only if the resolution is relevant for us
-                if res == (1600, 1800, 3):
-                    _, img_name = os.path.split(img)
-                    img_num = int(str(img_name)[-9:-4])
-                    img_num_list_video.append(img_num)
+                _, img_name = os.path.split(img)
+                img_num = int(str(img_name)[-9:-4])
+                img_num_list_video.append(img_num)
     img_num_list_val_train.sort()
     img_num_list_video.sort()
 
@@ -141,7 +138,7 @@ def find_missing_frames(dataset_path, file_name, Sensor):
         # 2) We want to check if the next file is named as the current file
         if index<len(img_num_list_val_train)-1:
             if ((num+1)!=img_num_list_val_train[index+1]):
-                file.write(str((num+1)) + '\n')
+                file.write(str((num+1)).zfill(5) + '\n')
                 print(index)
     
     file.write('END OF TRAIN_VAL SET.' + '\n')
@@ -152,7 +149,7 @@ def find_missing_frames(dataset_path, file_name, Sensor):
         # 2) We want to check if the next file is named as the current file
         if index<len(img_num_list_video)-1:
             if ((num+1)!=img_num_list_video[index+1]):
-                file.write(str((num+1)) + '\n')
+                file.write(str((num+1)).zfill(5) + '\n')
                 print(index)
     file.close()
 
@@ -211,28 +208,38 @@ def merge_two_files(file1, file2, merged_file):
 def delete_frames_ir(dataset_path, delete_list):
     pass
 
-def rename_rgb_frames_to_sync(dataset_path, start_frame_num, end_frame_num, gap):
+# both end frame and start frames are also included in the rename range
+def rename_rgb_frames_to_sync(dataset_path, start_frame_num, end_frame_num, added_amount):
     done_jobs = 0
     rgb_folder = dataset_path + '/video/rgb/'
 
-    # +1 because the frame numbering start from 0 but the while loop has to go through 828 images
     num_of_frame = (end_frame_num - start_frame_num)
-    img_num = end_frame_num
-    while done_jobs <= num_of_frame:
-        img_name = rgb_folder + 'FLIR_video_0' + str(img_num) + '.jpg'
 
-        img_num_new = img_num + gap
-        img_name_new = rgb_folder + 'FLIR_video_0' + str(img_num_new) + '.jpg'
+    # if we rename to increase start from the last image
+    # else start from the first to decrease the file string number
+    # to avoid conflict of two files with same name
+    if added_amount>0:
+        img_num = end_frame_num
+    else:
+        img_num = start_frame_num
+
+    while done_jobs <= num_of_frame:
+        img_name = rgb_folder + 'FLIR_video_' + str(img_num).zfill(5) + '.jpg'
+
+        img_num_new = img_num + added_amount
+        img_name_new = rgb_folder + 'FLIR_video_' + str(img_num_new).zfill(5) + '.jpg'
 
         if os.path.exists(img_name_new) == True:
             raise ValueError('The following file exist, cannot rename!: ' + str(img_name_new))
         else:
             os.rename(img_name, img_name_new)
-            print(str(img_num), ' is renamed to: ', str(img_num_new), ' ', done_jobs)
+            print(str(img_num).zfill(5), ' is renamed to: ', str(img_num_new).zfill(5), ' ', done_jobs)
             
-            # until we reach the start_frame_num
             done_jobs += 1
-            img_num -= 1
+            if added_amount>0:
+                img_num -= 1
+            else:
+                img_num += 1
 
 def remove_frames(dataset_path, start_frame_num, end_frame_num, sensor):
     done_jobs = 0
@@ -257,33 +264,39 @@ def remove_frames(dataset_path, start_frame_num, end_frame_num, sensor):
             done_jobs += 1
             img_num -= 1
         else:
-            raise ValueError('PLEASE SELECT THE SENSOR ARGUMENT IN THE FUNCTION!')
+            raise ValueError('PLEASE SELECT THE LAST ARGUMENT OF THE FUNCTION!')
 
 def sync_video_set(dataset_path):
-    rgb_folder = dataset_path + '/video/rgb/'
-    ir_folder = dataset_path + '/video/thermal_8_bit/'
+    # # #step 1
+    # remove_frames(dataset_path, 4224, 4224, 'ir')
+    # rename_rgb_frames_to_sync(dataset_path, 3154, 4224, added_amount=-1)
 
-    rename_rgb_frames_to_sync(dataset_path, 2800, 3151, gap=1)
-    rename_rgb_frames_to_sync(dataset_path, 1945, 2772, gap=28)
-    remove_frames(dataset_path, 2800, 2800, 'rgb')
-    remove_frames(dataset_path, 1945, 1972, 'ir')
-    remove_frames(dataset_path, 3153, 3153, 'ir')
+    # # step 2
+    # rename_rgb_frames_to_sync(dataset_path, 2800, 3151, added_amount=1)
+    # remove_frames(dataset_path, 3153, 3153, 'rgb')
+    # remove_frames(dataset_path, 3153, 3153, 'ir')
+
+    # # step 3
+    # rename_rgb_frames_to_sync(dataset_path, 1945, 2772, added_amount=28)
+    # remove_frames(dataset_path, 2800, 2800, 'rgb')
+    # remove_frames(dataset_path, 2800, 2800, 'ir')
+    # remove_frames(dataset_path, 1945, 1972, 'ir')
 
 if __name__ == "__main__":
-    pp_dataset_path = "/home/ub145/Documents/Dataset/FLIR/FLIR_PP"
+    pp_dataset_path = "/home/sam/Documents/Dataset/FLIR/FLIR_PP"
 
     # # find all the different available RGB resolutions
     # rgb_res_file_name = "./rgb_resolution_list.txt"
-    # res_list_creator(rgb_res_file_name, dataset_path, method=0)
+    # res_list_creator(rgb_res_file_name, pp_dataset_path, method=0)
     # res_dictionary(rgb_res_file_name)
 
     # # find all the missing rgb images
     # rgb_missing_frame_list = "./missing_frame_list_rgb.txt" # Result: 333 rgb frames are missing
-    # ir_missing_frame_list = "./missing_frame_list_ir.txt" # Result: no IR is missing
+    # ir_missing_frame_list = "./missing_frame_list_ir.txt" # Result: no IR frame is missing
     # find_missing_frames(pp_dataset_path, rgb_missing_frame_list, Sensor='RGB')
 
-    # # Sync ir-rgb frames in video set
-    # sync_video_set(pp_dataset_path) # video set is ready for cross labelling
+    # Sync ir-rgb frames in video set
+    sync_video_set(pp_dataset_path) # video set is ready for cross labelling
 
     # # delete all the frames which have smaller HFOV than IR
     # rgb_deleted_low_res = "./deleted_low_res_rgb.txt"
