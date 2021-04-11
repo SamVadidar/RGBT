@@ -4,7 +4,7 @@ import time
 
 from gt_bb_cords import get_cords
 
-DATASET_PATH = "/home/sam/Documents/Dataset/FLIR/FLIR_PP"
+DATASET_PATH = "/home/ub145/Documents/Dataset/FLIR/FLIR_PP"
 
 def plot(ir_edge, rgb_edge, ir, rgb_th3):
 

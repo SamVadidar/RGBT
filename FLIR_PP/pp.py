@@ -310,7 +310,7 @@ def crop_and_save(dataset_path, history_file_path):
     total_file_num = sum([len(files) for r, d, files in os.walk(dataset_path)])
     iteration = 0
 
-    if os.path.dirname(rgb_cropped_folder):
+    if os.path.isdir(rgb_cropped_folder):
         user_input = input("Are you sure you want to redo the crop and save process? (y/n)\n")
         if user_input == 'y':
             shutil.rmtree(rgb_cropped_folder)
@@ -320,6 +320,10 @@ def crop_and_save(dataset_path, history_file_path):
         else:
             print('Process is cancelled')
             exit()
+    else:
+        os.mkdir(rgb_cropped_folder)
+        f = open(history_file_path, 'a')
+
     for folder in glob.glob(str(dataset_path) + '/*'):
         for img in Path(folder).rglob('*.jpg'):
             print_progress(iteration, total_file_num)
