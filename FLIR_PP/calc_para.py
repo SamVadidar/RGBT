@@ -128,8 +128,8 @@ def calc_para(path, imageNumber):
 
 if __name__ == '__main__':
 
-    path_train_set = '/home/ub145/Documents/Dataset/FLIR/FLIR/train/'
-    path_val_set = '/home/ub145/Documents/Dataset/FLIR/FLIR/val/'
+    path_train_set = '/home/ub145/Documents/Dataset/FLIR/FLIR_PP/train/'
+    path_val_set = '/home/ub145/Documents/Dataset/FLIR/FLIR_PP/val/'
     imageNumber = '01656'
 
     bb_gtruth = get_cords(imageNumber)

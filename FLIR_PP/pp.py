@@ -5,6 +5,9 @@ import pickle
 from pathlib import Path
 import shutil
 
+from align_IR2RGB import calc_para
+from align_IR2RGB import DATASET_PATH
+from crop_RGB2IR import crop_res_1800_1600
 
 def res_list_creator(list_name, dataset_path, method=0):
     '''
@@ -259,7 +262,7 @@ def remove_frames(dataset_path, start_frame_num, end_frame_num, sensor, which_se
             continue
 
 def sync_video_set(dataset_path):
-    # #step 1
+    # step 1
     remove_frames(dataset_path, 4224, 4224, 'ir', 'video')
     rename_rgb_frames_to_sync(dataset_path, 3154, 4224, added_amount=-1)
 
@@ -296,31 +299,64 @@ def sync_train_val_set(dataset_path, file_name):
                     f.write(ir_num + '\n')
                     print(img, ' is removed')
 
+def print_progress(iteration, total_file_num, decimals = 1, length = 100, fill = '#', prefix = 'Preprocessing:', suffix = '', print_end = '\r'):
+    percent = ("{0:." + str(decimals) + "f}").format(iteration * 100 / float(total_file_num))
+    filledLength = int(length * iteration // total_file_num)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print('\r%s [%s] %s%% %s' % (prefix, bar, percent, suffix), end = print_end)
+
+def crop_and_save(dataset_path, history_file_path):
+    rgb_cropped_folder = dataset_path + '/rgb_cropped'
+    total_file_num = sum([len(files) for r, d, files in os.walk(dataset_path)])
+    iteration = 0
+
+    if os.path.dirname(rgb_cropped_folder):
+        user_input = input("Are you sure you want to redo the crop and save process? (y/n)\n")
+        if user_input == 'y':
+            shutil.rmtree(rgb_cropped_folder)
+            os.mkdir(rgb_cropped_folder)
+            os.remove(history_file_path)
+            f = open(history_file_path, 'a')
+        else:
+            print('Process is cancelled')
+            exit()
+    for folder in glob.glob(str(dataset_path) + '/*'):
+        for img in Path(folder).rglob('*.jpg'):
+            print_progress(iteration, total_file_num)
+            iteration += 1
+
+            _, rgb_name = os.path.split(img)
+            rgb_num = int(str(rgb_name)[-9:-4])
+            ir_matched_path = os.path.join(dataset_path, folder) + '/thermal_8_bit/' + rgb_name[:-3] + 'jpeg'
+            max_val_glob, max_loc_glob, scale_w_glob = calc_para(str(ir_matched_path), str(img))
+            f.write(str(rgb_name) + '\t' + str(scale_w_glob) + '\t' + str(max_loc_glob) + '\t' + str(max_val_glob) + '\n')
+            crop_res_1800_1600(str(img), os.path.join(rgb_cropped_folder, rgb_name), scale_w_glob, max_loc_glob)
+    f.close()
+
+
 if __name__ == "__main__":
-    pp_dataset_path = "/home/ub145/Documents/Dataset/FLIR/FLIR_PP"
 
     # # find all the different available RGB resolutions
     # rgb_res_file_name = "./rgb_resolution_list.txt"
-    # res_list_creator(rgb_res_file_name, pp_dataset_path, method=0)
+    # res_list_creator(rgb_res_file_name, DATASET_PATH, method=0)
     # res_dictionary(rgb_res_file_name)
 
     # find all the missing rgb images
     # rgb_missing_frame_list = "./missing_frame_list_rgb.txt" # Result: 333 rgb frames are missing
     # ir_missing_frame_list = "./missing_frame_list_ir.txt" # Result: no IR frame is missing
-    # find_frame_num_gap(pp_dataset_path, rgb_missing_frame_list, Sensor='RGB')
+    # find_frame_num_gap(DATASET_PATH, rgb_missing_frame_list, Sensor='RGB')
 
-    # Sync ir-rgb frames in video set
-    sync_video_set(pp_dataset_path) # video set is ready for cross labelling
+    # # Sync ir-rgb frames in video set
+    # sync_video_set(DATASET_PATH) # video set is ready for cross labelling
 
-    # delete all the frames which have smaller HFOV than IR + all the blank RGB images
-    rgb_deleted_lowRes_and_blankFrames = "./deleted_lowRes_and_blankFrames_rgb.txt"
-    delete_rgb_lowRes_and_blankFrames(pp_dataset_path, rgb_deleted_lowRes_and_blankFrames)
+    # # delete all the frames which have smaller HFOV than IR + all the blank RGB images
+    # rgb_deleted_lowRes_and_blankFrames = "./deleted_lowRes_and_blankFrames_rgb.txt"
+    # delete_rgb_lowRes_and_blankFrames(DATASET_PATH, rgb_deleted_lowRes_and_blankFrames)
 
-    # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
-    sync_train_val_set(pp_dataset_path, './final_ir_delete_from_train_val.txt')
+    # # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
+    # sync_train_val_set(DATASET_PATH, './final_ir_delete_from_train_val.txt')
 
-    # # find the parameters to pre-process the RGB images
-
-    # # Pre-process RGB frames
+    # Pre-process RGB frames - Crop and Save
+    crop_and_save(DATASET_PATH, './save_and_crop_history.txt')
 
     # # Check labels on RGB frames

@@ -20,7 +20,7 @@ def get_cords(image_number):
 
     imageNumber = "00051"
     bb_gtruth_00051 = []
-    bb_gtruth_00051.append([28, 224, 56, 39])
+    bb_gtruth_00051.append([28, 244, 56, 39])
     bb_gtruth_00051.append([98, 245, 29, 23])
     bb_gtruth_00051.append([4, 240, 32, 28])
 
@@ -31,6 +31,11 @@ def get_cords(image_number):
     imageNumber = "01655"
     bb_gtruth_01655 = []
     bb_gtruth_01655.append([1, 228, 39, 59])
+
+    imageNumber = '03670'
+    bb_gtruth_03670 = []
+    bb_gtruth_03670.append([46, 250, 170, 69])
+    bb_gtruth_03670.append([7, 252, 74, 44])
 
     imageNumber = "04423"
     bb_gtruth_04423 = []
@@ -122,6 +127,7 @@ def get_cords(image_number):
         '00051': bb_gtruth_00051,
         '00070': bb_gtruth_00070,
         '01655': bb_gtruth_01655,
+        '03670': bb_gtruth_03670, # night
         '04423': bb_gtruth_04423,
         '04431': bb_gtruth_04431,
         '04433': bb_gtruth_04433,
