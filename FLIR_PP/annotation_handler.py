@@ -7,8 +7,12 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 from align_IR2RGB import DATASET_PATH
-from pp import print_progress
 
+def print_progress(iteration, total_file_num, decimals = 1, length = 100, fill = '#', prefix = 'Processing:', suffix = '', print_end = '\r'):
+    percent = ("{0:." + str(decimals) + "f}").format(iteration * 100 / float(total_file_num))
+    filledLength = int(length * iteration // total_file_num)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print('\r%s [%s] %s%% %s' % (prefix, bar, percent, suffix), end = print_end)
 
 def count_objects(dataset_path, set_folder):
     json_path = os.path.join(dataset_path, set_folder) + '/thermal_annotations.json'
@@ -40,6 +44,16 @@ def count_objects(dataset_path, set_folder):
 
     return person_obj, bicycle_obj, car_obj, iscrowd_obj
 
+def count_objects_all(dataset_path):
+    person_obj_val, bicycle_obj_val, car_obj_val, iscrowd_obj_val = count_objects(dataset_path, 'val')
+    person_obj_train, bicycle_obj_train, car_obj_train, iscrowd_obj_train = count_objects(dataset_path, 'train')
+    person_obj_video, bicycle_obj_video, car_obj_video, iscrowd_obj_video = count_objects(dataset_path, 'video')
+
+    person_obj_total = person_obj_val + person_obj_train + person_obj_video
+    bicycle_obj_total = bicycle_obj_val + bicycle_obj_train + bicycle_obj_video
+    car_obj_total = car_obj_val + car_obj_train + car_obj_video
+    print(person_obj_total, bicycle_obj_total, car_obj_total)
+
 def draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_data):
     rgb_cropped_set_folder = os.path.join(dataset_path, set_folder) + '/RGB_cropped'
     total_file_num = sum([len(files) for r, d, files in os.walk(rgb_cropped_set_folder)])
@@ -54,6 +68,7 @@ def draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_d
         iteration += 1
         scale_fact = 0
 
+        rgb = cv2.imread(str(img))
         _, rgb_name = os.path.split(img)
         rgb_num = int(str(rgb_name)[-9:-4])
 
@@ -65,26 +80,23 @@ def draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_d
 
         # get the bbox cords from json file
         for i in json_data['annotations']:
+            # frames in val folder start from 8863, but in json file from 0!
             if set_folder == 'val':
                 if int(i['image_id']) == rgb_num - 8863 :
-                    # print(int(i['image_id']))
                     bbox = i['bbox']
-                    bbox = [int(bb * scale_fact) for bb in bbox]
-                    # bb *= scale_fact
-                    rgb = cv2.imread(str(img))
+                    # bbox = [int(bb * scale_fact) for bb in bbox]
                     cv2.rectangle(rgb, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), (0, 0, 255), 2)
-                    # plt.imshow(cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB))
-                    # plt.show()
+
             else:
+                # frames start from 1 but json file from 0
                 if int(i['image_id']) == rgb_num -1 :
                     bbox = i['bbox']
-                    bbox = [int(bb * scale_fact) for bb in bbox]
-                    rgb = cv2.imread(str(img))
+                    # bbox = [int(bb * scale_fact) for bb in bbox]
                     cv2.rectangle(rgb, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), (0, 0, 255), 2)
-                    # plt.imshow(cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB))
-                    # plt.show()
-        cv2.imwrite(str(os.path.join(rgb_cropped_annotated_folder, rgb_name)), rgb)
 
+        cv2.imwrite(str(os.path.join(rgb_cropped_annotated_folder, rgb_name)), rgb)
+        # plt.imshow(cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB))
+        # plt.show()
 
 # train/val/video set as second argument
 def draw_rgb_annotation(dataset_path, set_folder):
@@ -109,15 +121,5 @@ def draw_rgb_annotation(dataset_path, set_folder):
 
 
 if __name__ == '__main__':
-    # draw_rgb_annotation(DATASET_PATH, 'val')
-    person_obj_val, bicycle_obj_val, car_obj_val, iscrowd_obj_val = count_objects(DATASET_PATH, 'val')
-    person_obj_train, bicycle_obj_train, car_obj_train, iscrowd_obj_train = count_objects(DATASET_PATH, 'train')
-    person_obj_video, bicycle_obj_video, car_obj_video, iscrowd_obj_video = count_objects(DATASET_PATH, 'video')
-
-    person_obj_total = person_obj_val + person_obj_train + person_obj_video
-    bicycle_obj_total = bicycle_obj_val + bicycle_obj_train + bicycle_obj_video
-    car_obj_total = car_obj_val + car_obj_train + car_obj_video
-    print(person_obj_total, bicycle_obj_total, car_obj_total)
-
-    # TODO
-    # use all the cords of bb not only one
+    draw_rgb_annotation(DATASET_PATH, 'val')
+    # count_objects_all(DATASET_PATH)

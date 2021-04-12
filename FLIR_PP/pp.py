@@ -7,7 +7,9 @@ import shutil
 
 from align_IR2RGB import calc_para
 from align_IR2RGB import DATASET_PATH
-from crop_RGB2IR import crop_res_1800_1600
+from crop_RGB2IR import crop_resolution_1800_1600
+from annotation_handler import draw_rgb_annotation
+from annotation_handler import print_progress
 
 def res_list_creator(list_name, dataset_path, method=0):
     '''
@@ -299,23 +301,16 @@ def sync_train_val_set(dataset_path, file_name):
                     f.write(ir_num + '\n')
                     print(img, ' is removed')
 
-def print_progress(iteration, total_file_num, decimals = 1, length = 100, fill = '#', prefix = 'Preprocessing:', suffix = '', print_end = '\r'):
-    percent = ("{0:." + str(decimals) + "f}").format(iteration * 100 / float(total_file_num))
-    filledLength = int(length * iteration // total_file_num)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print('\r%s [%s] %s%% %s' % (prefix, bar, percent, suffix), end = print_end)
-
-def crop_and_save(dataset_path, history_file_path):
+def crop_resize_save(dataset_path, history_file_path, calc_parameter = False):
     rgb_cropped_folder = dataset_path + '/rgb_cropped'
-    total_file_num = sum([len(files) for r, d, files in os.walk(dataset_path)])
+    total_file_num = int(sum([len(files) for r, d, files in os.walk(dataset_path)])*0.5) # 0.5, since each image pair is one iteration
     iteration = 0
 
     if os.path.isdir(rgb_cropped_folder):
-        user_input = input("Are you sure you want to redo the 'crop and save' process? (y/n)\n")
+        user_input = input("Are you sure you want to redo the 'crop, resize and save' process? (y/n)\n")
         if user_input == 'y':
             shutil.rmtree(rgb_cropped_folder)
             os.mkdir(rgb_cropped_folder)
-            os.remove(history_file_path)
             f = open(history_file_path, 'a')
         else:
             print('Process is cancelled')
@@ -332,9 +327,14 @@ def crop_and_save(dataset_path, history_file_path):
             _, rgb_name = os.path.split(img)
             rgb_num = int(str(rgb_name)[-9:-4])
             ir_matched_path = os.path.join(dataset_path, folder) + '/thermal_8_bit/' + rgb_name[:-3] + 'jpeg'
-            max_val_glob, max_loc_glob, scale_w_glob = calc_para(str(ir_matched_path), str(img))
-            f.write(str(rgb_name) + '\t' + str(scale_w_glob) + '\t' + str(max_loc_glob) + '\t' + str(max_val_glob) + '\n')
-            crop_res_1800_1600(str(img), os.path.join(rgb_cropped_folder, rgb_name), scale_w_glob, max_loc_glob)
+            if calc_parameter == True:
+                max_val_glob, max_loc_glob, scale_w_glob = calc_para(str(ir_matched_path), str(img))
+                f.write(str(rgb_name) + '\t' + str(scale_w_glob) + '\t' + str(max_loc_glob) + '\t' + str(max_val_glob) + '\n')
+            else:
+                scale_w_glob = 2.479
+                max_loc_glob = (158, 148)
+                f.close()
+            crop_resolution_1800_1600(str(img), os.path.join(rgb_cropped_folder, rgb_name), scale_w_glob, max_loc_glob)
     f.close()
 
 def make_subfolders(rgb_cropped_folder, dataset_path):
@@ -389,9 +389,12 @@ if __name__ == "__main__":
     # # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
     # sync_train_val_set(DATASET_PATH, './final_ir_delete_from_train_val.txt')
 
-    # Pre-process RGB frames - Crop and Save
-    # crop_and_save(DATASET_PATH, './save_and_crop_history.txt')
-    rgb_cropped_folder = DATASET_PATH + '/rgb_cropped'
-    make_subfolders(rgb_cropped_folder, DATASET_PATH)
+    # Pre-process RGB frames - Crop, resize and save
+    # crop_resize_save(DATASET_PATH, './save_and_crop_history.txt')
+    # rgb_cropped_folder = DATASET_PATH + '/rgb_cropped'
+    # make_subfolders(rgb_cropped_folder, DATASET_PATH)
 
-    # # Check labels on RGB frames
+    # Check labels on RGB frames
+    draw_rgb_annotation(DATASET_PATH, 'train')
+    draw_rgb_annotation(DATASET_PATH, 'val')
+    draw_rgb_annotation(DATASET_PATH, 'video')

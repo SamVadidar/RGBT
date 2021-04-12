@@ -1,10 +1,11 @@
 import cv2
+import PIL 
 from matplotlib import pyplot as plt
 from gt_bb_cords import get_cords
 from align_IR2RGB import calc_para
 
 #Dataset_Path
-def crop_res_1800_1600(rgb_path, save_location, scale_width_glob, max_location_glob):
+def crop_resolution_1800_1600(rgb_path, save_location, scale_width_glob, max_location_glob):
 
     # The parameters are calculate using align_IR2RGB script
     # max_location_glob = (155, 155) # Offset
@@ -13,7 +14,8 @@ def crop_res_1800_1600(rgb_path, save_location, scale_width_glob, max_location_g
     IR_HEIGHT = 512
 
     # path_train_set = '/home/ub145/Documents/Dataset/FLIR/FLIR/train/'
-    rgb = cv2.imread(rgb_path)
+    # rgb = cv2.imread(rgb_path)
+    rgb = PIL.Image.open(rgb_path)
     # height
     y1 = max_location_glob[1]
     y2 = int(max_location_glob[1]+scale_width_glob*IR_HEIGHT)
@@ -21,9 +23,12 @@ def crop_res_1800_1600(rgb_path, save_location, scale_width_glob, max_location_g
     x1 = max_location_glob[0]
     x2 = int(max_location_glob[0]+scale_width_glob*IR_WIDTH)
 
-    rgb_cropped = rgb[y1:y2, x1:x2]
-    # save_location = './rgb_cropped.png'
-    cv2.imwrite(save_location, rgb_cropped)
+    # rgb_cropped = rgb[y1:y2, x1:x2]
+    rgb_cropped = rgb.crop((x1, y1, x2, y2)) # left, top, right, bottom
+    rgb_cropped = rgb_cropped.resize((640, 512), PIL.Image.ANTIALIAS)
+    rgb_cropped.save(save_location)
+
+    # cv2.imwrite(save_location, rgb_cropped)
     # rgb_cropped_height, rgb_cropped_width, _ = rgb_cropped.shape
 
     # _, max_loc_glob, scale_w_glob = calc_para(path_train_set, imageNumber, save_location, scale_fact=2.45, method='from_cropped_rgb')
@@ -71,4 +76,4 @@ def plot_bb(imageNumber, rgb_resized):
 
 if __name__ == '__main__':
     imageNumber = '04433'
-    crop_res_1800_1600(imageNumber)
+    crop_resolution_1800_1600(imageNumber)
