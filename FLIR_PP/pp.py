@@ -311,7 +311,7 @@ def crop_and_save(dataset_path, history_file_path):
     iteration = 0
 
     if os.path.isdir(rgb_cropped_folder):
-        user_input = input("Are you sure you want to redo the crop and save process? (y/n)\n")
+        user_input = input("Are you sure you want to redo the 'crop and save' process? (y/n)\n")
         if user_input == 'y':
             shutil.rmtree(rgb_cropped_folder)
             os.mkdir(rgb_cropped_folder)
@@ -337,6 +337,35 @@ def crop_and_save(dataset_path, history_file_path):
             crop_res_1800_1600(str(img), os.path.join(rgb_cropped_folder, rgb_name), scale_w_glob, max_loc_glob)
     f.close()
 
+def make_subfolders(rgb_cropped_folder, dataset_path):
+    train_folder = dataset_path + '/train/RGB_cropped'
+    val_folder = dataset_path + '/val/RGB_cropped'
+    video_folder = dataset_path + '/video/RGB_cropped'
+
+    print('Train folder exist!') if os.path.isdir(train_folder) else os.mkdir(train_folder)
+    print('Val folder exist!') if os.path.isdir(val_folder) else os.mkdir(val_folder)
+    print('Video folder exist!') if os.path.isdir(video_folder) else os.mkdir(video_folder)
+
+    for img in Path(rgb_cropped_folder).rglob('*.jpg'):
+        _, rgb_name = os.path.split(img)
+        rgb_num = int(str(rgb_name)[-9:-4])
+
+        if rgb_num < 8863 and ('video' not in rgb_name):
+            dst = os.path.join(train_folder, rgb_name)
+            print(dst)
+            shutil.move(img, dst)
+        elif rgb_num >= 8863 and ('video' not in rgb_name):
+            dst = os.path.join(val_folder, rgb_name)
+            print(dst)
+            shutil.move(img, dst)
+        elif rgb_num < 4223 and ('video' in rgb_name):
+            dst = os.path.join(video_folder, rgb_name)
+            print(dst)
+            shutil.move(img, dst)
+        else:
+            print('Strange attitude for file: ', str(img))
+
+            
 
 if __name__ == "__main__":
 
@@ -361,6 +390,8 @@ if __name__ == "__main__":
     # sync_train_val_set(DATASET_PATH, './final_ir_delete_from_train_val.txt')
 
     # Pre-process RGB frames - Crop and Save
-    crop_and_save(DATASET_PATH, './save_and_crop_history.txt')
+    # crop_and_save(DATASET_PATH, './save_and_crop_history.txt')
+    rgb_cropped_folder = DATASET_PATH + '/rgb_cropped'
+    make_subfolders(rgb_cropped_folder, DATASET_PATH)
 
     # # Check labels on RGB frames
