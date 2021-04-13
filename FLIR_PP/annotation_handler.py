@@ -6,7 +6,7 @@ import cv2
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-from align_IR2RGB import DATASET_PATH
+from arg_parser import DATASET_PP_PATH
 
 def print_progress(iteration, total_file_num, decimals = 1, length = 100, fill = '#', prefix = 'Processing:', suffix = '', print_end = '\r'):
     percent = ("{0:." + str(decimals) + "f}").format(iteration * 100 / float(total_file_num))
@@ -121,5 +121,5 @@ def draw_rgb_annotation(dataset_path, set_folder):
 
 
 if __name__ == '__main__':
-    draw_rgb_annotation(DATASET_PATH, 'val')
-    # count_objects_all(DATASET_PATH)
+    draw_rgb_annotation(DATASET_PP_PATH, 'val')
+    # count_objects_all(DATASET_PP_PATH)

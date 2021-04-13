@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from gt_bb_cords import get_cords
 from align_IR2RGB import calc_para
 
-#Dataset_Path
+
 def crop_resolution_1800_1600(rgb_path, save_location, scale_width_glob, max_location_glob):
 
     # The parameters are calculate using align_IR2RGB script

@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import time
 
 from gt_bb_cords import get_cords
+from arg_parser import DATASET_PP_PATH
 
-DATASET_PATH = "/home/sam/Documents/Dataset/FLIR/FLIR_PP"
 
 def plot(ir_edge, rgb_edge, ir, rgb_th3):
 
@@ -145,8 +145,8 @@ def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.4, metho
 
 if __name__ == '__main__':
 
-    path_train_set = DATASET_PATH + '/train/'
-    path_val_set = DATASET_PATH + '/val/'
+    path_train_set = DATASET_PP_PATH + '/train/'
+    path_val_set = DATASET_PP_PATH + '/val/'
     imageNumber = 3670
 
     # TODO (Fun_Fact)
