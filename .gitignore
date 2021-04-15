@@ -1,4 +1,5 @@
 *.vscode
 *.config
 *.txt
+!requirements.txt
 *__
