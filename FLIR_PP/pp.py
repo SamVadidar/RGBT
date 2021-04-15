@@ -405,6 +405,8 @@ def make_subfolders(rgb_cropped_folder, dataset_path):
         else:
             print('Strange attitude for file: ', str(img))
 
+    os.rmdir(rgb_cropped_folder)
+
 
 # if __name__ == "__main__":
     # # Backup the main Dataset folder and work on a subdirectory
@@ -440,3 +442,13 @@ def make_subfolders(rgb_cropped_folder, dataset_path):
     # draw_rgb_annotation(DATASET_PP_PATH, 'val')
     # draw_rgb_annotation(DATASET_PP_PATH, 'video')
 
+# TODO
+'''
+Go through all the images and write the frame number in a file for:
+    1) failed image 86, 65, 50, 338, 362, 416, 498, 658
+    2) IR miss labelled images # 74, 78, 79, 94, 97, ...
+    3) non synced images # 87, 408, 420, 421
+
+Test the RGB frames with Yolo and see what is the baseline for the RGB
+Later we will need this to compare the Fused version to RGB 
+'''

@@ -85,14 +85,14 @@ def draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_d
                 if int(i['image_id']) == rgb_num - 8863 :
                     bbox = i['bbox']
                     # bbox = [int(bb * scale_fact) for bb in bbox]
-                    cv2.rectangle(rgb, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), (0, 0, 255), 2)
+                    cv2.rectangle(rgb, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), (0, 0, 255), 1)
 
             else:
                 # frames start from 1 but json file from 0
                 if int(i['image_id']) == rgb_num -1 :
                     bbox = i['bbox']
                     # bbox = [int(bb * scale_fact) for bb in bbox]
-                    cv2.rectangle(rgb, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), (0, 0, 255), 2)
+                    cv2.rectangle(rgb, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), (0, 0, 255), 1)
 
         cv2.imwrite(str(os.path.join(rgb_cropped_annotated_folder, rgb_name)), rgb)
         # plt.imshow(cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB))
