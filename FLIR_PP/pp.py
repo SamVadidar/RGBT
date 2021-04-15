@@ -398,7 +398,7 @@ def make_subfolders(rgb_cropped_folder, dataset_path):
             dst = os.path.join(val_folder, rgb_name)
             print(dst)
             shutil.move(img, dst)
-        elif rgb_num < 4223 and ('video' in rgb_name):
+        elif rgb_num =< 4223 and ('video' in rgb_name):
             dst = os.path.join(video_folder, rgb_name)
             print(dst)
             shutil.move(img, dst)
@@ -406,37 +406,37 @@ def make_subfolders(rgb_cropped_folder, dataset_path):
             print('Strange attitude for file: ', str(img))
 
 
-if __name__ == "__main__":
-    # Backup the main Dataset folder and work on a subdirectory
-    make_FLIR_PP_folder(DATASET_PATH)
+# if __name__ == "__main__":
+    # # Backup the main Dataset folder and work on a subdirectory
+    # make_FLIR_PP_folder(DATASET_PATH)
     
     # # find all the different available RGB resolutions
     # rgb_res_file_name = "./rgb_resolution_list.txt"
     # res_list_creator(rgb_res_file_name, DATASET_PP_PATH, method=0)
     # res_dictionary(rgb_res_file_name)
 
-    # find all the missing rgb images
+    # # find all the missing rgb images
     # rgb_missing_frame_list = "./missing_frame_list_rgb.txt" # Result: 333 rgb frames are missing
     # ir_missing_frame_list = "./missing_frame_list_ir.txt" # Result: no IR frame is missing
     # find_frame_num_gap(DATASET_PP_PATH, rgb_missing_frame_list, Sensor='RGB')
 
-    # Sync ir-rgb frames in video set
-    sync_video_set(DATASET_PP_PATH) # video set is ready for cross labelling
+    # # Sync ir-rgb frames in video set
+    # sync_video_set(DATASET_PP_PATH) # video set is ready for cross labelling
 
-    # delete all the frames which have smaller HFOV than IR + all the blank RGB images
-    rgb_deleted_lowRes_and_blankFrames = "./deleted_lowRes_and_blankFrames_rgb.txt"
-    delete_rgb_lowRes_and_blankFrames(DATASET_PP_PATH, rgb_deleted_lowRes_and_blankFrames)
+    # # delete all the frames which have smaller HFOV than IR + all the blank RGB images
+    # rgb_deleted_lowRes_and_blankFrames = "./deleted_lowRes_and_blankFrames_rgb.txt"
+    # delete_rgb_lowRes_and_blankFrames(DATASET_PP_PATH, rgb_deleted_lowRes_and_blankFrames)
 
-    # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
-    sync_train_val_set(DATASET_PP_PATH, './final_ir_delete_from_train_val.txt')
+    # # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
+    # sync_train_val_set(DATASET_PP_PATH, './final_ir_delete_from_train_val.txt')
 
-    # Pre-process RGB frames - Crop, resize and save
-    crop_resize_save(DATASET_PP_PATH, './save_and_crop_history.txt')
-    rgb_cropped_folder = DATASET_PP_PATH + '/rgb_cropped'
-    make_subfolders(rgb_cropped_folder, DATASET_PP_PATH)
+    # # Pre-process RGB frames - Crop, resize and save
+    # crop_resize_save(DATASET_PP_PATH, './save_and_crop_history.txt')
+    # rgb_cropped_folder = DATASET_PP_PATH + '/rgb_cropped'
+    # make_subfolders(rgb_cropped_folder, DATASET_PP_PATH)
 
-    # Check labels on RGB frames
-    draw_rgb_annotation(DATASET_PP_PATH, 'train')
-    draw_rgb_annotation(DATASET_PP_PATH, 'val')
-    draw_rgb_annotation(DATASET_PP_PATH, 'video')
+    # # Check labels on RGB frames
+    # draw_rgb_annotation(DATASET_PP_PATH, 'train')
+    # draw_rgb_annotation(DATASET_PP_PATH, 'val')
+    # draw_rgb_annotation(DATASET_PP_PATH, 'video')
 
