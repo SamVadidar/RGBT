@@ -14,6 +14,7 @@ from annotation_handler import print_progress
 
 def make_FLIR_PP_folder(dataset_path):
     FLIR_PP_Path = os.path.join(dataset_path, 'FLIR_PP')
+
     if os.path.isdir(FLIR_PP_Path):
         print(FLIR_PP_Path, ' already exist!')
         user_input = input("Are you sure you want to redo and remove the previous 'FLIR_PP' folder? (y/n)\n")
@@ -22,13 +23,15 @@ def make_FLIR_PP_folder(dataset_path):
             os.mkdir(FLIR_PP_Path)
         if user_input == 'n':
             exit()
+    else:
+        os.mkdir(FLIR_PP_Path) # to create FLIR_PP folder in original folder
 
     for folder in glob.glob(str(dataset_path) + "/*"):
         if folder != FLIR_PP_Path and os.path.isdir(folder):
             _, set_name = os.path.split(folder)
-            SET_PP_Path = os.path.join(FLIR_PP_Path, set_name)
+            SET_PP_Path = os.path.join(FLIR_PP_Path, set_name) # path of each set (train, val, video)
 
-            os.mkdir(SET_PP_Path)
+            os.mkdir(SET_PP_Path) # to create sub-directory in FLIR_PP folder
             # I KNOW IT IS STRANGE! BUT FLIR DATASET COMES INCOHERENT IN NAMING
             # IT IS JUST AN SMALL EXAMPLE!
             if set_name == 'video':
@@ -50,7 +53,7 @@ def make_FLIR_PP_folder(dataset_path):
             dst = os.path.join(SET_PP_Path, 'thermal_annotations.json')
             print('Copying thermal_annotations from ', str(set_name), 'Set')
             shutil.copy(src, dst)
-            
+
 def res_list_creator(list_name, dataset_path, method=0):
     '''
     Here we creat a list of all the different RGB-frame resolutions in FLIR Dataset.
@@ -85,9 +88,9 @@ def res_list_creator(list_name, dataset_path, method=0):
                 if res != previous_res:
                     file.write(str(res) + '\t' + str(img_name) + '\n')
                     print((str(res) + '\t' + str(img_name)))
-                        
+
                 previous_res = res
-    
+
     # method 1
     else:
         for root, _, files in os.walk(str(dataset_path), topdown=True):
@@ -103,8 +106,8 @@ def res_list_creator(list_name, dataset_path, method=0):
                     if res != previous_res:
                         file.write(str(res) + '\t' + str(path) + '\n')
                         print((str(res) + '\t' + str(path)))
-                            
-                    previous_res = res    
+
+                    previous_res = res
 
     print(counter_1536, counter_1600, counter_1024, counter_480)
     file.close()
@@ -190,7 +193,7 @@ def find_frame_num_gap(dataset_path, file_name, Sensor, resolution_check=False):
             if ((num+1)!=img_num_list_val_train[index+1]):
                 file.write(str((num+1)).zfill(5) + '\n')
                 print(index)
-    
+
     file.write('END OF TRAIN_VAL SET.' + '\n')
     file.write('VIDEO SET:' + '\n')
 
@@ -254,7 +257,7 @@ def rename_rgb_frames_to_sync(dataset_path, start_frame_num, end_frame_num, adde
         else:
             os.rename(img_name, img_name_new)
             print(str(img_num).zfill(5), ' is renamed to: ', str(img_num_new).zfill(5), ' ', done_jobs)
-            
+
             done_jobs += 1
             if added_amount>0:
                 img_num -= 1
@@ -342,6 +345,16 @@ def sync_train_val_set(dataset_path, file_name):
                     print(img, ' is removed')
 
 def crop_resize_save(dataset_path, history_file_path, calc_parameter = False):
+    '''
+    The core of the whole cross labelling is happening here.
+    We take the data here as input, match everypair by calculating 3 parameters:
+        1- Scailing factor of the image with smaller HFOV w.r.t. the frame with larger HFOV (Horizontal field of view)
+        2- X-Offset
+        3- Y-Offset
+    Then we crop the rgb image and resize it to have a frame as similar to IR frame as possible. Thus, we can finally use
+    the labels of IR for the RGB, too. This help us to have a united label coordinates for both frames, which is necessary to calculate the loss
+    during the training of the network.
+    '''
     rgb_cropped_folder = dataset_path + '/rgb_cropped'
     total_file_num = int(sum([len(files) for r, d, files in os.walk(dataset_path)])*0.5) # 0.5, since each image pair is one iteration
     iteration = 0
@@ -398,7 +411,7 @@ def make_subfolders(rgb_cropped_folder, dataset_path):
             dst = os.path.join(val_folder, rgb_name)
             print(dst)
             shutil.move(img, dst)
-        elif rgb_num =< 4223 and ('video' in rgb_name):
+        elif rgb_num <= 4223 and ('video' in rgb_name):
             dst = os.path.join(video_folder, rgb_name)
             print(dst)
             shutil.move(img, dst)
@@ -408,10 +421,10 @@ def make_subfolders(rgb_cropped_folder, dataset_path):
     os.rmdir(rgb_cropped_folder)
 
 
-# if __name__ == "__main__":
-    # # Backup the main Dataset folder and work on a subdirectory
-    # make_FLIR_PP_folder(DATASET_PATH)
-    
+if __name__ == "__main__":
+    # Backup the main Dataset folder and work on a subdirectory
+    make_FLIR_PP_folder(DATASET_PATH)
+
     # # find all the different available RGB resolutions
     # rgb_res_file_name = "./rgb_resolution_list.txt"
     # res_list_creator(rgb_res_file_name, DATASET_PP_PATH, method=0)
@@ -422,25 +435,25 @@ def make_subfolders(rgb_cropped_folder, dataset_path):
     # ir_missing_frame_list = "./missing_frame_list_ir.txt" # Result: no IR frame is missing
     # find_frame_num_gap(DATASET_PP_PATH, rgb_missing_frame_list, Sensor='RGB')
 
-    # # Sync ir-rgb frames in video set
-    # sync_video_set(DATASET_PP_PATH) # video set is ready for cross labelling
+    # Sync ir-rgb frames in video set
+    sync_video_set(DATASET_PP_PATH) # video set is ready for cross labelling
 
-    # # delete all the frames which have smaller HFOV than IR + all the blank RGB images
-    # rgb_deleted_lowRes_and_blankFrames = "./deleted_lowRes_and_blankFrames_rgb.txt"
-    # delete_rgb_lowRes_and_blankFrames(DATASET_PP_PATH, rgb_deleted_lowRes_and_blankFrames)
+    # delete all the frames which have smaller HFOV than IR + all the blank RGB images
+    rgb_deleted_lowRes_and_blankFrames = "./deleted_lowRes_and_blankFrames_rgb.txt"
+    delete_rgb_lowRes_and_blankFrames(DATASET_PP_PATH, rgb_deleted_lowRes_and_blankFrames)
 
-    # # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
-    # sync_train_val_set(DATASET_PP_PATH, './final_ir_delete_from_train_val.txt')
+    # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
+    sync_train_val_set(DATASET_PP_PATH, './final_ir_delete_from_train_val.txt')
 
-    # # Pre-process RGB frames - Crop, resize and save
-    # crop_resize_save(DATASET_PP_PATH, './save_and_crop_history.txt')
-    # rgb_cropped_folder = DATASET_PP_PATH + '/rgb_cropped'
-    # make_subfolders(rgb_cropped_folder, DATASET_PP_PATH)
+    # Pre-process RGB frames - Crop, resize and save
+    crop_resize_save(DATASET_PP_PATH, './save_and_crop_history.txt', calc_parameter = True)
+    rgb_cropped_folder = DATASET_PP_PATH + '/rgb_cropped'
+    make_subfolders(rgb_cropped_folder, DATASET_PP_PATH)
 
-    # # Check labels on RGB frames
-    # draw_rgb_annotation(DATASET_PP_PATH, 'train')
-    # draw_rgb_annotation(DATASET_PP_PATH, 'val')
-    # draw_rgb_annotation(DATASET_PP_PATH, 'video')
+    # Check labels on RGB frames
+    draw_rgb_annotation(DATASET_PP_PATH, 'train')
+    draw_rgb_annotation(DATASET_PP_PATH, 'val')
+    draw_rgb_annotation(DATASET_PP_PATH, 'video')
 
 # TODO
 '''
@@ -450,5 +463,5 @@ Go through all the images and write the frame number in a file for:
     3) non synced images # 87, 408, 420, 421
 
 Test the RGB frames with Yolo and see what is the baseline for the RGB
-Later we will need this to compare the Fused version to RGB 
+Later we will need this to compare the Fused version to RGB
 '''

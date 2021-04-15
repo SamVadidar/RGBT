@@ -33,7 +33,7 @@ def plot(ir_edge, rgb_edge, ir, rgb_th3):
 
     plt.show()
 
-def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.4, method='dataset_original'):
+def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.45, method='dataset_original'):
     '''
     Here we try to find 3 transfer parameters (i.e. ScalingFactor, X_Offset, Y_Offset)
     Using the parameters, we can map each pixel in IR_Frame to RGB_Frame.
@@ -144,10 +144,9 @@ def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.4, metho
 
 
 if __name__ == '__main__':
-
     path_train_set = DATASET_PP_PATH + '/train/'
     path_val_set = DATASET_PP_PATH + '/val/'
-    imageNumber = 3670
+    imageNumber = 7
 
     # TODO (Fun_Fact)
     # 5251 Sun Glare!
