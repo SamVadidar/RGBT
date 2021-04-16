@@ -469,7 +469,7 @@ Test the RGB frames with Yolo and see what is the baseline for the RGB
 Later we will need this to compare the Fused version to RGB 
 '''
 
-# TODO (TOREMEMBER)
+# TODO (TO REMEMBER)
 '''
 20 PX is the minimum resolution we need to detect an object
 
