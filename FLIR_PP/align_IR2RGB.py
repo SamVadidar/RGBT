@@ -33,7 +33,7 @@ def plot(ir_edge, rgb_edge, ir, rgb_th3):
 
     plt.show()
 
-def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.45, method='dataset_original'):
+def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.44, method='dataset_original'):
     '''
     Here we try to find 3 transfer parameters (i.e. ScalingFactor, X_Offset, Y_Offset)
     Using the parameters, we can map each pixel in IR_Frame to RGB_Frame.
@@ -92,7 +92,9 @@ def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.45, meth
 
     # Until both frames have the same width
     #scale_w < (rgb_y/ir_y)
-    while(size_w < rgb.shape[1]): # rgb.shape[1]
+    # while(size_w < rgb.shape[1]): # rgb.shape[1]
+    while(scale_fact <= 2.5): # 2.5 comes from looking at the save_and_crop_history.txt and checking the good labelled rgb images
+                              # I decieded to loop over scale factor instead of size_w, because it makes the preprocessing faster!
 
         # 0 if ir is tempelate image (Smaller)
         # 1 if rgb is tempelate image (Smaller)
@@ -111,7 +113,8 @@ def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.45, meth
                 max_val_glob = max_val
                 max_loc_glob = max_loc
                 scale_w_glob = scale_w
-            scale_w += 0.001
+            # scale_w += 0.001
+            scale_w += 0.01
 
         elif(mode==0):
             temp_edge = ir_edge.copy()
@@ -129,7 +132,8 @@ def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.45, meth
                 max_val_glob = max_val
                 max_loc_glob = max_loc
                 scale_w_glob = scale_w
-            scale_w += 0.001
+            # scale_w += 0.001
+            scale_w += 0.01
 
     # print(f"scale: {scale_w_glob}")
     # print(f"Offset: {max_loc_glob}")

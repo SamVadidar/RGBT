@@ -446,7 +446,7 @@ if __name__ == "__main__":
     sync_train_val_set(DATASET_PP_PATH, './final_ir_delete_from_train_val.txt')
 
     # Pre-process RGB frames - Crop, resize and save
-    crop_resize_save(DATASET_PP_PATH, './save_and_crop_history.txt', calc_parameter = True)
+    crop_resize_save(DATASET_PP_PATH, './save_and_crop_history.txt', calc_parameter = False)
     rgb_cropped_folder = DATASET_PP_PATH + '/rgb_cropped'
     make_subfolders(rgb_cropped_folder, DATASET_PP_PATH)
 
@@ -458,10 +458,22 @@ if __name__ == "__main__":
 # TODO
 '''
 Go through all the images and write the frame number in a file for:
-    1) failed image 86, 65, 50, 338, 362, 416, 498, 658
-    2) IR miss labelled images # 74, 78, 79, 94, 97, ...
-    3) non synced images # 87, 408, 420, 421
+    1) failed image (ex. 86, 65, 50, 338, 362, 416, 498, 658) and remove them
+    2) IR miss labelled images (ex. 74, 78, 79, 94, 97, ..., 02944) and remove them
+    3) non synced images (ex. 87, 408, 420, 421) and remove them
+    4) fast blured images (ex. 871..., ) and remove them
+    5) non-labelled RGB objects and label them!
+    6) Do not take dogs, etc. take only categories you want! first chech the if there is any label for trucks before neglecting them!
 
 Test the RGB frames with Yolo and see what is the baseline for the RGB
-Later we will need this to compare the Fused version to RGB
+Later we will need this to compare the Fused version to RGB 
+'''
+
+# TODO (TOREMEMBER)
+'''
+20 PX is the minimum resolution we need to detect an object
+
+IR Downsides:
+    1) it can have difficulty detecting the cold parked vehicles over the night.
+    2) 
 '''

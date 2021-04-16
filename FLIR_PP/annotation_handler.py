@@ -52,8 +52,11 @@ def count_objects_all(dataset_path):
     person_obj_total = person_obj_val + person_obj_train + person_obj_video
     bicycle_obj_total = bicycle_obj_val + bicycle_obj_train + bicycle_obj_video
     car_obj_total = car_obj_val + car_obj_train + car_obj_video
-    print(person_obj_total, bicycle_obj_total, car_obj_total)
-
+    print(' ')
+    print('Number of Person Obj.:', person_obj_total)
+    print('Number of Bicycle Obj.:', bicycle_obj_total)
+    print('Number of Car Obj.:', car_obj_total)
+    
 def draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_data):
     rgb_cropped_set_folder = os.path.join(dataset_path, set_folder) + '/RGB_cropped'
     total_file_num = sum([len(files) for r, d, files in os.walk(rgb_cropped_set_folder)])

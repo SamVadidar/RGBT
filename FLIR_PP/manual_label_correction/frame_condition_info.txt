@@ -1,0 +1,16 @@
+1029 rain
+2209 glare_tunnel
+2345 glare
+:
+2357
+3029 rain
+:
+3040
+3042 rain
+3056 rain
+3501 glare
+3558 glare
+3677 night
+:
+4088
+
