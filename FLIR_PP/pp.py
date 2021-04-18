@@ -373,21 +373,23 @@ def crop_resize_save(dataset_path, history_file_path, calc_parameter = False):
         f = open(history_file_path, 'a')
 
     for folder in glob.glob(str(dataset_path) + '/*'):
-        for img in Path(folder).rglob('*.jpg'):
-            print_progress(iteration, total_file_num)
-            iteration += 1
+        # Process every folder except the rgb_cropped folder
+        if str(folder) != str(rgb_cropped_folder):
+            for img in Path(folder).rglob('*.jpg'):
+                print_progress(iteration, total_file_num)
+                iteration += 1
 
-            _, rgb_name = os.path.split(img)
-            rgb_num = int(str(rgb_name)[-9:-4])
-            ir_matched_path = os.path.join(dataset_path, folder) + '/thermal_8_bit/' + rgb_name[:-3] + 'jpeg'
-            if calc_parameter == True:
-                max_val_glob, max_loc_glob, scale_w_glob = calc_para(str(ir_matched_path), str(img))
-                f.write(str(rgb_name) + '\t' + str(scale_w_glob) + '\t' + str(max_loc_glob) + '\t' + str(max_val_glob) + '\n')
-            else:
-                scale_w_glob = 2.479
-                max_loc_glob = (158, 148)
-                f.close()
-            crop_resolution_1800_1600(str(img), os.path.join(rgb_cropped_folder, rgb_name), scale_w_glob, max_loc_glob)
+                _, rgb_name = os.path.split(img)
+                rgb_num = int(str(rgb_name)[-9:-4])
+                ir_matched_path = os.path.join(dataset_path, folder) + '/thermal_8_bit/' + rgb_name[:-3] + 'jpeg'
+                if calc_parameter == True:
+                    max_val_glob, max_loc_glob, scale_w_glob = calc_para(str(ir_matched_path), str(img))
+                    f.write(str(rgb_name) + '\t' + str(scale_w_glob) + '\t' + str(max_loc_glob) + '\t' + str(max_val_glob) + '\n')
+                else:
+                    scale_w_glob = 2.479
+                    max_loc_glob = (158, 148)
+                    f.close()
+                crop_resolution_1800_1600(str(img), os.path.join(rgb_cropped_folder, rgb_name), scale_w_glob, max_loc_glob)
     f.close()
 
 def make_subfolders(rgb_cropped_folder, dataset_path):
@@ -445,7 +447,7 @@ if __name__ == "__main__":
     # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
     sync_train_val_set(DATASET_PP_PATH, './final_ir_delete_from_train_val.txt')
 
-    # Pre-process RGB frames - Crop, resize and save
+    # # Pre-process RGB frames - Crop, resize and save
     crop_resize_save(DATASET_PP_PATH, './save_and_crop_history.txt', calc_parameter = False)
     rgb_cropped_folder = DATASET_PP_PATH + '/rgb_cropped'
     make_subfolders(rgb_cropped_folder, DATASET_PP_PATH)
