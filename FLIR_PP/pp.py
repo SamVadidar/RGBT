@@ -208,7 +208,7 @@ def find_frame_num_gap(dataset_path, file_name, Sensor, resolution_check=False):
 
 def delete_rgb_lowRes_and_blankFrames(dataset_path, file_name):
     if os.path.isfile(file_name):
-        user_input = input("Are you sure you want to redo and remove the previous file? (y/n)\n")
+        user_input = input("Are you sure you want to redo and remove the ", str(file_name), " file? (y/n)\n")
         if user_input == 'y':
             os.remove(file_name)
         else:
@@ -279,16 +279,16 @@ def remove_frames(dataset_path, start_frame_num, end_frame_num, sensor, which_se
             img_name = folder + 'FLIR_video_' + str(img_num).zfill(5)  + '.jpeg'
         # for Train
         elif sensor=='rgb' and which_set == 'train':
-            folder = dataset_path + '/train/rgb/'
+            folder = dataset_path + '/train/RGB/'
             img_name = folder + 'FLIR_' + str(img_num).zfill(5)  + '.jpg'
         elif sensor == 'ir' and which_set == 'train':
             folder = dataset_path + '/train/thermal_8_bit/'
             img_name = folder + 'FLIR_' + str(img_num).zfill(5)  + '.jpeg'
         # for Val
-        elif sensor=='rgb' and which_set != 'val':
-            folder = dataset_path + '/val/rgb/'
+        elif sensor=='rgb' and which_set == 'val':
+            folder = dataset_path + '/val/RGB/'
             img_name = folder + 'FLIR_' + str(img_num).zfill(5)  + '.jpg'
-        elif sensor == 'ir' and which_set != 'val':
+        elif sensor == 'ir' and which_set == 'val':
             folder = dataset_path + '/val/thermal_8_bit/'
             img_name = folder + 'FLIR_' + str(img_num).zfill(5)  + '.jpeg'
         else:
@@ -422,11 +422,56 @@ def make_subfolders(rgb_cropped_folder, dataset_path):
 
     os.rmdir(rgb_cropped_folder)
 
+def manual_data_cleaning(dataset_path):
+    manual_data_cleaning_folder = './manual_data_cleaning/'
+
+    for file_path in Path(manual_data_cleaning_folder).rglob('*.txt'):
+        _, file_name = os.path.split(file_path)
+        # Process for Train/Val sets
+        if(file_name == 'blured.txt' or file_name == 'miss_labelled_by_FLIR.txt' or file_name == 'not_synced_by_FLIR.txt'):
+            f = open(file_path, 'r')
+            lines = f.readlines()
+            for index, line in enumerate(lines):
+                line = line[:-1] # to skip the '\n' at the end
+                try:
+                    # Train set
+                    if (lines[index+1])[:-1] != ':' and line != ':' and (lines[index-1])[:-1] != ':' and int(line)<8863: # make sure you are skipping [n:m] intervals in text file
+                        remove_frames(dataset_path, int(line), int(line), 'ir', 'train')
+                        remove_frames(dataset_path, int(line), int(line), 'rgb', 'train')
+                    elif line == ':' and int(lines[index-1][:-1])<8863:
+                        remove_frames(dataset_path, int(lines[index-1]), int(lines[index+1]), 'ir', 'train')
+                        remove_frames(dataset_path, int(lines[index-1]), int(lines[index+1]), 'rgb', 'train')
+                    # Val set
+                    elif (lines[index+1])[:-1] != ':' and line != ':' and (lines[index-1])[:-1] != ':' and  int(line)>=8863:
+                        remove_frames(dataset_path, int(line), int(line), 'ir', 'val')
+                        remove_frames(dataset_path, int(line), int(line), 'rgb', 'val')
+                    elif line == ':' and int((lines[index-1])[:-1])>=8863:
+                        remove_frames(dataset_path, int(lines[index-1]), int(lines[index+1]), 'ir', 'val')
+                        remove_frames(dataset_path, int(lines[index-1]), int(lines[index+1]), 'rgb', 'val')
+                except:
+                    pass
+            f.close()
+
+        # Process for Video set
+        elif file_name == 'blured_video.txt':
+            f = open(file_path)
+            lines = f.readlines()
+            for index, line in enumerate(lines):
+                line = line[:-1] # to skip the '\n' at the end
+                try:
+                    # Video set
+                    if (lines[index+1])[:-1] != ':' and line != ':' and (lines[index-1])[:-1] != ':': # make sure you are skipping [n:m] intervals in text file
+                        remove_frames(dataset_path, int(line), int(line), 'ir', 'video')
+                        remove_frames(dataset_path, int(line), int(line), 'rgb', 'video')
+                    elif line == ':':
+                        remove_frames(dataset_path, int(lines[index-1]), int(lines[index+1]), 'ir', 'video')
+                        remove_frames(dataset_path, int(lines[index-1]), int(lines[index+1]), 'rgb', 'video')
+                except:
+                    pass
+            f.close()
+
 
 if __name__ == "__main__":
-    # Backup the main Dataset folder and work on a subdirectory
-    make_FLIR_PP_folder(DATASET_PATH)
-
     # # find all the different available RGB resolutions
     # rgb_res_file_name = "./rgb_resolution_list.txt"
     # res_list_creator(rgb_res_file_name, DATASET_PP_PATH, method=0)
@@ -436,6 +481,9 @@ if __name__ == "__main__":
     # rgb_missing_frame_list = "./missing_frame_list_rgb.txt" # Result: 333 rgb frames are missing
     # ir_missing_frame_list = "./missing_frame_list_ir.txt" # Result: no IR frame is missing
     # find_frame_num_gap(DATASET_PP_PATH, rgb_missing_frame_list, Sensor='RGB')
+
+    # Backup the main Dataset folder and work on a subdirectory
+    make_FLIR_PP_folder(DATASET_PATH)
 
     # Sync ir-rgb frames in video set
     sync_video_set(DATASET_PP_PATH) # video set is ready for cross labelling
@@ -447,35 +495,16 @@ if __name__ == "__main__":
     # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
     sync_train_val_set(DATASET_PP_PATH, './final_ir_delete_from_train_val.txt')
 
-    # # Pre-process RGB frames - Crop, resize and save
+    # Final clean after manual walking through the images
+    # The text files are manually filled after looking at the cross labelled data
+    manual_data_cleaning(DATASET_PP_PATH)
+
+    # Pre-process RGB frames - Crop, resize and save
     crop_resize_save(DATASET_PP_PATH, './save_and_crop_history.txt', calc_parameter = False)
     rgb_cropped_folder = DATASET_PP_PATH + '/rgb_cropped'
     make_subfolders(rgb_cropped_folder, DATASET_PP_PATH)
 
-    # Check labels on RGB frames
+    # Check labels on RGB frames and draw for visualization
     draw_rgb_annotation(DATASET_PP_PATH, 'train')
     draw_rgb_annotation(DATASET_PP_PATH, 'val')
     draw_rgb_annotation(DATASET_PP_PATH, 'video')
-
-# TODO
-'''
-Go through all the images and write the frame number in a file for:
-    1) failed image (ex. 86, 65, 50, 338, 362, 416, 498, 658) and remove them
-    2) IR miss labelled images (ex. 74, 78, 79, 94, 97, ..., 02944) and remove them
-    3) non synced images (ex. 87, 408, 420, 421) and remove them
-    4) fast blured images (ex. 871..., ) and remove them
-    5) non-labelled RGB objects and label them!
-    6) Do not take dogs, etc. take only categories you want! first chech the if there is any label for trucks before neglecting them!
-
-Test the RGB frames with Yolo and see what is the baseline for the RGB
-Later we will need this to compare the Fused version to RGB 
-'''
-
-# TODO (TO REMEMBER)
-'''
-20 PX is the minimum resolution we need to detect an object
-
-IR Downsides:
-    1) it can have difficulty detecting the cold parked vehicles over the night.
-    2) 
-'''

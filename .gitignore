@@ -2,5 +2,5 @@
 *.config
 *.txt
 !requirements.txt
-!*/manual_label_correction/*.txt
+!*/manual_data_cleaning/*.txt
 *__
