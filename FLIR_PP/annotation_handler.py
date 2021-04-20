@@ -67,8 +67,8 @@ def draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_d
     # history_line = history_file.readlines()
 
     for img in Path(rgb_cropped_set_folder).rglob('*.jpg'):
-        print_progress(iteration, total_file_num)
         iteration += 1
+        print_progress(iteration, total_file_num, prefix='Drawing BBox on RGB_' + str(set_folder) + ' frames:')
         scale_fact = 0
 
         rgb = cv2.imread(str(img))
@@ -102,7 +102,7 @@ def draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_d
         # plt.show()
 
 # train/val/video set as second argument
-def draw_rgb_annotation(dataset_path, set_folder):
+def draw_rgb_annotation_from_json(dataset_path, set_folder):
     rgb_cropped_annotated_folder = os.path.join(dataset_path, set_folder) + '/RGB_cropped_annotated'
     json_path = os.path.join(dataset_path, set_folder) + '/thermal_annotations.json'
 
@@ -122,7 +122,111 @@ def draw_rgb_annotation(dataset_path, set_folder):
     draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_data)
     json_file.close()
 
+def convert_labels_to_yolo_format(dataset_path, which_set):
+    path_to_set = dataset_path + '/' + str(which_set) + '/'
+    json_path = dataset_path + '/' + str(which_set) + '/thermal_annotations.json'
+    dst_path = os.path.join(path_to_set, 'yolo_format_labels')
+
+    if not os.path.isdir(dst_path):
+        os.mkdir(dst_path)
+    else:
+        shutil.rmtree(dst_path)
+        os.mkdir(dst_path)
+
+    f = open(json_path, 'r')
+    data = json.load(f)
+    images = data['images']
+    annotations = data['annotations']
+
+    file_names = []
+    for i in range(0, len(images)):
+        file_names.append(images[i]['file_name'])
+
+    total_file_num = int(len(images))
+    iteration = 0
+
+    width = 640.0
+    height = 512.0
+
+    for i in range(0, len(images)):
+        converted_results = []
+        for ann in annotations:
+            if ann['image_id'] == i and ann['category_id'] <= 3:
+                cat_id = int(ann['category_id'])
+                # if cat_id <= 3:
+                left, top, bbox_width, bbox_height = map(float, ann['bbox'])
+
+                # Yolo classes are starting from zero index
+                cat_id -= 1
+                x_center, y_center = (
+                    left + bbox_width / 2, top + bbox_height / 2)
+
+                # Yolo expects relative values wrt image width&height
+                x_rel, y_rel = (x_center / width, y_center / height)
+                w_rel, h_rel = (bbox_width / width, bbox_height / height)
+                converted_results.append(
+                    (cat_id, x_rel, y_rel, w_rel, h_rel))
+        image_name = images[i]['file_name']
+        image_name = image_name[14:-5]
+        # print(image_name)
+        file = open(str(dst_path) + '/' + str(image_name) + '.txt', 'w+')
+        file.write('\n'.join('%d %.6f %.6f %.6f %.6f' % res for res in converted_results))
+        file.close()
+        iteration += 1
+        print_progress(iteration, total_file_num, prefix='Converting ' + str(which_set) + '_Set labels to Yolo format:')
+
+def merge_labels(dataset_path, secondary_folder):
+
+    for secondary_file in Path(secondary_folder).rglob('*.txt'):
+        _, secondary_file_name = os.path.split(secondary_file)
+        img_num = int(str(secondary_file_name)[-9:-4])
+        if img_num < 8863:
+            main_folder = dataset_path + '/train/yolo_format_labels'
+        # labels are corrected only for train and val sets
+        # video set is already clean and complete
+        else:
+            main_folder = dataset_path + '/val/yolo_format_labels'
+        for main_file in Path(main_folder).rglob('*.txt'):
+            _, main_file_name = os.path.split(main_file)
+            if main_file_name == secondary_file_name:
+                f_main = open(main_file, 'a')
+                f_secondary = open(secondary_file, 'r')
+
+                # main_data_lines = f_main.readlines()
+                sec_data_lines = f_secondary.readlines()
+
+                f_main.write('\n')
+                for line in sec_data_lines:
+                    f_main.writelines(line)
+
+                f_main.close()
+                f_secondary.close()
+                print(main_file_name, ' manually added labels are merged!')
+
+def correct_LabelImg_classes():
+    for secondary_file in Path('/home/ub145/dev/RGBT/FLIR_PP/manual_data_cleaning/label_RGB_manual').rglob('*.txt'):
+        _, secondary_file_name = os.path.split(secondary_file)
+        img_num = int(str(secondary_file_name)[-9:-4])
+        f = open(secondary_file, 'r')
+        f_dst = open('/home/ub145/dev/RGBT/FLIR_PP/manual_data_cleaning/label_RGB_manual_corrected/'+str(secondary_file_name), 'a')
+
+        lines = f.readlines()
+        for line in lines:
+            if line[0] == '4':
+                f_dst.write(line.replace('4', '2', 1))
+                print(secondary_file_name)
+            else:
+                f_dst.write(line)
 
 if __name__ == '__main__':
-    draw_rgb_annotation(DATASET_PP_PATH, 'val')
-    # count_objects_all(DATASET_PP_PATH)
+    # draw_rgb_annotation_from_json(DATASET_PP_PATH, 'val')
+    count_objects_all(DATASET_PP_PATH)
+
+    # convert_labels_to_yolo_format(DATASET_PP_PATH, 'train')
+    # convert_labels_to_yolo_format(DATASET_PP_PATH, 'val')
+    # convert_labels_to_yolo_format(DATASET_PP_PATH, 'video')
+
+    # manually_added_labels = '/home/ub145/dev/RGBT/FLIR_PP/manual_data_cleaning/label_RGB_manual'
+    # merge_labels(DATASET_PP_PATH, manually_added_labels)
+
+

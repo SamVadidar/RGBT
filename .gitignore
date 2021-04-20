@@ -3,4 +3,5 @@
 *.txt
 !requirements.txt
 !*/manual_data_cleaning/*.txt
+!*/manual_data_cleaning/label_RGB_manual/*.txt
 *__

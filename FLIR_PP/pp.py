@@ -8,8 +8,10 @@ import shutil
 from arg_parser import DATASET_PATH, DATASET_PP_PATH
 from align_IR2RGB import calc_para
 from crop_RGB2IR import crop_resolution_1800_1600
-from annotation_handler import draw_rgb_annotation
+from annotation_handler import draw_rgb_annotation_from_json
 from annotation_handler import print_progress
+from annotation_handler import convert_labels_to_yolo_format
+from annotation_handler import merge_labels
 
 
 def make_FLIR_PP_folder(dataset_path):
@@ -208,7 +210,7 @@ def find_frame_num_gap(dataset_path, file_name, Sensor, resolution_check=False):
 
 def delete_rgb_lowRes_and_blankFrames(dataset_path, file_name):
     if os.path.isfile(file_name):
-        user_input = input("Are you sure you want to redo and remove the ", str(file_name), " file? (y/n)\n")
+        user_input = input("Are you sure you want to redo and remove the 'delete_rgb_lowRes_and_blankFrames' file? (y/n)\n")
         if user_input == 'y':
             os.remove(file_name)
         else:
@@ -376,8 +378,8 @@ def crop_resize_save(dataset_path, history_file_path, calc_parameter = False):
         # Process every folder except the rgb_cropped folder
         if str(folder) != str(rgb_cropped_folder):
             for img in Path(folder).rglob('*.jpg'):
-                print_progress(iteration, total_file_num)
                 iteration += 1
+                print_progress(iteration, total_file_num, prefix='Crop and Resize of RGB frames in process:')
 
                 _, rgb_name = os.path.split(img)
                 rgb_num = int(str(rgb_name)[-9:-4])
@@ -505,6 +507,16 @@ if __name__ == "__main__":
     make_subfolders(rgb_cropped_folder, DATASET_PP_PATH)
 
     # Check labels on RGB frames and draw for visualization
-    draw_rgb_annotation(DATASET_PP_PATH, 'train')
-    draw_rgb_annotation(DATASET_PP_PATH, 'val')
-    draw_rgb_annotation(DATASET_PP_PATH, 'video')
+    # The labels are imported from FLIR json file
+    draw_rgb_annotation_from_json(DATASET_PP_PATH, 'train')
+    draw_rgb_annotation_from_json(DATASET_PP_PATH, 'val')
+    draw_rgb_annotation_from_json(DATASET_PP_PATH, 'video')
+
+    # Convert COCO format to Yolo format
+    convert_labels_to_yolo_format(DATASET_PP_PATH, 'train')
+    convert_labels_to_yolo_format(DATASET_PP_PATH, 'val')
+    convert_labels_to_yolo_format(DATASET_PP_PATH, 'video')
+
+    # Merge manually added labels to original labels
+    manually_added_labels = './manual_data_cleaning/label_RGB_manual'
+    merge_labels(DATASET_PP_PATH, manually_added_labels)
