@@ -209,13 +209,14 @@ def find_frame_num_gap(dataset_path, file_name, Sensor, resolution_check=False):
     file.close()
 
 def delete_rgb_lowRes_and_blankFrames(dataset_path, file_name):
-    if os.path.isfile(file_name):
-        user_input = input("Are you sure you want to redo and remove the 'delete_rgb_lowRes_and_blankFrames' file? (y/n)\n")
-        if user_input == 'y':
-            os.remove(file_name)
-        else:
-            exit()
-    file = open(file_name, "a")
+    # Uncomment if you want to save the changes to a file
+    # if os.path.isfile(file_name):
+    #     user_input = input("Are you sure you want to redo and remove the 'delete_rgb_lowRes_and_blankFrames' file? (y/n)\n")
+    #     if user_input == 'y':
+    #         os.remove(file_name)
+    #     else:
+    #         exit()
+    # file = open(file_name, "a")
     for folder in glob.glob(str(dataset_path) + "/*"):
         # video set is 1800*1600 and clean already
         if(folder!= dataset_path + '/video'):
@@ -230,8 +231,8 @@ def delete_rgb_lowRes_and_blankFrames(dataset_path, file_name):
                 if res != (1600, 1800, 3) or img_size<60000:
                     os.remove(str(img))
                     print(str(img), ' is removed.')
-                    file.write(str(img_num).zfill(5) + '\n')
-    file.close()
+    #                 file.write(str(img_num).zfill(5) + '\n')
+    # file.close()
 
 # both end frame and start frames are also included in the rename range
 def rename_rgb_frames_to_sync(dataset_path, start_frame_num, end_frame_num, added_amount):

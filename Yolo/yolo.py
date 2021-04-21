@@ -26,6 +26,7 @@ import torch.optim.lr_scheduler as lr_scheduler
 from torch.cuda import amp
 from tqdm import tqdm
 import time
+# %matplotlib inline
 
 device = 'cpu'
 if torch.cuda.is_available():    
@@ -39,16 +40,16 @@ epochs = 300
 batch_size = 16
 total_batch_size = 16
 rank = -1
-names = ['person', 'bicycle', 'car']
-# names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
-#         'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-#         'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
-#         'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
-#         'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-#         'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
-#         'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
-#         'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
-#         'hair drier', 'toothbrush']
+# names = ['person', 'bicycle', 'car']
+names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+        'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+        'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+        'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+        'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+        'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+        'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+        'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
+        'hair drier', 'toothbrush']
 hyp = {'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
                 'momentum': 0.937,  # SGD momentum/Adam beta1
                 'weight_decay': 0.0005,  # optimizer weight decay
@@ -58,7 +59,7 @@ hyp = {'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
                 'obj': 1.0,  # obj loss gain (scale with pixels)
                 'obj_pw': 1.0,  # obj BCELoss positive_weight
                 'iou_t': 0.6,  # IoU training threshold
-                'conf_t':0.2, # Confidence training threshold
+                'conf_t':0.5, # Confidence training threshold
                 'anchor_t': 4.0,  # anchor-multiple threshold
                 'fl_gamma': 0.0,  # focal loss gamma (efficientDet default gamma=1.5)
                 'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)
@@ -1105,7 +1106,7 @@ def train(tb_writer,weights=None):
 def test(txt_root = None, plot_all = False, break_no = 1000000):
     #Dataloader
     test_set = Dataset(imroot,lroot,augment=False)
-    test_loader = torch.utils.data.DataLoader(dataset=test_set,batch_size=1,collate_fn=Dataset.collate_fn,shuffle=True)
+    test_loader = torch.utils.data.DataLoader(dataset=test_set,batch_size=1,collate_fn=Dataset.collate_fn,shuffle=False)
     model = Darknet(nclasses=nc, anchors=anchors_g)
     model.load_state_dict(torch.load(weight_path))
     model.eval()
@@ -1143,7 +1144,7 @@ def test(txt_root = None, plot_all = False, break_no = 1000000):
                 continue#
             # Append to text file
             if txt_root is not None:
-                txt_path = os.path.join(txt_root, paths[si].replace('.png', '.txt'))
+                txt_path = os.path.join(txt_root, paths[si].replace('.jpg', '.txt'))
                 gn = torch.tensor(shapes[si][0])[[1, 0, 1, 0]]  # normalization gain whwh
                 values = pred.clone()
                 values[:, :4] = scale_coords(img[si].shape[1:], values[:, :4], shapes[si][0], shapes[si][1])  # to original
@@ -1189,8 +1190,9 @@ def test(txt_root = None, plot_all = False, break_no = 1000000):
             plt.rcParams['figure.figsize'] = (20,20)
             fig,ax = plt.subplots(1)
             ax.imshow(original_img)
-            if len(pred):  
-                for i, box in enumerate(boxes):
+            
+            if len(pred):
+                for i, box in enumerate(boxes.cpu()):
                     xmin = box[0]
                     ymin = box[1]
                     w = (box[2]-box[0])
@@ -1198,6 +1200,8 @@ def test(txt_root = None, plot_all = False, break_no = 1000000):
                     rect = patches.Rectangle((xmin,ymin),w,h,linewidth=2,edgecolor='r',facecolor='none')
                     ax.add_patch(rect)
                     ax.text(xmin, ymin, (names[int(box[-1])],int(box[-2]*100)), fontsize = 12)
+
+            plt.show()
             
             
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
@@ -1221,7 +1225,7 @@ def test(txt_root = None, plot_all = False, break_no = 1000000):
     return (mp, mr, map50, m_ap), maps, t
 
 #%% try test
-(mp, mr, map50, m_ap), maps, t = test(txt_root='./results', break_no=10)     
+(mp, mr, map50, m_ap), maps, t = test(txt_root='./results', break_no=10) 
 #%% Plot Model
 # from torchsummary import summary
 # #from pytorch_model_summary import summary
