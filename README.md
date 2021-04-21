@@ -6,9 +6,9 @@ Here we deal with RGB and Thermal (IR) Fusion.
 
 - [x] Finish literature review of both Object Detection and Fusion 
 - [x] Find the conversion Matrix btw. RGB and IR Frame
-- [ ] Convert Darknet Weights to TF
-- [ ] Implement Yolov3 in TF from scratch
-- [ ] Dataset preprocessing - All Datasets must be converted to same labeling and folder structure
+- [x] Prepare the FLIR Dataset for fusion
+- [ ] Implement Scaled_Yolov4
+- [ ] Test the RGB frames from FLIR Dataset on Scaled_Yolov4 (Baseline)
 - [ ] Starting to concatinate features
 
 Papers
