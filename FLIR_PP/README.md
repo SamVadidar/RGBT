@@ -22,18 +22,20 @@
 https://github.com/SamVadidar/RGBT.git
 cd RGBT/FLIR_PP
 
-Create a virtualenv. and install the requirements
+# Create a virtualenv. and install the requirements
 python3 -m venv <name of your virtualenv.>
 source path/to/env./bin/activate
 pip install -r requirements.txt
 
-code . (If you have vscode installed)
-* It is recommended to use vscode, since the installation bar works within that environment and most probably not in linux command line directly!
+# It is recommended to use vscode, since the installation bar works within that environment and most probably not in linux command line directly!
+code .
 
+# Make sure the path to the Dataset is pointing to a folder containing Train, Val and Video sets.
 python3 pp.py path/to/FLIR/DATASET
-* Make sure the above given path to the Dataset is pointing to a folder containing Train, Val and Video sets.
 
-A folder with FLIR_PP will be created under your FLIR Dataset directory, which contains the sane version of the original dataset. It will help you, if you are planning to fuse RGB and IR.
+# Output:
+  A folder with FLIR_PP will be created under your FLIR Dataset directory, which contains the sane version of the original dataset. It will help you, if you are
+  planning to fuse RGB and IR.
 ```
 
 ![Labeled RGB](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/FLIR_02743.jpg)
