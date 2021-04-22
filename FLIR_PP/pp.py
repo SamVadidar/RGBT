@@ -380,7 +380,7 @@ def crop_resize_save(dataset_path, history_file_path, calc_parameter = False):
         if str(folder) != str(rgb_cropped_folder):
             for img in Path(folder).rglob('*.jpg'):
                 iteration += 1
-                print_progress(iteration, total_file_num, prefix='Crop and Resize of RGB frames in process:')
+                print_progress(iteration, total_file_num)
 
                 _, rgb_name = os.path.split(img)
                 rgb_num = int(str(rgb_name)[-9:-4])

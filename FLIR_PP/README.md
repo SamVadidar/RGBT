@@ -27,9 +27,6 @@ python3 -m venv <name of your virtualenv.>
 source path/to/env./bin/activate
 pip install -r requirements.txt
 
-# It is recommended to use vscode, since the installation bar works within that environment and most probably not in linux command line directly!
-code .
-
 # Make sure the path to the Dataset is pointing to a folder containing Train, Val and Video sets.
 python3 pp.py path/to/FLIR/DATASET
 

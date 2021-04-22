@@ -68,7 +68,7 @@ def draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_d
 
     for img in Path(rgb_cropped_set_folder).rglob('*.jpg'):
         iteration += 1
-        print_progress(iteration, total_file_num, prefix='Drawing BBox on RGB_' + str(set_folder) + ' frames:')
+        print_progress(iteration, total_file_num)
         scale_fact = 0
 
         rgb = cv2.imread(str(img))
@@ -173,7 +173,7 @@ def convert_labels_to_yolo_format(dataset_path, which_set):
         file.write('\n'.join('%d %.6f %.6f %.6f %.6f' % res for res in converted_results))
         file.close()
         iteration += 1
-        print_progress(iteration, total_file_num, prefix='Converting ' + str(which_set) + '_Set labels to Yolo format:')
+        print_progress(iteration, total_file_num)
 
 def merge_labels(dataset_path, secondary_folder):
 
@@ -194,8 +194,9 @@ def merge_labels(dataset_path, secondary_folder):
 
                 # main_data_lines = f_main.readlines()
                 sec_data_lines = f_secondary.readlines()
-
-                f_main.write('\n')
+                f_main_size = os.path.getsize(main_file)
+                if f_main_size != 0:
+                    f_main.write('\n')
                 for line in sec_data_lines:
                     f_main.writelines(line)
 
@@ -220,13 +221,11 @@ def correct_LabelImg_classes():
 
 if __name__ == '__main__':
     # draw_rgb_annotation_from_json(DATASET_PP_PATH, 'val')
-    count_objects_all(DATASET_PP_PATH)
+    # count_objects_all(DATASET_PP_PATH)
 
     # convert_labels_to_yolo_format(DATASET_PP_PATH, 'train')
     # convert_labels_to_yolo_format(DATASET_PP_PATH, 'val')
     # convert_labels_to_yolo_format(DATASET_PP_PATH, 'video')
 
-    # manually_added_labels = '/home/ub145/dev/RGBT/FLIR_PP/manual_data_cleaning/label_RGB_manual'
-    # merge_labels(DATASET_PP_PATH, manually_added_labels)
-
-
+    manually_added_labels = './manual_data_cleaning/label_RGB_manual'
+    merge_labels(DATASET_PP_PATH, manually_added_labels)
