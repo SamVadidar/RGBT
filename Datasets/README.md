@@ -1,13 +1,8 @@
 Summary of what should be done:
 ===================================
-- [x] Configure the GPU, Server, and Linux Laptop (Hardware-Software connection)
-- [x] Review the possible datasets and a testbench you want to test on (Dataset)
-- [ ] Summary of Summaries and find a hole (Target)
-- [ ] Implement RGB Network
-- [ ] Implement the state of the art Fusion Network
-- [ ] Train the IR branch of the Fusion network with IR only Datasets
-- [ ] Test on FLIR-aligned version (Testbench?)
-
+- [x] Find all the Datasets, which provide IR images 
+- [x] Review their specifications 
+- [ ] Have a look on: 20-03-(Yolov3 PedestrianOnly)Pedestrian Detection in Severe Weather Condition.pdf
 
 DataSet Review:
 ===================================
@@ -35,8 +30,8 @@ DataSet Review:
 
 ## KAIST Multispectral pedestrian Detection:
     * Specification:
-        * Downloaded file is corrupt and cannot be extracted!
         * Published on 2015 
+        * Pedestrian Only
         * FIR-visible, day-night
         * 95k color-thermal pairs (640*480)
         * 62578 day frames = 70679 Objects
@@ -114,42 +109,3 @@ DataSet Review:
 #### OTCBVS:
     * Dataset 01: pedestrian, above long shot
     * Dataset 03: pedestrian, above long shot
-
-
-Master thesis:
-===================================
-* Specific:
-    * What question are you exactly trying to answer?
-    * What concept do you want to address in-depth?
-* Measurable:
-    * Performance metrics and qualitative assessments
-
-## Evaluation of master thesis:
-mAP comparison between rgb only and RGBT network in Day and Night scenarios.
-Since we do not have any weather related data (i.e. Fog, Sun glare, etc.) we cannot evaluate that.
-
-If we want to have 3 classes, we have only FLIR.
-The problem with FLIR is that the RGB images are not labeled and cannot be labeled with any
-cross-correlation labeling algorithm precisely. Whatever trick we use will be an estimated label.
-
-If we focus on pedestrian only, we have other datasets, which can help us, but then we have to
-take care of cleaning many datasets and bring the labels from different dataset to the same format.
-This can take time.
-
-What we can idealy do is to train RGBT with what we have and compare RGB with RGBT networks
-using some pictures taken from our own sensor in all the challenging scenarios.
-But here there is high risk of failure since our datasets are very small to be able to generalize
-this well to work with our self taken IR and RGB images, which are very different w.r.t. the data
-we have trained the network with.
-
-## Meeting Takeaways:
-* 19.03.2021:
-    * compare Fused vs. only RGB -> Pedestrian Class
-    * DenseNet plus YoloV4 attention combination
-* 26.03.2021:
-    * The priority is the dataset with pair images with united label for Day, Night and preferably diverse weather condition
-    * Training each pipeline seperately is discoraged due to time constrains
-    * Maybe I can Pre-process the FLIR Dataset
-
-## Considered Papers to workon:
-* 20-03-(Yolov3 PedestrianOnly)Pedestrian Detection in Severe Weather Condition.pdf
