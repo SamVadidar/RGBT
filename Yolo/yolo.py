@@ -29,7 +29,7 @@ import time
 # %matplotlib inline
 
 device = 'cpu'
-if torch.cuda.is_available():    
+if torch.cuda.is_available():
     device = 'cuda'
 use_adam = False
 multi_scale = False
@@ -40,16 +40,16 @@ epochs = 300
 batch_size = 16
 total_batch_size = 16
 rank = -1
-# names = ['person', 'bicycle', 'car']
+#names = ['person', 'bicycle', 'car']
 names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
-        'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-        'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
-        'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
-        'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
-        'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
-        'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
-        'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
-        'hair drier', 'toothbrush']
+         'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+         'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+         'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+         'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+         'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+         'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+         'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
+         'hair drier', 'toothbrush']
 hyp = {'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
                 'momentum': 0.937,  # SGD momentum/Adam beta1
                 'weight_decay': 0.0005,  # optimizer weight decay
@@ -80,11 +80,11 @@ mosaic_border = [-img_size // 2, -img_size // 2]
 tensor = tv.transforms.ToTensor()
 image = tv.transforms.ToPILImage()
 #%%
-weight_path = "./yolov4-csp_pretrained.pytorch"
-imroot = "/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/val/RGB_cropped"
-#rroot = 
-lroot = "/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/val/yolo_format_labels"
-inputs = list(os.listdir(imroot)) 
+weight_path = "./Yolo/yolov4-csp_pretrained.pytorch"
+imroot = "/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/video/RGB_cropped"
+#rroot =
+lroot = "/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/video/yolo_format_labels"
+inputs = list(os.listdir(imroot))
 #%%
 
 
@@ -204,7 +204,7 @@ def init_seeds(seed=0):
     random.seed(seed)
     np.random.seed(seed)
     init_seeds(seed=seed)
-    
+
 class FocalLoss(torch.nn.Module):
     # Wraps focal loss around existing loss_fcn(), i.e. criteria = FocalLoss(nn.BCEWithLogitsLoss(), gamma=1.5)
     def __init__(self, loss_fcn, gamma=1.5, alpha=0.25):
@@ -243,19 +243,19 @@ def compute_loss(p, targets):  # predictions, targets, model
     lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
     tcls, tbox, indices, anchors = build_targets(p, targets)  # targets
     h = hyp  # hyperparameters
-    
+
     # Define criteria
     BCEcls = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([h['cls_pw']])).to(device)
     BCEobj = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([h['obj_pw']])).to(device)
-    
+
     # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
     cp, cn = smooth_BCE(eps=0.0)
-    
+
     # Focal loss
     g = h['fl_gamma']  # focal loss gamma
     if g > 0:
         BCEcls, BCEobj = FocalLoss(BCEcls, g), FocalLoss(BCEobj, g)
-    
+
     # Losses
     nt = 0  # number of targets
     np = len(p)  # number of outputs
@@ -264,12 +264,12 @@ def compute_loss(p, targets):  # predictions, targets, model
         pi = pi.detach()
         b, a, gj, gi = indices[i]  # image, anchor, gridy, gridx
         tobj = torch.zeros_like(pi[..., 0], device=device)  # target obj
-    
+
         n = b.shape[0]  # number of targets
         if n:
             nt += n  # cumulative targets
             ps = pi[b, a, gj, gi]  # prediction subset corresponding to targets
-    
+
             # Regression
             pxy = ps[:, :2].sigmoid() * 2. - 0.5
             pwh = (ps[:, 2:4].sigmoid() * 2) ** 2 * anchors[i]
@@ -278,28 +278,28 @@ def compute_loss(p, targets):  # predictions, targets, model
             pbox = torch.cat((pxy, pwh), 1).to(device)  # predicted box
             giou = bbox_iou(pbox.T, tbox[i], x1y1x2y2=False, CIoU=True)  # giou(prediction, target)
             lbox += (1.0 - giou).mean()  # giou loss
-    
+
             # Objectness
             tobj[b, a, gj, gi] = (1.0 - gr) + gr * giou.detach().clamp(0).type(tobj.dtype)  # giou ratio
-    
+
             # Classification
             if nc > 1:  # cls loss (only if multiple classes)
                 t = torch.full_like(ps[:, 5:], cn, device=device)  # targets
                 t[range(n), tcls[i]] = cp
                 lcls += BCEcls(ps[:, 5:], t)  # BCE
-    
+
             # Append targets to text file
             # with open('targets.txt', 'a') as file:
             #     [file.write('%11.5g ' * 4 % tuple(x) + '\n') for x in torch.cat((txy[i], twh[i]), 1)]
-    
+
         lobj += BCEobj(pi[..., 4], tobj) * balance[i]  # obj loss
-    
+
     s = 3 / np  # output count scaling
     lbox *= h['giou'] * s
     lobj *= h['obj'] * s * (1.4 if np == 4 else 1.)
     lcls *= h['cls'] * s
     bs = tobj.shape[0]  # batch size
-    
+
     loss = lbox + lobj + lcls
     return loss * bs, torch.cat((lbox, lobj, lcls, loss)).detach()
 
@@ -308,14 +308,14 @@ def build_targets(p, targets):
     tcls, tbox, indices, anch = [], [], [], []
     gain = torch.ones(6, device=targets.device)  # normalized to gridspace gain
     off = torch.tensor([[1, 0], [0, 1], [-1, 0], [0, -1]], device=targets.device).float()  # overlap offsets
-    
+
     g = 0.5  # offset
     for i, ancs in enumerate(anchors_g.reshape(3,3,2)):#model.module.yolo_layers if multi_gpu else model.yolo_layers):
         # get number of grid points and anchor vec for this yolo layer
         #anchors = model.module.module_list[jj].anchor_vec if multi_gpu else model.module_list[jj].anchor_vec
         ancs = ancs // strides[i]
         gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
-    
+
         # Match targets to anchors
         a, t, offsets = [], targets * gain, 0
         if nt:
@@ -325,7 +325,7 @@ def build_targets(p, targets):
             j = torch.max(r, 1. / r).max(2)[0] < hyp['anchor_t']# compare
             # j = wh_iou(anchors, t[:, 4:6]) > model.hyp['iou_t']  # iou(3,n) = wh_iou(anchors(3,2), gwh(n,2))
             a, t = at[j], t.repeat(na, 1, 1)[j]  # filter
-    
+
             # overlaps
             gxy = t[:, 2:4]  # grid xy
             z = torch.zeros_like(gxy)
@@ -333,21 +333,21 @@ def build_targets(p, targets):
             l, m = ((gxy % 1. > (1 - g)) & (gxy < (gain[[2, 3]] - 1.))).T
             a, t = torch.cat((a, a[j], a[k], a[l], a[m]), 0), torch.cat((t, t[j], t[k], t[l], t[m]), 0)
             offsets = torch.cat((z, z[j] + off[0], z[k] + off[1], z[l] + off[2], z[m] + off[3]), 0) * g
-    
+
         # Define
         b, c = t[:, :2].long().T  # image, class
         gxy = t[:, 2:4]  # grid xy
         gwh = t[:, 4:6]  # grid wh
         gij = (gxy - offsets).long()
         gi, gj = gij.T  # grid xy indices
-    
+
         # Append
         #indices.append((b, a, gj, gi))  # image, anchor, grid indices
         indices.append((b, a, gj.clamp_(0, gain[3] - 1), gi.clamp_(0, gain[2] - 1)))  # image, anchor, grid indices
         tbox.append(torch.cat((gxy - gij, gwh), 1))  # box
         anch.append(ancs[a])  # anchors
         tcls.append(c)  # class
-        
+
     return tcls, tbox, indices, anch
 
 def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False):
@@ -462,9 +462,11 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
             conf, j = x[:, 5:].max(1, keepdim=True)
             x = torch.cat((box, conf, j.float()), 1)[conf.view(-1) > conf_thres]
 
+        classes = 3
         # Filter by class
         if classes:
-            x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]
+            x = x[(x[:, 5:6] < torch.tensor(classes, device=x.device)).any(1)]
+            # x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]
 
         # Apply finite constraint
         # if not torch.isfinite(x).all():
@@ -498,6 +500,18 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
         output[xi] = x[i]
         if (time.time() - t) > time_limit:
             break  # time limit exceeded
+
+    # imges = []
+    # img_boxes = []
+    # new_output = []
+    # for img in output.cpu():
+    #     for box in img:
+    #         # the last element in the box refers to class number
+    #         if box[-1] < 3:
+    #             img_boxes.append(box)
+    #     imges.append(img_boxes)
+
+    # new_output = torch.from_numpy(np.array(imges))
 
     return output
 
@@ -553,7 +567,7 @@ def clip_coords(boxes, img_shape):
     boxes[:, 1].clamp_(0, img_shape[0])  # y1
     boxes[:, 2].clamp_(0, img_shape[1])  # x2
     boxes[:, 3].clamp_(0, img_shape[0])  # y2
-        
+
 def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
     # Rescale coords (xyxy) from img1_shape to img0_shape
     if ratio_pad is None:  # calculate from img0_shape
@@ -636,12 +650,15 @@ def load_radar(index):
 
 def load_label(index):
     path = os.path.join(lroot, inputs[index].replace('.jpg', '.txt'))
-    with open(path, 'r') as f:
-        l = np.array([x.split() for x in f.read().splitlines()], dtype=np.float32)  # labels
+    try:
+        with open(path, 'r') as f:
+            l = np.array([x.split() for x in f.read().splitlines()], dtype=np.float32)  # labels
+            return l
+    except:
+        print(path)
         #if len(l) == 0:
             #l = np.zeros((0, 5), dtype=np.float32)
             #print('Zero label')
-    return l
 
 def random_perspective(img, targets=(), degrees=10, translate=.1, scale=.1, shear=10, perspective=0.0, border=(0, 0)):
     height = img.shape[0] + border[0] * 2  # shape(h,w,c)
@@ -749,7 +766,7 @@ def create_mosaic(index):
     if len(labels4):
         labels4 = np.concatenate(labels4, 0)
         # np.clip(labels4[:, 1:] - s / 2, 0, s, out=labels4[:, 1:])  # use with center crop
-        np.clip(labels4[:, 1:], 0, 2 * s, out=labels4[:, 1:])  
+        np.clip(labels4[:, 1:], 0, 2 * s, out=labels4[:, 1:])
     #img4, labels4 = random_perspective(img4, labels4, degrees=hyp['degrees'],translate=hyp['translate'],scale=hyp['scale'],shear=hyp['shear'],perspective=hyp['perspective'],border=mosaic_border)
     return img4, labels4
 
@@ -797,7 +814,7 @@ class Dataset(object):
             labels[:, 2] = ratio[1] * h * (x[:, 2] - x[:, 4] / 2) + pad[1]  # pad height
             labels[:, 3] = ratio[0] * w * (x[:, 1] + x[:, 3] / 2) + pad[0]
             labels[:, 4] = ratio[1] * h * (x[:, 2] + x[:, 4] / 2) + pad[1]
-    if nL:        
+    if nL:
         labels[:, 1:5] = xyxy2xywh(labels[:, 1:5])  # convert xyxy to xywh
         labels[:, [2, 4]] /= img.shape[0]  # normalized height 0-1
         labels[:, [1, 3]] /= img.shape[1]  # normalized width 0-1
@@ -849,25 +866,25 @@ class Mish(torch.nn.Module):
     def forward(self, x):
         x = x * (torch.tanh(torch.nn.functional.softplus(x)))
         return x
-    
+
 class CBM(torch.nn.Module):
     def __init__(self,in_filters, out_filters, kernel_size, stride):
-        super(CBM,self).__init__()                               
-        self.conv = torch.nn.Conv2d(in_channels=in_filters,out_channels=out_filters,kernel_size=kernel_size,stride=stride,padding=kernel_size//2,bias=False)   
+        super(CBM,self).__init__()
+        self.conv = torch.nn.Conv2d(in_channels=in_filters,out_channels=out_filters,kernel_size=kernel_size,stride=stride,padding=kernel_size//2,bias=False)
         self.batchnorm = torch.nn.BatchNorm2d(num_features=out_filters,momentum=0.03, eps=1E-4)
         self.act = Mish()
     def forward(self,x):
         return self.act(self.batchnorm(self.conv(x)))
-        
+
 class ResUnit(torch.nn.Module):
     def __init__(self, filters, first = False):
         super(ResUnit, self).__init__()
         if first:
             self.out_filters = filters//2
         else:
-            self.out_filters = filters         
+            self.out_filters = filters
         self.resroute= torch.nn.Sequential(CBM(filters, self.out_filters, kernel_size=1, stride=1),
-                                                    CBM(self.out_filters, filters, kernel_size=3, stride=1))       
+                                                    CBM(self.out_filters, filters, kernel_size=3, stride=1))
     def forward(self, x):
         shortcut = x
         x = self.resroute(x)
@@ -881,9 +898,9 @@ class CSP(torch.nn.Module):
         self.route_list.append(CBM(in_filters=filters,out_filters=filters//2,kernel_size=1,stride=1))
         for block in range(nblocks):
             self.route_list.append(ResUnit(filters=filters//2))
-        self.route_list.append(CBM(in_filters=filters//2,out_filters=filters//2,kernel_size=1,stride=1))                                         
+        self.route_list.append(CBM(in_filters=filters//2,out_filters=filters//2,kernel_size=1,stride=1))
         self.last = CBM(in_filters=filters,out_filters=filters,kernel_size=1,stride=1)
-        
+
     def forward(self,x):
         shortcut = self.skip(x)
         for block in self.route_list:
@@ -902,7 +919,7 @@ class SPP(torch.nn.Module):
         x9 = self.maxpool9(x)
         x13 = self.maxpool13(x)
         return torch.cat((x13,x9,x5,x),dim=1)
-            
+
 class rCSP(torch.nn.Module):
     def __init__(self,filters,spp_block = False):
         super(rCSP,self).__init__()
@@ -927,8 +944,8 @@ class rCSP(torch.nn.Module):
             x = block(x)
         x = torch.cat((x,shortcut),dim=1)
         x = self.last(x)
-        return x 
-    
+        return x
+
 def up(filters):
         return torch.nn.Sequential(CBM(in_filters=filters,out_filters=filters//2,kernel_size=1,stride=1),
                                         torch.nn.Upsample(scale_factor=2))
@@ -977,7 +994,7 @@ class YOLOLayer(torch.nn.Module):
             io[..., :4] *= self.stride
             return io.view(bs, -1, self.no), p  # view [1, 3, 13, 13, 85] as [1, 507, 85]
 
-        
+
 class Backbone(torch.nn.Module):
     def __init__(self):
         super(Backbone,self).__init__()
@@ -985,7 +1002,7 @@ class Backbone(torch.nn.Module):
                                         CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
                                         ResUnit(filters = 64, first= True),
                                         CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
-                                        CSP(filters=128,nblocks = 2), 
+                                        CSP(filters=128,nblocks = 2),
                                         CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2),
                                         CSP(filters=256,nblocks = 8))
         self.main4 = torch.nn.Sequential(CBM(in_filters=256,out_filters=512,kernel_size=3,stride=2),
@@ -997,7 +1014,7 @@ class Backbone(torch.nn.Module):
         x4 = self.main4(x3)
         x5 = self.main5(x4)
         return (x3,x4,x5)
-    
+
 class Neck(torch.nn.Module):
     def __init__(self):
         super(Neck,self).__init__()
@@ -1016,13 +1033,13 @@ class Neck(torch.nn.Module):
         x4 = self.main4(self.conv2(torch.cat((self.conv1(x4),self.up5(x5)),dim=1)))
         x3 = self.main3(self.conv4(torch.cat((self.conv3(x3),self.up4(x4)),dim=1)))
         return (x3,x4,x5)
-    
+
 class Head(torch.nn.Module):
     def __init__(self,nclasses):
         super(Head,self).__init__()
         self.last_layers = 3*(4+1+nclasses)
         self.last3 = torch.nn.Sequential(CBM(in_filters=128,out_filters=256,kernel_size=3,stride=1),
-                                         torch.nn.Conv2d(in_channels=256,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True))       
+                                         torch.nn.Conv2d(in_channels=256,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True))
         self.conv1 = CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2)
         self.conv2 = CBM(in_filters=512,out_filters=256,kernel_size=1,stride=1)
         self.main4 = rCSP(256)
@@ -1065,14 +1082,14 @@ class Darknet(torch.nn.Module):
             x, p = zip(*yolo_out)  # inference output, training output
             x = torch.cat(x, 1)  # cat yolo outputs
             return x, p
-        
+
 def train(tb_writer,weights=None):
     log_dir = Path(tb_writer.log_dir) # logging directory
     wdir = os.path.join(log_dir,'weights') + os.sep  # weights directory
     os.makedirs(wdir, exist_ok=True)
     last = wdir + 'last.pytorch'
     best = wdir + 'best.pytorch'
-    results_file = os.path.join(log_dir,'results.txt')    
+    results_file = os.path.join(log_dir,'results.txt')
     # Configure
     init_seeds(2)
     # Model
@@ -1106,7 +1123,7 @@ def train(tb_writer,weights=None):
 def test(txt_root = None, plot_all = False, break_no = 1000000):
     #Dataloader
     test_set = Dataset(imroot,lroot,augment=False)
-    test_loader = torch.utils.data.DataLoader(dataset=test_set,batch_size=1,collate_fn=Dataset.collate_fn,shuffle=False)
+    test_loader = torch.utils.data.DataLoader(dataset=test_set,batch_size=16,collate_fn=Dataset.collate_fn,shuffle=False)
     model = Darknet(nclasses=nc, anchors=anchors_g)
     model.load_state_dict(torch.load(weight_path))
     model.eval()
@@ -1126,6 +1143,7 @@ def test(txt_root = None, plot_all = False, break_no = 1000000):
             #Run Model
             t = time_synchronized()
             inf_out, train_out = model(img)  # inference and training outputs
+            # inf_out = inf_out[:, :, :8]
             t0 += time_synchronized() - t
             #Run NMS
             t = time_synchronized()
@@ -1183,6 +1201,7 @@ def test(txt_root = None, plot_all = False, break_no = 1000000):
                                     break
             # Append statistics (correct, conf, pcls, tcls)
             stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
+
         if plot_all or batch_i <1:
             boxes = pred
             boxes[:, :4] = scale_coords(img[si].shape[1:], boxes[:, :4], shapes[si][0], shapes[si][1])  # to original
@@ -1190,7 +1209,7 @@ def test(txt_root = None, plot_all = False, break_no = 1000000):
             plt.rcParams['figure.figsize'] = (20,20)
             fig,ax = plt.subplots(1)
             ax.imshow(original_img)
-            
+
             if len(pred):
                 for i, box in enumerate(boxes.cpu()):
                     xmin = box[0]
@@ -1202,8 +1221,8 @@ def test(txt_root = None, plot_all = False, break_no = 1000000):
                     ax.text(xmin, ymin, (names[int(box[-1])],int(box[-2]*100)), fontsize = 12)
 
             plt.show()
-            
-            
+
+
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy
     if len(stats) and stats[0].any():
         p, r, ap, f1, ap_class = ap_per_class(*stats)
@@ -1225,7 +1244,11 @@ def test(txt_root = None, plot_all = False, break_no = 1000000):
     return (mp, mr, map50, m_ap), maps, t
 
 #%% try test
-(mp, mr, map50, m_ap), maps, t = test(txt_root='./results', break_no=10) 
+import time
+start_time = time.time()
+(mp, mr, map50, m_ap), maps, t = test(txt_root='./results')
+end_time = time.time()
+print(f"run time: {end_time - start_time}")
 #%% Plot Model
 # from torchsummary import summary
 # #from pytorch_model_summary import summary
