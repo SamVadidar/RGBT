@@ -37,10 +37,10 @@ anchors_g = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243
 anchors_g = np.array(anchors_g).reshape(-1,2)
 strides = [8,16,32]
 epochs = 300
-batch_size = 16
-total_batch_size = 16
+batch_size = 4
+total_batch_size = 4
 rank = -1
-#names = ['person', 'bicycle', 'car']
+# names = ['person', 'bicycle', 'car']
 names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
          'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
          'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
@@ -75,15 +75,15 @@ hyp = {'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
                 'mixup': 0.0}
 nc = 80 #number of classes
 gr = 1.0 # giou loss ratio (obj_loss = 1.0 or giou)
-img_size = 416
+img_size = 640
 mosaic_border = [-img_size // 2, -img_size // 2]
 tensor = tv.transforms.ToTensor()
 image = tv.transforms.ToPILImage()
 #%%
 weight_path = "./Yolo/yolov4-csp_pretrained.pytorch"
-imroot = "/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/video/RGB_cropped"
+imroot = "/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/train/RGB_cropped"
 #rroot =
-lroot = "/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/video/yolo_format_labels"
+lroot = "/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/train/yolo_format_labels"
 inputs = list(os.listdir(imroot))
 #%%
 
@@ -1120,10 +1120,10 @@ def train(tb_writer,weights=None):
     print('Optimizer groups: %g .bias, %g conv.weight, %g other' % (len(pg2), len(pg1), len(pg0)))
     del pg0, pg1, pg2
 
-def test(txt_root = None, plot_all = False, break_no = 1000000):
+def test(txt_root = None, plot_all = True, break_no = 1000000):
     #Dataloader
     test_set = Dataset(imroot,lroot,augment=False)
-    test_loader = torch.utils.data.DataLoader(dataset=test_set,batch_size=16,collate_fn=Dataset.collate_fn,shuffle=False)
+    test_loader = torch.utils.data.DataLoader(dataset=test_set,batch_size=8,collate_fn=Dataset.collate_fn,shuffle=True)
     model = Darknet(nclasses=nc, anchors=anchors_g)
     model.load_state_dict(torch.load(weight_path))
     model.eval()
@@ -1204,23 +1204,24 @@ def test(txt_root = None, plot_all = False, break_no = 1000000):
 
         if plot_all or batch_i <1:
             boxes = pred
-            boxes[:, :4] = scale_coords(img[si].shape[1:], boxes[:, :4], shapes[si][0], shapes[si][1])  # to original
-            original_img = Image.open(os.path.join(imroot,paths[si]))
-            plt.rcParams['figure.figsize'] = (20,20)
-            fig,ax = plt.subplots(1)
-            ax.imshow(original_img)
+            if pred.type() != None:
+                boxes[:, :4] = scale_coords(img[si].shape[1:], boxes[:, :4], shapes[si][0], shapes[si][1])  # to original
+                original_img = Image.open(os.path.join(imroot,paths[si]))
+                plt.rcParams['figure.figsize'] = (20,20)
+                fig,ax = plt.subplots(1)
+                ax.imshow(original_img)
 
-            if len(pred):
-                for i, box in enumerate(boxes.cpu()):
-                    xmin = box[0]
-                    ymin = box[1]
-                    w = (box[2]-box[0])
-                    h = (box[3]-box[1])
-                    rect = patches.Rectangle((xmin,ymin),w,h,linewidth=2,edgecolor='r',facecolor='none')
-                    ax.add_patch(rect)
-                    ax.text(xmin, ymin, (names[int(box[-1])],int(box[-2]*100)), fontsize = 12)
+                if len(pred):
+                    for i, box in enumerate(boxes.cpu()):
+                        xmin = box[0]
+                        ymin = box[1]
+                        w = (box[2]-box[0])
+                        h = (box[3]-box[1])
+                        rect = patches.Rectangle((xmin,ymin),w,h,linewidth=2,edgecolor='r',facecolor='none')
+                        ax.add_patch(rect)
+                        ax.text(xmin, ymin, (names[int(box[-1])],int(box[-2]*100)), fontsize = 12)
 
-            plt.show()
+                plt.show()
 
 
     stats = [np.concatenate(x, 0) for x in zip(*stats)]  # to numpy

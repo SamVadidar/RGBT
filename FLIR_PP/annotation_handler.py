@@ -221,11 +221,11 @@ def correct_LabelImg_classes():
 
 if __name__ == '__main__':
     # draw_rgb_annotation_from_json(DATASET_PP_PATH, 'val')
-    # count_objects_all(DATASET_PP_PATH)
+    count_objects_all(DATASET_PP_PATH)
 
     # convert_labels_to_yolo_format(DATASET_PP_PATH, 'train')
     # convert_labels_to_yolo_format(DATASET_PP_PATH, 'val')
     # convert_labels_to_yolo_format(DATASET_PP_PATH, 'video')
 
-    manually_added_labels = './manual_data_cleaning/label_RGB_manual'
-    merge_labels(DATASET_PP_PATH, manually_added_labels)
+    # manually_added_labels = './manual_data_cleaning/label_RGB_manual'
+    # merge_labels(DATASET_PP_PATH, manually_added_labels)

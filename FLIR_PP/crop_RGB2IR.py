@@ -3,6 +3,7 @@ import PIL
 from matplotlib import pyplot as plt
 from gt_bb_cords import get_cords
 from align_IR2RGB import calc_para
+from align_IR2RGB import DATASET_PP_PATH
 
 
 def crop_resolution_1800_1600(rgb_path, save_location, scale_width_glob, max_location_glob):
@@ -62,18 +63,22 @@ def plot(cropped, resized, IR):
 
     plt.show()
 
-def plot_bb(imageNumber, rgb_resized):
+def plot_bb(imageNumber, cropped_frame):
     
     bb_gtruth = get_cords(imageNumber)
     for bb in bb_gtruth:
-        # bb = [int(x * scale_w_glob) for x in bb]
-        # bb[0] += max_loc_glob[0]
-        # bb[1] += max_loc_glob[1]
-        cv2.rectangle(rgb_resized, (bb[0], bb[1]), (bb[0]+bb[2], bb[1]+bb[3]), (0, 0, 255), 1)
+        # cropped frame has to be in the IR coordinate system, so that the boxes match
+        cv2.rectangle(cropped_frame, (bb[0], bb[1]), (bb[0]+bb[2], bb[1]+bb[3]), (0, 0, 255), 1)
     
-    plt.imshow(cv2.cvtColor(rgb_resized, cv2.COLOR_BGR2RGB))
+    plt.imshow(cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB))
     plt.show()
 
 if __name__ == '__main__':
-    imageNumber = '04433'
-    crop_resolution_1800_1600(imageNumber)
+    imageNumber = '26'
+    path_rgb = DATASET_PP_PATH + '/train/RGB/FLIR_' + str(imageNumber).zfill(5) + ".jpg"
+    scale_width_glob = 2.542
+    max_location_glob = (156, 136)
+    crop_resolution_1800_1600(path_rgb, './rgb_cropped.png', scale_width_glob, max_location_glob)
+
+    cropped_frame = cv2.imread('./rgb_cropped.png')
+    plot_bb(str(imageNumber).zfill(5), cropped_frame)
