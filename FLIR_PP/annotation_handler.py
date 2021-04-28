@@ -122,6 +122,7 @@ def draw_rgb_annotation_from_json(dataset_path, set_folder):
     draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_data)
     json_file.close()
 
+# COCO to YOLO
 def convert_labels_to_yolo_format(dataset_path, which_set):
     path_to_set = dataset_path + '/' + str(which_set) + '/'
     json_path = dataset_path + '/' + str(which_set) + '/thermal_annotations.json'
@@ -175,6 +176,7 @@ def convert_labels_to_yolo_format(dataset_path, which_set):
         iteration += 1
         print_progress(iteration, total_file_num)
 
+# merge manually labelled data to the original labels
 def merge_labels(dataset_path, secondary_folder):
 
     for secondary_file in Path(secondary_folder).rglob('*.txt'):
@@ -219,6 +221,31 @@ def correct_LabelImg_classes():
             else:
                 f_dst.write(line)
 
+def plot_yoloFormat_labels(dataset_path, which_set):
+    rgb_folder_path = dataset_path + '/' + which_set + '/RGB_cropped'
+    dst_path = rgb_folder_path + '_annotated_YoloFormat'
+    if os.path.isdir(dst_path):
+        shutil.rmtree(dst_path)
+    os.mkdir(dst_path)
+    for img in Path(rgb_folder_path).rglob('*.jpg'):
+        rgb = cv2.imread(str(img))
+        _, rgb_name = os.path.split(img)
+        rgb_label = rgb_name.replace('.jpg', '.txt')
+        rgb_label_path = dataset_path + '/' + which_set + '/yolo_format_labels/' + rgb_label
+        f = open(rgb_label_path, 'r')
+        lines = f.readlines()
+
+        for line in lines:
+            line = line.split()
+            x1 = int(float(line[1])*640 - float(line[3])*640/2) # x - w/2 = x1
+            y1 = int(float(line[2])*512 - float(line[4])*512/2) # y - h/2 = y1
+            x2 = int(float(line[3])*640 + x1)
+            y2 = int(float(line[4])*512 + y1)
+            cv2.rectangle(rgb, (x1,y1), (x2,y2), (255,0,0))
+        plt.imshow(cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB))
+        plt.show()
+
+
 if __name__ == '__main__':
     # draw_rgb_annotation_from_json(DATASET_PP_PATH, 'val')
     count_objects_all(DATASET_PP_PATH)
@@ -229,3 +256,4 @@ if __name__ == '__main__':
 
     # manually_added_labels = './manual_data_cleaning/label_RGB_manual'
     # merge_labels(DATASET_PP_PATH, manually_added_labels)
+    plot_yoloFormat_labels(DATASET_PP_PATH, 'train')

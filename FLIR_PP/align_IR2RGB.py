@@ -145,8 +145,13 @@ if __name__ == '__main__':
     imageNumber = 26
 
     # TODO (Fun_Fact)
-    # 5251 Sun Glare!
-    # [3670:4088], [135:186] Night
+    # 5251 Sun Glare!#
+    # Total Night frames = 5083 pair
+    # Total Day frames = 4816 pair
+    # [3677:4088], [135:186] Night_Train
+    # [8863, 9019], [9320, 9672] Night_Val
+    # [1:4224] Night_Video
+
     #TODO
     # 51, 4423, 4431, 9833
     # 2.477 and (155, 155) works perfectly for all the frames, except the above mentioned!
