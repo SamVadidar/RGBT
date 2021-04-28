@@ -1,9 +1,8 @@
+![YOLO](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/Yolo.png)
 
 # Papers
 
 ## 1. RGB Object Detection:
-
-  ![YOLO](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/Yolo.png)
   
   **Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/Yolo_History.docx)]
   ### 2020

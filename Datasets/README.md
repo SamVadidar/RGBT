@@ -1,4 +1,4 @@
-Summary of what should be done:
+## ToDo List
 ===================================
 - [x] Find all the Datasets, which provide IR images 
 - [x] Review their specifications 
