@@ -7,7 +7,7 @@ Summary of what should be done:
 DataSet Review:
 ===================================
 
-## FLIR:
+## FLIR [[Link](https://www.flir.com/oem/adas/adas-dataset-form/)]:
     * Specification:
        * Published on 2020
        * IR-Visible, Only IR is labeled
@@ -18,7 +18,7 @@ DataSet Review:
        * 60705 Car Obj.
        * 5662 Bicycle Obj.
 
-## CVC-14:
+## CVC-14 [[Link](http://adas.cvc.uab.es/elektra/enigma-portfolio/cvc-14-visible-fir-day-night-pedestrian-sequence-dataset/)]:
     * Specification:
         * Published on 2016
         * GrayScale RGB frames
@@ -28,7 +28,7 @@ DataSet Review:
         * For testing ~700 images for both sequences with ~2000 pedestrian during day, and ~1500 pedestrian during night
         Frame format is tif, therefore I assume that they are 16-bit
 
-## KAIST Multispectral pedestrian Detection:
+## KAIST Multispectral pedestrian Detection [[Link](https://sites.google.com/site/pedestrianbenchmark/)] [[Code](https://github.com/SoonminHwang/rgbt-ped-detection)]:
     * Specification:
         * Published on 2015 
         * Pedestrian Only
@@ -40,7 +40,7 @@ DataSet Review:
 
 ## Others:
 
-#### Dense:
+#### Dense [[Link](https://www.uni-ulm.de/en/in/driveu/projects/dense-datasets/)]:
     * Specification:
       * Published on 2020
       * Pedestrian, Vehicle
@@ -53,7 +53,7 @@ DataSet Review:
       * FIR frame 8-bit
       * Very bad resolution and FOV for IR frames
 
-#### ZUT-FIR-ADAS:
+#### ZUT-FIR-ADAS [[Link](https://github.com/pauliustumas/ZUT-FIR-ADAS)]:
     * Specification:
         * Published on 22.01.2020
         * IR Frames Only
@@ -71,7 +71,7 @@ DataSet Review:
         * then use convertTo function like: input.convertTo(output, input.depth(), sc, sh), where output is transformed Mat, sc is scale and sh is shift from carParams.csv file.
         * finally, scale image to 640x480
 
-#### CAMEL:
+#### CAMEL [[Link](https://camel.ece.gatech.edu/)]:
     * Specification:
         * Published on 2018
         * The frames are mostly not on-board frames
@@ -81,7 +81,7 @@ DataSet Review:
         * Details like Humidity, Visibility, Weather condition, Temp., Time of recording are available
         * Both sensors are recorded with a jpg format, which seems like 8-bit recording
 
-#### CVC-09:
+#### CVC-09 [[Link](http://adas.cvc.uab.es/elektra/enigma-portfolio/item-1/)]:
     * Specification:
         * Published on 2014
         * Day-night, fir only, FramesNeg-FramesPos available
@@ -89,7 +89,7 @@ DataSet Review:
         * 2 Sets: the first set contains 5990 frames and the second 5081, divided in training and testing sets each sequence.
         * Frame format is png, therefore I assume that they are 8-bit
 
-#### Multispectral image recognition:
+#### Multispectral image recognition [[Link](https://www.mi.t.u-tokyo.ac.jp/static/projects/mil_multispectral/)]:
     * Specification:
         * Published on 2017
         * FIR-mir-nir-visible, Label in xml and txt format for each sensor (not in the same reference frame)
@@ -100,12 +100,16 @@ DataSet Review:
         * noAnnotationslist.txt contains the images without labels
         * 7512 images in total for each sensor
 
-#### SCUT-CV:
+#### SCUT-CV [[Link](https://github.com/SCUT-CV/SCUT_FIR_Pedestrian_Dataset):
     * Specification:
        * Published on 2019
        * IR Frames Only
        * Pedestrian Only
 
-#### OTCBVS:
+#### OTCBVS [[Link](http://vcipl-okstate.org/pbvs/bench/):
     * Dataset 01: pedestrian, above long shot
     * Dataset 03: pedestrian, above long shot
+
+
+- <a name=""></a> 19-10-Driving Datasets Literature Review [[Link](https://arxiv.org/abs/1910.11968)]
+- <a name=""></a> Image Databases [[Link](http://homepages.inf.ed.ac.uk/rbf/CVonline/Imagedbase.htm)]

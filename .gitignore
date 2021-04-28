@@ -8,4 +8,7 @@
 *__
 *.pytorch
 *.pt
-*/runs/
+runs/*
+*/runs/*
+torch_test.py
+*.zip
