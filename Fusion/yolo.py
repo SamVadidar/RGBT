@@ -1,12 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 21 14:53:12 2021
-
-@author: Gokulesh Danapal (GX6)
-
-Confidentiality: Internal
-"""
-from yolo_backend import Dataset, Darknet, train, test
+from yolo_backend import Dataset, Darknet, train
+from inference import test
 from torch.utils.tensorboard import SummaryWriter
 
 names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
@@ -29,7 +22,7 @@ hyp = { 'device':'cuda', #Intialise device as cpu. Later check if cuda is avaial
         'strides': [8,16,32], #strides of p3,p4,p5
         'epochs': 10, #number of epochs
         'batch_size': 16, #train batch size
-        'test_size': 1, #test batch size
+        'test_size': 4, #test batch size
         'use_adam': False, #Bool to use Adam optimiser
         'multi_scale': False, #Bool to do multi-scale training
         'test_all': False, #Run test after end of each epoch
@@ -52,12 +45,12 @@ hyp = { 'device':'cuda', #Intialise device as cpu. Later check if cuda is avaial
      }
 
 
-weight_path = './yolo_pre.pt'
+weight_path = './Yolo/yolo_pre.pt'
 imroot = '/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/val/RGB_cropped/'
 lroot = '/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/val/yolo_format_labels'
 # imroot = './asd/images'
 # lroot = './asd/labels'
-logdir = './runs'
+logdir = './Yolo/runs'
 
 train_set = Dataset(hyp,imroot,lroot,augment=True)
 test_set = Dataset(hyp,imroot, lroot, augment= False)
