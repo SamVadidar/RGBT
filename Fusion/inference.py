@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Adapted From: WongKinYiu and Gokulesh Danapal
+https://github.com/WongKinYiu/ScaledYOLOv4
+https://github.com/gokulesh-danapal
+"""
 import os
 import torch
 import numpy as np
@@ -6,7 +12,9 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-from yolo_backend import Darknet, clip_coords, scale_coords, non_max_suppression, xyxy2xywh, xywh2xyxy, Dataset, time_synchronized, box_iou, ap_per_class
+from yolo import Darknet
+from data_processor import Dataset
+from utils import non_max_suppression, xywh2xyxy, xyxy2xywh, time_synchronized, box_iou, ap_per_class, clip_coords, scale_coords
 
 
 def test(test_set, names, hyp, ckpt_path = None, model=None, txt_root = None, plot_all = False, break_no = 1000000):
@@ -53,7 +61,14 @@ def test(test_set, names, hyp, ckpt_path = None, model=None, txt_root = None, pl
                 continue#
             # Append to text file
             if txt_root is not None:
-                txt_path = os.path.join(txt_root, paths[si].split(os.sep)[-1].replace('.jpg', '.txt'))
+                if paths[si].split(os.sep)[-1][-3:] == 'jpg':
+                    txt_path = os.path.join(txt_root, paths[si].split(os.sep)[-1].replace('.jpg', '.txt'))
+                elif paths[si].split(os.sep)[-1][-3:] == 'png':
+                    txt_path = os.path.join(txt_root, paths[si].split(os.sep)[-1].replace('.png', '.txt'))
+                elif paths[si].split(os.sep)[-1][-4:] == 'jpeg':
+                    txt_path = os.path.join(txt_root, paths[si].split(os.sep)[-1].replace('.jpeg', '.txt'))
+                else:
+                    raise ValueError('The image format is not supported, you can add it simply in the code!')
                 gn = torch.tensor(shapes[si][0])[[1, 0, 1, 0]]  # normalization gain whwh
                 values = pred.clone()
                 values[:, :4] = scale_coords(img[si].shape[1:], values[:, :4], shapes[si][0], shapes[si][1])  # to original
@@ -128,3 +143,56 @@ def test(test_set, names, hyp, ckpt_path = None, model=None, txt_root = None, pl
     for i, c in enumerate(ap_class):
         maps[c] = ap[i]
     return (mp, mr, map50, m_ap), maps, t
+
+if __name__ == '__main__':
+    names = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light',
+        'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+        'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee',
+        'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard',
+        'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+        'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch',
+        'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+        'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear',
+        'hair drier', 'toothbrush']
+
+    hyp = { 'device':'cuda', #Intialise device as cpu. Later check if cuda is avaialbel and change to cuda    
+            'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
+            'momentum': 0.937,  # SGD momentum/Adam beta1
+            'weight_decay': 0.0005,  # optimizer weight decay
+            'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
+            'nclasses': 80, #Number of classes
+            'img_size': 640, #Input image size. Must be a multiple of 32
+            'strides': [8,16,32], #strides of p3,p4,p5
+            'epochs': 10, #number of epochs
+            'batch_size': 16, #train batch size
+            'test_size': 4, #test batch size
+            'use_adam': False, #Bool to use Adam optimiser
+            'multi_scale': False, #Bool to do multi-scale training
+            'test_all': False, #Run test after end of each epoch
+            'save_all': True, #Save checkpoints after every epoch
+            
+            'giou': 0.05,  # GIoU loss gain
+            'cls': 0.5,  # cls loss gain
+            'cls_pw': 1.0,  # cls BCELoss positive_weight
+            'obj': 1.0,  # obj loss gain (scale with pixels)
+            'obj_pw': 1.0,  # obj BCELoss positive_weight
+            'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
+            'iou_t': 0.6,  # IoU training threshold
+            'conf_t':0.5, # Confidence training threshold
+            'anchor_t': 4.0,  # anchor-multiple threshold
+            
+            'fl_gamma': 0.0,  # focal loss gamma (efficientDet default gamma=1.5)
+            'flipud': 0.0,  # image flip up-down (probability)
+            'fliplr': 0.0,  # image flip left-right (probability)
+            'mixup': 0.0 #mix up probability
+        }
+
+    VAL_SET_IMG_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/val/RGB_cropped/'
+    # VAL_SET_IMG_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/val/thermal_8_bit'
+    VAL_SET_LABEL_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/val/yolo_format_labels'
+
+    LOG_DIR = './Fusion/runs'
+    WEIGHT_PATH = './Fusion/yolo_pre.pt'
+
+    test_set = Dataset(hyp, VAL_SET_IMG_PATH, VAL_SET_LABEL_PATH, augment= False)
+    results = test(test_set, names, hyp, WEIGHT_PATH, plot_all=False)
