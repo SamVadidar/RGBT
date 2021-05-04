@@ -8,7 +8,7 @@ import os
 import random
 import torch
 import torchvision as tv
-from utils import xyxy2xywh, create_mosaic, letterbox, load_image, load_label
+from Fusion.utils import xyxy2xywh, create_mosaic, letterbox, load_image, load_label
 
 
 class Dataset(object):

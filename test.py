@@ -12,9 +12,10 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-from yolo import Darknet
-from data_processor import Dataset
-from utils import non_max_suppression, xywh2xyxy, xyxy2xywh, time_synchronized, box_iou, ap_per_class, clip_coords, scale_coords
+from Fusion.yolo import Darknet
+from Fusion.data_processor import Dataset
+from Fusion.utils import non_max_suppression, xywh2xyxy, xyxy2xywh, time_synchronized, box_iou, ap_per_class, clip_coords, scale_coords
+from FLIR_PP.arg_parser import DATASET_PP_PATH, DATASET_PATH
 
 
 def test(test_set, names, hyp, ckpt_path = None, model=None, txt_root = None, plot_all = False, break_no = 1000000):
@@ -187,9 +188,9 @@ if __name__ == '__main__':
             'mixup': 0.0 #mix up probability
         }
 
-    VAL_SET_IMG_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/val/RGB_cropped/'
-    # VAL_SET_IMG_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/val/thermal_8_bit'
-    VAL_SET_LABEL_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/val/yolo_format_labels'
+    VAL_SET_IMG_PATH = DATASET_PP_PATH + '/val/RGB_cropped/'
+    VAL_SET_LABEL_PATH = DATASET_PP_PATH + '/val/yolo_format_labels'
+    # VAL_SET_IMG_PATH = DATASET_PATH + '/val/thermal_8_bit'
 
     LOG_DIR = './Fusion/runs'
     WEIGHT_PATH = './Fusion/yolo_pre.pt'

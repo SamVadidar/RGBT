@@ -5,62 +5,26 @@ https://github.com/WongKinYiu/ScaledYOLOv4
 https://github.com/gokulesh-danapal
 """
 import torch
-import torchvision as tv
-import torch.nn.functional as F
 import math
-import numpy as np
-from PIL import Image
 import os
-import random
-import cv2
 from copy import deepcopy
 import time
-import matplotlib.patches as patches
-import matplotlib.pyplot as plt
 from pathlib import Path
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
 from torch.cuda import amp
 from tqdm import tqdm
 import yaml
-import torch.backends.cudnn as cudnn
-import glob
+import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
-from utils import non_max_suppression, xywh2xyxy, xyxy2xywh, time_synchronized, box_iou, ap_per_class, clip_coords, scale_coords
-from yolo import Darknet
-from inference import test
-from data_processor import Dataset
 
+from test import test
+from Fusion.yolo import Darknet
+from Fusion.data_processor import Dataset
+from Fusion.utils import init_seeds, init_seeds_master, increment_dir, box_iou
+from FLIR_PP.arg_parser import DATASET_PP_PATH, DATASET_PATH
 
-def increment_dir(dir, comment=''):
-    # Increments a directory runs/exp1 --> runs/exp2_comment
-    n = 0  # number
-    dir = str(Path(dir))  # os-agnostic
-    d = sorted(glob.glob(dir + '*'))  # directories
-    if len(d):
-        n = max([int(x[len(dir):x.find('_') if '_' in x else None]) for x in d]) + 1  # increment
-    return dir + str(n) + ('_' + comment if comment else '')
-
-def fitness(x):
-    # Returns fitness (for use with results.txt or evolve.txt)
-    w = [0.0, 0.0, 0.1, 0.9]  # weights for [P, R, mAP@0.5, mAP@0.5:0.95]
-    return (x[:, :4] * w).sum(1)
-
-def init_seeds(seed=0):
-    torch.manual_seed(seed)
-    # Speed-reproducibility tradeoff https://pytorch.org/docs/stable/notes/randomness.html
-    if seed == 0:  # slower, more reproducible
-        cudnn.deterministic = True
-        cudnn.benchmark = False
-    else:  # faster, less reproducible
-        cudnn.deterministic = False
-        cudnn.benchmark = True
-        
-def init_seeds_master(seed=0):
-    random.seed(seed)
-    np.random.seed(seed)
-    init_seeds(seed=seed)
     
 class FocalLoss(torch.nn.Module):
     # Wraps focal loss around existing loss_fcn(), i.e. criteria = FocalLoss(nn.BCEWithLogitsLoss(), gamma=1.5)
@@ -338,6 +302,7 @@ def train(hyp, tb_writer, dataset, ckpt_path= None, test_set = None):
     optimizer.add_param_group({'params': pg2})  # add pg2 (biases)
     print('Optimizer groups: %g .bias, %g conv.weight, %g other' % (len(pg2), len(pg1), len(pg0)))
     del pg0, pg1, pg2
+
     # Scheduler https://arxiv.org/pdf/1812.01187.pdf
     # https://pytorch.org/docs/stable/_modules/torch/optim/lr_scheduler.html#OneCycleLR
     lf = lambda x: (((1 + math.cos(x * math.pi / hyp['epochs'])) / 2) ** 1.0) * 0.8 + 0.2  # cosine
@@ -499,7 +464,7 @@ if __name__ == '__main__':
         'img_size': 640, #Input image size. Must be a multiple of 32
         'strides': [8,16,32], #strides of p3,p4,p5
         'epochs': 10, #number of epochs
-        'batch_size': 16, #train batch size
+        'batch_size': 1, #train batch size
         'test_size': 4, #test batch size
         'use_adam': False, #Bool to use Adam optimiser
         'multi_scale': False, #Bool to do multi-scale training
@@ -522,18 +487,18 @@ if __name__ == '__main__':
         'mixup': 0.0 #mix up probability
      }
 
-    TRAIN_SET_IMG_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/train/RGB_cropped/'
-    TRAIN_SET_LABEL_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/train/yolo_format_labels'
+    TRAIN_SET_IMG_PATH = DATASET_PP_PATH + '/train/RGB_cropped/'
+    TRAIN_SET_LABEL_PATH = DATASET_PP_PATH + '/train/yolo_format_labels'
 
-    VAL_SET_IMG_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/val/RGB_cropped/'
-    VAL_SET_LABEL_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/val/yolo_format_labels'
-    # VAL_SET_IMG_PATH = '/home/ub145/Documents/Dataset/FLIR/FLIR/val/thermal_8_bit'
+    VAL_SET_IMG_PATH = DATASET_PP_PATH + '/val/RGB_cropped/'
+    VAL_SET_LABEL_PATH = DATASET_PP_PATH + '/val/yolo_format_labels'
+    # VAL_SET_IMG_PATH = DATASET_PATH + '/val/thermal_8_bit'
 
     LOG_DIR = './Fusion/runs'
     WEIGHT_PATH = './Fusion/yolo_pre.pt'
 
-    train_set = Dataset(hyp, TRAIN_SET_IMG_PATH, TRAIN_SET_LABEL_PATH, augment=True)
-    test_set = Dataset(hyp, VAL_SET_IMG_PATH, VAL_SET_LABEL_PATH, augment= False)
+    train_set = Dataset(hyp, TRAIN_SET_IMG_PATH, TRAIN_SET_LABEL_PATH, augment= False)
+    # test_set = Dataset(hyp, VAL_SET_IMG_PATH, VAL_SET_LABEL_PATH, augment= False)
 
     tb_writer = SummaryWriter(log_dir = LOG_DIR)
-    results = train(hyp, tb_writer, train_set, WEIGHT_PATH, test_set)
+    results = train(hyp, tb_writer, train_set, WEIGHT_PATH)

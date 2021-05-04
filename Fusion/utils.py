@@ -11,6 +11,7 @@ import time
 import random
 import numpy as np
 import torchvision as tv
+import torch.backends.cudnn as cudnn
 
 
 def time_synchronized():
@@ -269,14 +270,9 @@ def load_image(imroot,index,hyp):
 def load_label(imroot,lroot,index):
     inputs = list(os.listdir(imroot))
     path = os.path.join(lroot, inputs[index])
-    if path[-3:] == 'jpg':
-        path = os.path.join(lroot, inputs[index].replace('.jpg', '.txt'))
-    elif path[-3:] == 'png':
-        path = os.path.join(lroot, inputs[index].replace('.png', '.txt'))
-    elif path[-4:] == 'jpeg':
-        path = os.path.join(lroot, inputs[index].replace('.jpeg', '.txt'))
-    else:
-        raise ValueError('The image format is not supported, you can add it simply in the code!')
+    img_format = path.split('.')
+    path = os.path.join(lroot, inputs[index].replace(str(img_format[1]), 'txt'))
+
     with open(path, 'r') as f:
         l = np.array([x.split() for x in f.read().splitlines()], dtype=np.float32)  # labels
         if len(l) == 0:
@@ -314,7 +310,7 @@ def create_mosaic(imroot, lroot, index, hyp):
         padh = y1a - y1b
 
         # Labels
-        x = load_label(imroot,lroot,index)
+        x = load_label(imroot, lroot, index)
         labels = x.copy()
         if x.size > 0:  # Normalized xywh to pixel xyxy format
             labels[:, 1] = w * (x[:, 1] - x[:, 3] / 2) + padw
@@ -361,3 +357,32 @@ def letterbox(img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scale
     left, right = int(round(dw - 0.1)), int(round(dw + 0.1))
     img = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=color)  # add border
     return img, ratio, (dw, dh)
+
+def increment_dir(dir, comment=''):
+    # Increments a directory runs/exp1 --> runs/exp2_comment
+    n = 0  # number
+    dir = str(Path(dir))  # os-agnostic
+    d = sorted(glob.glob(dir + '*'))  # directories
+    if len(d):
+        n = max([int(x[len(dir):x.find('_') if '_' in x else None]) for x in d]) + 1  # increment
+    return dir + str(n) + ('_' + comment if comment else '')
+
+def fitness(x):
+    # Returns fitness (for use with results.txt or evolve.txt)
+    w = [0.0, 0.0, 0.1, 0.9]  # weights for [P, R, mAP@0.5, mAP@0.5:0.95]
+    return (x[:, :4] * w).sum(1)
+
+def init_seeds(seed=0):
+    torch.manual_seed(seed)
+    # Speed-reproducibility tradeoff https://pytorch.org/docs/stable/notes/randomness.html
+    if seed == 0:  # slower, more reproducible
+        cudnn.deterministic = True
+        cudnn.benchmark = False
+    else:  # faster, less reproducible
+        cudnn.deterministic = False
+        cudnn.benchmark = True
+        
+def init_seeds_master(seed=0):
+    random.seed(seed)
+    np.random.seed(seed)
+    init_seeds(seed=seed)
