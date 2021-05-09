@@ -326,6 +326,10 @@ def sync_video_set(dataset_path):
     remove_frames(dataset_path, 1945, 1972, 'ir', 'video')
 
 def sync_train_val_set(dataset_path, file_name):
+    '''
+    This function lists all the rgb images and remove all the
+    images from IR, which are not in this list.
+    '''
     rgb_list = []
     f = open(file_name, 'a')
 
@@ -426,7 +430,9 @@ def make_subfolders(rgb_cropped_folder, dataset_path):
     os.rmdir(rgb_cropped_folder)
 
 def manual_data_cleaning(dataset_path):
-    manual_data_cleaning_folder = './manual_data_cleaning/'
+    manual_data_cleaning_folder = './FLIR_PP/manual_data_cleaning/'
+    if not os.path.isdir(manual_data_cleaning_folder):
+        raise ValueError('The following path does not exist: ' + str(manual_data_cleaning_folder))
 
     for file_path in Path(manual_data_cleaning_folder).rglob('*.txt'):
         _, file_name = os.path.split(file_path)
@@ -476,48 +482,48 @@ def manual_data_cleaning(dataset_path):
 
 if __name__ == "__main__":
     # # find all the different available RGB resolutions
-    # rgb_res_file_name = "./rgb_resolution_list.txt"
+    # rgb_res_file_name = "./FLIR_PP/rgb_resolution_list.txt"
     # res_list_creator(rgb_res_file_name, DATASET_PP_PATH, method=0)
     # res_dictionary(rgb_res_file_name)
 
     # # find all the missing rgb images
-    # rgb_missing_frame_list = "./missing_frame_list_rgb.txt" # Result: 333 rgb frames are missing
-    # ir_missing_frame_list = "./missing_frame_list_ir.txt" # Result: no IR frame is missing
+    # rgb_missing_frame_list = "./FLIR_PP/missing_frame_list_rgb.txt" # Result: 333 rgb frames are missing
+    # ir_missing_frame_list = "./FLIR_PP/missing_frame_list_ir.txt" # Result: no IR frame is missing
     # find_frame_num_gap(DATASET_PP_PATH, rgb_missing_frame_list, Sensor='RGB')
 
-    # Backup the main Dataset folder and work on a subdirectory
-    make_FLIR_PP_folder(DATASET_PATH)
+    # # Backup the main Dataset folder and work on a subdirectory
+    # make_FLIR_PP_folder(DATASET_PATH)
 
-    # Sync ir-rgb frames in video set
-    sync_video_set(DATASET_PP_PATH) # video set is ready for cross labelling
+    # # Sync ir-rgb frames in video set
+    # sync_video_set(DATASET_PP_PATH) # video set is ready for cross labelling
 
-    # delete all the frames which have smaller HFOV than IR + all the blank RGB images
-    rgb_deleted_lowRes_and_blankFrames = "./deleted_lowRes_and_blankFrames_rgb.txt"
-    delete_rgb_lowRes_and_blankFrames(DATASET_PP_PATH, rgb_deleted_lowRes_and_blankFrames)
+    # # delete all the frames which have smaller HFOV than IR + all the blank RGB images
+    # rgb_deleted_lowRes_and_blankFrames = "./FLIR_PP/deleted_lowRes_and_blankFrames_rgb.txt"
+    # delete_rgb_lowRes_and_blankFrames(DATASET_PP_PATH, rgb_deleted_lowRes_and_blankFrames)
 
-    # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
-    sync_train_val_set(DATASET_PP_PATH, './final_ir_delete_from_train_val.txt')
+    # # delete all the rgb-deleted frames from IR (non existing rgb images from IR)
+    # sync_train_val_set(DATASET_PP_PATH, './FLIR_PP/final_ir_delete_from_train_val.txt')
 
     # Final clean after manual walking through the images
     # The text files are manually filled after looking at the cross labelled data
     manual_data_cleaning(DATASET_PP_PATH)
 
-    # Pre-process RGB frames - Crop, resize and save
-    crop_resize_save(DATASET_PP_PATH, './save_and_crop_history.txt', calc_parameter = False)
-    rgb_cropped_folder = DATASET_PP_PATH + '/rgb_cropped'
-    make_subfolders(rgb_cropped_folder, DATASET_PP_PATH)
+    # # Pre-process RGB frames - Crop, resize and save
+    # crop_resize_save(DATASET_PP_PATH, './FLIR_PP/save_and_crop_history.txt', calc_parameter = False)
+    # rgb_cropped_folder = DATASET_PP_PATH + '/rgb_cropped'
+    # make_subfolders(rgb_cropped_folder, DATASET_PP_PATH)
 
-    # Check labels on RGB frames and draw for visualization
-    # The labels are imported from FLIR json file
-    draw_rgb_annotation_from_json(DATASET_PP_PATH, 'train')
-    draw_rgb_annotation_from_json(DATASET_PP_PATH, 'val')
-    draw_rgb_annotation_from_json(DATASET_PP_PATH, 'video')
+    # # Check labels on RGB frames and draw for visualization
+    # # The labels are imported from FLIR json file
+    # draw_rgb_annotation_from_json(DATASET_PP_PATH, 'train')
+    # draw_rgb_annotation_from_json(DATASET_PP_PATH, 'val')
+    # draw_rgb_annotation_from_json(DATASET_PP_PATH, 'video')
 
-    # Convert COCO format to Yolo format
-    convert_labels_to_yolo_format(DATASET_PP_PATH, 'train')
-    convert_labels_to_yolo_format(DATASET_PP_PATH, 'val')
-    convert_labels_to_yolo_format(DATASET_PP_PATH, 'video')
+    # # Convert COCO format to Yolo format
+    # convert_labels_to_yolo_format(DATASET_PP_PATH, 'train')
+    # convert_labels_to_yolo_format(DATASET_PP_PATH, 'val')
+    # convert_labels_to_yolo_format(DATASET_PP_PATH, 'video')
 
-    # Merge manually added labels to original labels
-    manually_added_labels = './manual_data_cleaning/label_RGB_manual'
-    merge_labels(DATASET_PP_PATH, manually_added_labels)
+    # # Merge manually added labels to original labels
+    # manually_added_labels = './FLIR_PP/manual_data_cleaning/label_RGB_manual'
+    # merge_labels(DATASET_PP_PATH, manually_added_labels)

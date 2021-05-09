@@ -32,7 +32,7 @@ def count_objects(dataset_path, set_folder):
             iscrowd_obj += 1
             print(i['image_id'])
 
-    f = open(('./obj_count_'  + set_folder + '.txt'), 'w')
+    f = open(('./FLIR_PP/obj_count_'  + set_folder + '.txt'), 'w')
     f.write('person_obj: ' + str(person_obj) + '\n' + 
             'bicycle_obj: ' + str(bicycle_obj) + '\n' +
             'car_obj: ' + str(car_obj) + '\n' +
@@ -61,10 +61,9 @@ def draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_d
     rgb_cropped_set_folder = os.path.join(dataset_path, set_folder) + '/RGB_cropped'
     total_file_num = sum([len(files) for r, d, files in os.walk(rgb_cropped_set_folder)])
     iteration = 0
-    history_file = open('./save_and_crop_history.txt', 'r')
-    history_reader = csv.reader(history_file, delimiter='\t')
-
-    # history_line = history_file.readlines()
+    # in case you had calc_para = True for every image and made a text file of the parameters
+    # history_file = open('./FLIR_PP/save_and_crop_history.txt', 'r')
+    # history_reader = csv.reader(history_file, delimiter='\t')
 
     for img in Path(rgb_cropped_set_folder).rglob('*.jpg'):
         iteration += 1
@@ -75,11 +74,12 @@ def draw_and_save(dataset_path, set_folder, rgb_cropped_annotated_folder, json_d
         _, rgb_name = os.path.split(img)
         rgb_num = int(str(rgb_name)[-9:-4])
 
-        # get the scaling factor from the text file
-        for line in history_reader:
-            if line[0] == rgb_name:
-                scale_fact = float(line[1])
-                break
+        # # in case you had calc_para = True for every image and made a text file of the parameters
+        # # get the scaling factor from the text file
+        # for line in history_reader:
+        #     if line[0] == rgb_name:
+        #         scale_fact = float(line[1])
+        #         break
 
         # get the bbox cords from json file
         for i in json_data['annotations']:
@@ -254,6 +254,6 @@ if __name__ == '__main__':
     # convert_labels_to_yolo_format(DATASET_PP_PATH, 'val')
     # convert_labels_to_yolo_format(DATASET_PP_PATH, 'video')
 
-    # manually_added_labels = './manual_data_cleaning/label_RGB_manual'
+    # manually_added_labels = './FLIR_PP/manual_data_cleaning/label_RGB_manual'
     # merge_labels(DATASET_PP_PATH, manually_added_labels)
     plot_yoloFormat_labels(DATASET_PP_PATH, 'train')

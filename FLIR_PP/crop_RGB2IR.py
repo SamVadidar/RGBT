@@ -78,7 +78,7 @@ if __name__ == '__main__':
     path_rgb = DATASET_PP_PATH + '/train/RGB/FLIR_' + str(imageNumber).zfill(5) + ".jpg"
     scale_width_glob = 2.542
     max_location_glob = (156, 136)
-    crop_resolution_1800_1600(path_rgb, './rgb_cropped.png', scale_width_glob, max_location_glob)
+    crop_resolution_1800_1600(path_rgb, './FLIR_PP/rgb_cropped.png', scale_width_glob, max_location_glob)
 
-    cropped_frame = cv2.imread('./rgb_cropped.png')
+    cropped_frame = cv2.imread('./FLIR_PP/rgb_cropped.png')
     plot_bb(str(imageNumber).zfill(5), cropped_frame)

@@ -1,5 +1,5 @@
 # CMOS and Infrared Sensor Fusion (RGB-Thermal)
-
+Remark: Before running the python scripts, make sure you are in the RGBT folder to make the coded relative path in this project to work!
 ## ToDo List
 
 - [x] Finish literature review of both Object Detection and Fusion 
