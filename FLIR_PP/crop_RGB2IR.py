@@ -1,10 +1,13 @@
 import cv2
 import PIL 
+import json
+import os
 from matplotlib import pyplot as plt
+
 from gt_bb_cords import get_cords
 from align_IR2RGB import calc_para
-from align_IR2RGB import DATASET_PP_PATH
-
+from arg_parser import DATASET_PP_PATH, DATASET_PATH
+from annotation_handler import draw_and_save
 
 def crop_resolution_1800_1600(rgb_path, save_location, scale_width_glob, max_location_glob):
 
@@ -74,11 +77,21 @@ def plot_bb(imageNumber, cropped_frame):
     plt.show()
 
 if __name__ == '__main__':
-    imageNumber = '26'
-    path_rgb = DATASET_PP_PATH + '/train/RGB/FLIR_' + str(imageNumber).zfill(5) + ".jpg"
-    scale_width_glob = 2.542
-    max_location_glob = (156, 136)
-    crop_resolution_1800_1600(path_rgb, './FLIR_PP/rgb_cropped.png', scale_width_glob, max_location_glob)
+    imageNumber = '8008'
+    set_folder = 'train'
+    path_train_set = DATASET_PATH + '/' + set_folder + '/'
+    path_ir = path_train_set + 'thermal_8_bit/FLIR_' + str(imageNumber).zfill(5) + ".jpeg"
+    path_rgb = path_train_set + 'RGB/FLIR_' + str(imageNumber).zfill(5) + ".jpg"
+    _, max_location_glob, scale_width_glob = calc_para(path_ir, path_rgb, scale_fact=2.5)
 
-    cropped_frame = cv2.imread('./FLIR_PP/rgb_cropped.png')
-    plot_bb(str(imageNumber).zfill(5), cropped_frame)
+    # scale_width_glob = 2.542
+    # max_location_glob = (156, 136)
+    crop_path = './FLIR_PP/Crop/'+ set_folder + '/RGB_cropped/FLIR_' + str(imageNumber).zfill(5) + ".jpg"
+    crop_resolution_1800_1600(path_rgb, crop_path, scale_width_glob, max_location_glob)
+    cropped_frame = cv2.imread(crop_path)
+    
+    # plot_bb(str(imageNumber).zfill(5), cropped_frame)
+    json_path = os.path.join(DATASET_PATH, set_folder) + '/thermal_annotations.json'
+    json_file = open(json_path, 'r')
+    json_data = json.load(json_file)
+    draw_and_save('./FLIR_PP/Crop', set_folder, str('./FLIR_PP/Crop/' + set_folder + '/RGB_cropped_annotated'), json_data)

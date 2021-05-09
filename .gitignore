@@ -12,3 +12,4 @@ runs/*
 */runs/*
 torch_test.py
 *.zip
+FLIR_PP/Crop

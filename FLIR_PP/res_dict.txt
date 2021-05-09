@@ -2,3 +2,10 @@
 (1536, 2048, 3) -> FLIR_08455.jpg	Total = 1973	RGB_FOV < IR_FOV
 (1024, 1280, 3) -> FLIR_08638.jpg	Total = 1401	RGB_FOV < IR_FOV
 (480, 720, 3)   -> FLIR_01632.jpg	Total = 119	    RGB_FOV > IR_FOV
+
+[5511:6301] 2048*1536
+[6301:7436] 1280*1024
+[7436:8621] 2048*1536
+[8621:8863] 1280*1024
+
+[5512:8860] available in aligned_version (1306 in total!)

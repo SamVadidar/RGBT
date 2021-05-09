@@ -85,7 +85,7 @@ def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.44, meth
     plot(ir_th, rgb_th, ir, rgb)
 
     scale_w = scale_fact
-    size_w = scale_w_glob = max_val_glob = max_loc_glob = 0
+    size_w = size_h = scale_w_glob = max_val_glob = max_loc_glob = 0
 
     # Until both frames have the same width
     #scale_w < (rgb_y/ir_y)
@@ -93,44 +93,48 @@ def calc_para(path_ir, path_rgb, cropped_rgb_location=' ', scale_fact=2.44, meth
     # while(scale_fact < 2.4): # 2.5 comes from looking at the save_and_crop_history.txt and checking the good labelled rgb images
     #                           # I decieded to loop over scale factor instead of size_w, because it makes the preprocessing faster!
 
-        # 0 if ir is tempelate image (Smaller)
-        # 1 if rgb is tempelate image (Smaller)
-        if(mode==1):
-            temp = rgb.copy()
-            temp_y, temp_x, _ = temp.shape
-            shrink_percentage_w = (temp_x-(temp_x/scale_w))/temp_x
+        try:
+            # 0 if ir is tempelate image (Smaller)
+            # 1 if rgb is tempelate image (Smaller)
+            if(mode==1):
+                temp = rgb.copy()
+                temp_y, temp_x, _ = temp.shape
+                shrink_percentage_w = (temp_x-(temp_x/scale_w))/temp_x
 
-            size_w = (1-shrink_percentage_w) * temp_x
-            size_h = (1-shrink_percentage_w) * temp_y
-            temp_resized = cv2.resize(temp, (int(size_w), int(size_h)))
+                size_w = (1-shrink_percentage_w) * temp_x
+                size_h = (1-shrink_percentage_w) * temp_y
+                temp_resized = cv2.resize(temp, (int(size_w), int(size_h)))
 
-            res = cv2.matchTemplate(ir_th, temp_resized, cv2.TM_CCORR_NORMED)
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-            if max_val > max_val_glob:
-                max_val_glob = max_val
-                max_loc_glob = max_loc
-                scale_w_glob = scale_w
-            scale_w += 0.001
-            # scale_w += 0.01
+                res = cv2.matchTemplate(ir_th, temp_resized, cv2.TM_CCORR_NORMED)
+                min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                if max_val > max_val_glob:
+                    max_val_glob = max_val
+                    max_loc_glob = max_loc
+                    scale_w_glob = scale_w
+                scale_w += 0.001
+                # scale_w += 0.01
 
-        elif(mode==0):
-            temp_edge = ir_th.copy()
-            temp_y, temp_x = temp_edge.shape
-            size_w = temp_x * scale_w
-            size_h = size_w / aspect_ratio_ir
+            elif(mode==0):
+                temp_edge = ir_th.copy()
+                temp_y, temp_x = temp_edge.shape
+                size_w = temp_x * scale_w
+                size_h = size_w / aspect_ratio_ir
 
-            # temp_edge = cv2.Canny(cv2.GaussianBlur(temp, (3,3), 0), 75, 170)
-            temp_edge_resized = cv2.resize(temp_edge, (int(size_w), int(size_h)))
-            # print(temp_edge_resized.shape)
+                # temp_edge = cv2.Canny(cv2.GaussianBlur(temp, (3,3), 0), 75, 170)
+                temp_edge_resized = cv2.resize(temp_edge, (int(size_w), int(size_h)))
+                print(temp_edge_resized.shape)
 
-            res = cv2.matchTemplate(rgb_th, temp_edge_resized, cv2.TM_CCORR_NORMED)
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-            if max_val > max_val_glob:
-                max_val_glob = max_val
-                max_loc_glob = max_loc
-                scale_w_glob = scale_w
-            scale_w += 0.001
-            # scale_w += 0.01
+                res = cv2.matchTemplate(rgb_th, temp_edge_resized, cv2.TM_CCORR_NORMED)
+                min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                if max_val > max_val_glob:
+                    max_val_glob = max_val
+                    max_loc_glob = max_loc
+                    scale_w_glob = scale_w
+                scale_w += 0.001
+                # scale_w += 0.01
+        except:
+            break
+
 
     print(f"scale: {scale_w_glob}")
     print(f"Offset: {max_loc_glob}")
@@ -144,35 +148,13 @@ if __name__ == '__main__':
     path_val_set = DATASET_PP_PATH + '/val/'
     imageNumber = 26
 
-    # TODO (Fun_Fact)
+    # (Fun_Facts)
     # 5251 Sun Glare!#
     # Total Night frames = 5083 pair
     # Total Day frames = 4816 pair
     # [3677:4088], [135:186] Night_Train
     # [8863, 9019], [9320, 9672] Night_Val
     # [1:4224] Night_Video
-
-    #TODO
-    # 51, 4423, 4431, 9833
-    # 2.477 and (155, 155) works perfectly for all the frames, except the above mentioned!
-
-    # 2nd try:
-    # for 7 -> 2.551, (133, 130), 0.21358
-    # for 15 -> 2.482, (154, 147), 0.2
-    # for 26 -> 2.519, (157, 139), 0.154
-    # for 51 -> !
-    # for 70 -> 2.629, (111, 115), 0.15978
-    # for 1655 -> !
-    # for 4423 -> 
-    # for 4431 -> Sync. Problem
-    # for 4433 ->
-    # for 9833 -> 2.479, (186, 148), 0.18
-
-    # 3rd try: (THE BEST)
-    # 7, 15, 26, 70, 9833, worked just same
-    # 51 ! 2.486, (154, 141), .16915
-    # for 1655 -> 2.454, (184, 154), 0.157286
-    # for 4433 -> 2.482, (156, 144), 0.225
 
     bb_gtruth = get_cords(str(imageNumber).zfill(5))
 
@@ -186,18 +168,6 @@ if __name__ == '__main__':
         path_rgb = path_val_set + 'RGB/FLIR_' + str(imageNumber).zfill(5) + ".jpg"
         _, max_loc_glob, scale_w_glob = calc_para(path_ir, path_rgb)
         rgb = cv2.imread(path_rgb)
-
-    # if rgb.shape != (1600, 1800, 3):
-    #scale
-    # scale_w_glob = 2.479#2.476
-    #offset
-    # max_loc_glob = (186, 148)
-    # elif rgb.shape == (1536, 2048, 3):
-    #     print(rgb.shape)
-    # elif rgb.shape == (1024, 1280, 3):
-    #     print(rgb.shape)
-    # elif rgb.shape == (480, 720, 3):
-    #     print(rgb.shape)
 
     #ir frame size
     temp_x = 640
