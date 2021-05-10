@@ -479,6 +479,16 @@ def manual_data_cleaning(dataset_path):
                     pass
             f.close()
 
+def add_low_Res_from_align_version(dataset_path, path_align):
+    FLIR_PP_TRAIN_PATH = os.path.join(dataset_path, 'train')
+
+    for img in Path(path_align).rglob('*.jpg'):
+        src_path, img_name = os.path.split(img)
+        img_num = int(img_name[5:10])
+        if img_num >= 5512 and img_num <8860:
+            shutil.copyfile(img, (FLIR_PP_TRAIN_PATH+'/RGB_cropped/FLIR_'+str(img_num).zfill(5)+'.jpg'))
+            shutil.copyfile((str(src_path)+'/'+str(img_name)[0:11]+'PreviewData.jpeg'), (FLIR_PP_TRAIN_PATH+'/thermal_8_bit/FLIR_'+str(img_num).zfill(5)+'.jpeg'))
+
 
 if __name__ == "__main__":
     # # find all the different available RGB resolutions
@@ -527,3 +537,6 @@ if __name__ == "__main__":
     # Merge manually added labels to original labels
     manually_added_labels = './FLIR_PP/manual_data_cleaning/label_RGB_manual'
     merge_labels(DATASET_PP_PATH, manually_added_labels)
+
+    # # if you'd like to add 2048*1536 and 1280*1024 images from aligned version (653 paired images will be added)
+    # add_low_Res_from_align_version(DATASET_PP_PATH, '/home/ub145/Documents/Dataset/FLIR/aligned/align/JPEGImages')

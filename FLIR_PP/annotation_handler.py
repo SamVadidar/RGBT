@@ -230,6 +230,7 @@ def plot_yoloFormat_labels(dataset_path, which_set):
     for img in Path(rgb_folder_path).rglob('*.jpg'):
         rgb = cv2.imread(str(img))
         _, rgb_name = os.path.split(img)
+        # if rgb_name == 'FLIR_05560.jpg':
         rgb_label = rgb_name.replace('.jpg', '.txt')
         rgb_label_path = dataset_path + '/' + which_set + '/yolo_format_labels/' + rgb_label
         f = open(rgb_label_path, 'r')
@@ -241,7 +242,7 @@ def plot_yoloFormat_labels(dataset_path, which_set):
             y1 = int(float(line[2])*512 - float(line[4])*512/2) # y - h/2 = y1
             x2 = int(float(line[3])*640 + x1)
             y2 = int(float(line[4])*512 + y1)
-            cv2.rectangle(rgb, (x1,y1), (x2,y2), (255,0,0))
+            cv2.rectangle(rgb, (x1,y1), (x2,y2), (0,0,255))
         plt.imshow(cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB))
         plt.show()
 
