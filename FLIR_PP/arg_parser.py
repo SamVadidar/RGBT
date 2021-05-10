@@ -18,3 +18,4 @@ else:
     DATASET_PATH = input_path
     # A copied version for preprocessing
     DATASET_PP_PATH = os.path.join(input_path, 'FLIR_PP')
+    # DATASET_PP_PATH = '/data/Sam/FLIR_PP_Plus'

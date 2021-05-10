@@ -187,25 +187,27 @@ class Head(torch.nn.Module):
     def __init__(self,nclasses):
         super(Head,self).__init__()
         self.last_layers = 3*(4+1+nclasses)
-        self.last3 = torch.nn.Sequential(CBM(in_filters=128,out_filters=256,kernel_size=3,stride=1),
-                                         torch.nn.Conv2d(in_channels=256,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True))       
+        self.last3 = CBM(in_filters=128,out_filters=256,kernel_size=3,stride=1)
+        self.final3 = torch.nn.Conv2d(in_channels=256,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True) 
+        
         self.conv1 = CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2)
         self.conv2 = CBM(in_filters=512,out_filters=256,kernel_size=1,stride=1)
         self.main4 = rCSP(256)
-        self.last4 = torch.nn.Sequential(CBM(in_filters=256,out_filters=512,kernel_size=3,stride=1),
-                                         torch.nn.Conv2d(in_channels=512,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True))
+        self.last4 = CBM(in_filters=256,out_filters=512,kernel_size=3,stride=1)
+        self.final4 = torch.nn.Conv2d(in_channels=512,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True)
+        
         self.conv3 = CBM(in_filters=256,out_filters=512,kernel_size=3,stride=2)
         self.conv4 = CBM(in_filters=1024,out_filters=512,kernel_size=1,stride=1)
         self.main5 = rCSP(512)
-        self.last5 = torch.nn.Sequential(CBM(in_filters=512,out_filters=1024,kernel_size=3,stride=1),
-                                         torch.nn.Conv2d(in_channels=1024,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True))
+        self.last5 = CBM(in_filters=512,out_filters=1024,kernel_size=3,stride=1)
+        self.final5 = torch.nn.Conv2d(in_channels=1024,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True)
     def forward(self,x):
         x3 = x[0]; x4 = x[1]; x5= x[2];
-        y3 = self.last3(x3)
+        y3 = self.final3(self.last3(x3))
         x4 = self.main4(self.conv2(torch.cat((self.conv1(x3),x4),dim=1)))
-        y4 = self.last4(x4)
+        y4 = self.final4(self.last4(x4))
         x5 = self.main5(self.conv4(torch.cat((self.conv3(x4),x5),dim=1)))
-        y5 = self.last5(x5)
+        y5 = self.final5(self.last5(x5))
         return y3,y4,y5
 
 class Darknet(torch.nn.Module):
