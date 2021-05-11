@@ -456,36 +456,47 @@ def train(hyp, tb_writer, dataset, ckpt_path= None, test_set = None):
 
 if __name__ == '__main__':
     hyp = { 'device':'cuda', #Intialise device as cpu. Later check if cuda is avaialbel and change to cuda    
-        'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
-        'momentum': 0.937,  # SGD momentum/Adam beta1
-        'weight_decay': 0.0005,  # optimizer weight decay
-        'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
-        'nclasses': 3, #Number of classes
-        'img_size': 320, #Input image size. Must be a multiple of 32
-        'strides': [8,16,32], #strides of p3,p4,p5
-        'epochs': 10, #number of epochs
-        'batch_size': 16, #train batch size
-        'test_size': 4, #test batch size
-        'use_adam': False, #Bool to use Adam optimiser
-        'multi_scale': False, #Bool to do multi-scale training
-        'test_all': False, #Run test after end of each epoch
-        'save_all': True, #Save checkpoints after every epoch
-        
-        'giou': 0.05,  # GIoU loss gain
-        'cls': 0.5,  # cls loss gain
-        'cls_pw': 1.0,  # cls BCELoss positive_weight
-        'obj': 1.0,  # obj loss gain (scale with pixels)
-        'obj_pw': 1.0,  # obj BCELoss positive_weight
-        'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
-        'iou_t': 0.6,  # IoU training threshold
-        'conf_t':0.5, # Confidence training threshold
-        'anchor_t': 4.0,  # anchor-multiple threshold
-        
-        'fl_gamma': 0.0,  # focal loss gamma (efficientDet default gamma=1.5)
-        'flipud': 0.0,  # image flip up-down (probability)
-        'fliplr': 0.0,  # image flip left-right (probability)
-        'mixup': 0.0 #mix up probability
-     }
+            'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
+            'momentum': 0.937,  # SGD momentum/Adam beta1
+            'weight_decay': 0.0005,  # optimizer weight decay
+            'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
+            'nclasses': 3, #Number of classes
+            'names' : ['person', 'RidableVehicle', 'car', 'LargeVehicle'],
+            'gs': 32, #Image size multiples
+            'img_size': 320, #Input image size. Must be a multiple of 32
+            'strides': [8,16,32], #strides of p3,p4,p5
+            'epochs': 30, #number of epochs
+            'batch_size': 1, #train batch size
+            'test_size': 16, #test batch size
+            'use_adam': False, #Bool to use Adam optimiser
+            'use_ema': True, #Exponential moving average control
+            'multi_scale': False, #Bool to do multi-scale training
+            'test_all': True, #Run test after end of each epoch
+            'save_all': True, #Save checkpoints after every epoch
+            
+            'giou': 0.05,  # GIoU loss gain
+            'cls': 0.025,  # cls loss gain
+            'cls_pw': 1.0,  # cls BCELoss positive_weight
+            'obj': 1.0,  # obj loss gain (scale with pixels)
+            'obj_pw': 1.0,  # obj BCELoss positive_weight
+            'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
+            'iou_t': 0.6,  # IoU training threshold
+            'conf_t':0.2, # Confidence training threshold
+            'anchor_t': 4.0,  # anchor-multiple threshold
+            
+            'fl_gamma': 0.0,  # focal loss gamma (efficientDet default gamma=1.5)
+            'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)
+            'hsv_s': 0.7,  # image HSV-Saturation augmentation (fraction)
+            'hsv_v': 0.4,  # image HSV-Value augmentation (fraction)
+            'degrees': 0.0,  # image rotation (+/- deg)
+            'translate': 0.0,  # image translation (+/- fraction)
+            'scale': 0.5,  # image scale (+/- gain)
+            'shear': 0.0,  # image shear (+/- deg)
+            'perspective': 0.0,  # image perspective (+/- fraction), range 0-0.001
+            'flipud': 0.0,  # image flip up-down (probability)
+            'fliplr': 0.5,  # image flip left-right (probability)
+            'mixup': 0.0 #mix up probability
+        }
 
     TRAIN_SET_IMG_PATH = DATASET_PP_PATH + '/train/RGB_cropped/'
     TRAIN_SET_LABEL_PATH = DATASET_PP_PATH + '/train/yolo_format_labels'

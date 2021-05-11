@@ -8,47 +8,38 @@ import os
 import random
 import torch
 import torchvision as tv
-from Fusion.utils import xyxy2xywh, create_mosaic, letterbox, load_image, load_label
+import numpy as np
+from Fusion.utils import xyxy2xywh, create_mosaic, letterbox, load_image, load_label, random_perspective, augment_hsv
 
 
 class Dataset(object):
-  def __init__(self,hyp,imroot,lroot,augment = True):
+  def __init__(self,hyp,imroot,lroot,augment = True, mosaic = True):
     self.augment = augment
     self.imroot = imroot
-    #self.rroot = rroot
     self.lroot = lroot
     self.inputs = list(os.listdir(imroot))
-    self.fliplr = tv.transforms.RandomHorizontalFlip(p=1)
-    self.flipud = tv.transforms.RandomVerticalFlip(p=1)
     self.hyp = hyp
+    self.mosaic = mosaic
   def __getitem__(self,index):
     # load images
-    shapes = None
-    if self.augment:
-        img, labels = create_mosaic(self.imroot, self.lroot,index, self.hyp)
+    if self.mosaic:
+        img, labels = create_mosaic(self.imroot, self.lroot, index, self.inputs, self.hyp)
+        shapes = None
          #MixUp https://arxiv.org/pdf/1710.09412.pdf
         if random.random() < self.hyp['mixup']:
-            img2, labels2 = create_mosaic(self.imroot, self.lroot,random.randint(0, len(labels) - 1),self.hyp)
+            img2, labels2 = create_mosaic(self.imroot, self.lroot,random.randint(0, len(labels) - 1), self.inputs, self.hyp)
             r = np.random.beta(8.0, 8.0)  # mixup ratio, alpha=beta=8.0
             img = (img * r + img2 * (1 - r)).astype(np.uint8)
             labels = np.concatenate((labels, labels2), 0)
-        nL = len(labels)  # number of labels
-        #flip up-down
-        #if random.random() < hyp['flipud']:
-            #img = np.flipud(img)
-            #labels[:, 2] = img.shape[1] - labels[:, 2]
-        # flip left-right
-        #if random.random() < hyp['fliplr']:
-          #img = np.fliplr(img)
-          #labels[:, 2] = img.shape[1] - labels[:, 2]
+
     else:
         # Load image
-        img, (h0, w0), (h, w) = load_image(self.imroot,index,self.hyp)
+        img, (h0, w0), (h, w) = load_image(os.path.join(self.imroot, self.inputs[index]),self.hyp['img_size'])
         # Letterbox
         img, ratio, pad = letterbox(img, self.hyp['img_size'], auto=False, scaleup=self.augment)
         shapes = (h0, w0), ((h / h0, w / w0), pad)  # for COCO mAP rescaling
         # Load labels
-        x = load_label(self.imroot,self.lroot, index)
+        x = load_label(os.path.join(self.lroot, self.inputs[index].replace('.jpg','.txt')))
         labels = x.copy()
         nL = len(x)
         if nL:
@@ -56,10 +47,26 @@ class Dataset(object):
             labels[:, 2] = ratio[1] * h * (x[:, 2] - x[:, 4] / 2) + pad[1]  # pad height
             labels[:, 3] = ratio[0] * w * (x[:, 1] + x[:, 3] / 2) + pad[0]
             labels[:, 4] = ratio[1] * h * (x[:, 2] + x[:, 4] / 2) + pad[1]
-    if nL:
+            
+    if self.augment:
+            # Augment imagespace
+            if not self.mosaic:
+                img, labels = random_perspective(img, labels,
+                                                 degrees=self.hyp['degrees'],
+                                                 translate=self.hyp['translate'],
+                                                 scale=self.hyp['scale'],
+                                                 shear=self.hyp['shear'],
+                                                 perspective=self.hyp['perspective'])
+            # Augment colorspace
+            augment_hsv(img, hgain=self.hyp['hsv_h'], sgain=self.hyp['hsv_s'], vgain=self.hyp['hsv_v'])
+            
+    nL = len(labels)  # number of labels
+    
+    if nL:        
         labels[:, 1:5] = xyxy2xywh(labels[:, 1:5])  # convert xyxy to xywh
         labels[:, [2, 4]] /= img.shape[0]  # normalized height 0-1
         labels[:, [1, 3]] /= img.shape[1]  # normalized width 0-1
+        
     if self.augment:
         #flip up-down
         if random.random() < self.hyp['flipud']:
@@ -69,7 +76,9 @@ class Dataset(object):
         if random.random() < self.hyp['fliplr']:
           img = np.fliplr(img)
           labels[:, 1] = 1 - labels[:, 1]
+          
     labels_out = torch.zeros((len(labels), 6))
+    
     if nL:
         labels_out[:, 1:] = torch.from_numpy(labels)
     # Convert
