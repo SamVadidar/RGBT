@@ -262,7 +262,7 @@ class ModelEMA:
     def update_attr(self, model, include=(), exclude=('process_group', 'reducer')):
         # Update EMA attributes
         copy_attr(self.ema, model, include, exclude)
-        
+
 def train(hyp, tb_writer, dataset, ckpt_path= None, test_set = None):
     log_dir = Path(tb_writer.log_dir) # logging directory
     wdir = os.path.join(log_dir,'weights') + os.sep  # weights directory
@@ -282,7 +282,7 @@ def train(hyp, tb_writer, dataset, ckpt_path= None, test_set = None):
     nbs = 64  # nominal batch size
     accumulate = max(round(nbs / hyp['batch_size']), 1)  # accumulate loss before optimizing
     hyp['weight_decay'] *= hyp['batch_size'] * accumulate / nbs  # scale weight_decay
-    
+
     pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
     for k, v in dict(model.named_parameters()).items():
         if '.bias' in k:
@@ -293,12 +293,12 @@ def train(hyp, tb_writer, dataset, ckpt_path= None, test_set = None):
             pg1.append(v)
         else:
             pg0.append(v)  # all else
-    
+
     if hyp['use_adam']:
         optimizer = optim.Adam(pg0, lr=hyp['lr0'], betas=(hyp['momentum'], 0.999))  # adjust beta1 to momentum
     else:
         optimizer = optim.SGD(pg0, lr=hyp['lr0'], momentum=hyp['momentum'], nesterov=True)
-    
+
     optimizer.add_param_group({'params': pg1, 'weight_decay': hyp['weight_decay']})  # add pg1 with weight_decay
     optimizer.add_param_group({'params': pg2})  # add pg2 (biases)
     print('Optimizer groups: %g .bias, %g conv.weight, %g other' % (len(pg2), len(pg1), len(pg0)))
@@ -309,7 +309,7 @@ def train(hyp, tb_writer, dataset, ckpt_path= None, test_set = None):
     lf = lambda x: (((1 + math.cos(x * math.pi / hyp['epochs'])) / 2) ** 1.0) * 0.8 + 0.2  # cosine
     scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
     # plot_lr_scheduler(optimizer, scheduler, epochs)
-    
+
     # Resume
     start_epoch, best_fitness = 0, 0.0
     if ckpt_path is not None:
