@@ -4,26 +4,27 @@ Adapted From: WongKinYiu and Gokulesh Danapal
 https://github.com/WongKinYiu/ScaledYOLOv4
 https://github.com/gokulesh-danapal
 """
-import torch
-import math
 import os
-from copy import deepcopy
+import math
 import time
-from pathlib import Path
-import torch.optim as optim
-import torch.optim.lr_scheduler as lr_scheduler
-from torch.cuda import amp
-from tqdm import tqdm
 import yaml
+import torch
+import random
 import numpy as np
-
+from tqdm import tqdm
+from pathlib import Path
+from copy import deepcopy
+from torch.cuda import amp
+import torch.optim as optim
+import torch.nn.functional as F
+import torch.optim.lr_scheduler as lr_scheduler
 from torch.utils.tensorboard import SummaryWriter
 
 from test import test
 from Fusion.yolo import Darknet
 from Fusion.data_processor import Dataset
-from Fusion.utils import init_seeds, init_seeds_master, increment_dir, box_iou, fitness
 from FLIR_PP.arg_parser import DATASET_PP_PATH, DATASET_PATH
+from Fusion.utils import init_seeds, init_seeds_master, increment_dir, box_iou, fitness
 
     
 class FocalLoss(torch.nn.Module):
@@ -463,7 +464,7 @@ if __name__ == '__main__':
             'nclasses': 3, #Number of classes
             'names' : ['person', 'RidableVehicle', 'car', 'LargeVehicle'],
             'gs': 32, #Image size multiples
-            'img_size': 320, #Input image size. Must be a multiple of 32
+            'img_size': 256, #Input image size. Must be a multiple of 32
             'strides': [8,16,32], #strides of p3,p4,p5
             'epochs': 30, #number of epochs
             'batch_size': 1, #train batch size

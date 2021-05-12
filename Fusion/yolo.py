@@ -8,6 +8,7 @@ import torch
 import numpy as np
 from torchsummary import summary
 
+
 class Mish(torch.nn.Module):
     def __init__(self):
         super(Mish,self).__init__()

@@ -5,12 +5,14 @@ https://github.com/WongKinYiu/ScaledYOLOv4
 https://github.com/gokulesh-danapal
 """
 import os
-import torch
 import cv2
 import time
 import math
+import glob
+import torch
 import random
 import numpy as np
+from pathlib import Path
 import torchvision as tv
 import torch.backends.cudnn as cudnn
 
@@ -257,7 +259,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, merge=False, 
 
     return output
 
-def load_image(path,img_size):
+def load_image(path, img_size):
     img = cv2.imread(path)
     h0, w0 = img.shape[:2]  # orig hw
     r = img_size / max(h0, w0)  # resize image to img_size

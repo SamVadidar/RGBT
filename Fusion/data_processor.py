@@ -5,11 +5,12 @@ https://github.com/WongKinYiu/ScaledYOLOv4
 https://github.com/gokulesh-danapal
 """
 import os
-import random
-import torch
-import torchvision as tv
-import numpy as np
 import cv2
+import time
+import torch
+import random
+import numpy as np
+import torchvision as tv
 from matplotlib import pyplot as plt
 from Fusion.utils import xyxy2xywh, create_mosaic, letterbox, load_image, load_label, random_perspective, augment_hsv
 
@@ -24,6 +25,7 @@ class Dataset(object):
         self.mosaic = mosaic
     def __getitem__(self,index):
         # load images
+        # start_time = time.time()
         if self.mosaic:
             img, labels = create_mosaic(self.imroot, self.lroot, index, self.inputs, self.hyp)
             shapes = None
@@ -89,6 +91,7 @@ class Dataset(object):
         # plt.show()
         img = img.transpose(2, 0, 1)  # BGR to RGB, to 3x416x416 [:, :, ::-1]
         #img = np.ascontiguousarray(img)
+        # print("--- %s seconds ---" % (time.time() - start_time))
         return torch.from_numpy(img), labels_out, shapes, os.path.join(self.imroot,self.inputs[index])
 
     @staticmethod

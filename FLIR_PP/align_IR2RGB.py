@@ -156,6 +156,8 @@ if __name__ == '__main__':
     # [8863, 9019], [9320, 9672] Night_Val
     # [1:4224] Night_Video
 
+    # 7426 align failed
+
     bb_gtruth = get_cords(str(imageNumber).zfill(5))
 
     if imageNumber < 8863:
