@@ -322,11 +322,11 @@ if __name__ == '__main__':
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         'gs': 32, #Image size multiples
-        'img_size': 256, #Input image size. Must be a multiple of 32
+        'img_size': 640, #Input image size. Must be a multiple of 32
         'strides': [8,16,32], #strides of p3,p4,p5
         'epochs': 30, #number of epochs
-        'batch_size': 1, #train batch size
-        'test_size': 16, #test batch size
+        'batch_size': 32, #train batch size
+        'test_size': 32, #test batch size
         'use_adam': False, #Bool to use Adam optimiser
         'use_ema': True, #Exponential moving average control
         'multi_scale': False, #Bool to do multi-scale training
@@ -363,7 +363,8 @@ if __name__ == '__main__':
         'validation_mode': 'test', # change to test for the final test
         'val_path': DATASET_PP_PATH + '/val/',
 
-        'test_path' : '/home/ub145/Documents/Dataset/FLIR/FLIR_PP/val',
+        # 'test_path' : '/home/ub145/Documents/Dataset/FLIR/FLIR_PP/val',
+        'test_path' : '/data/Sam/FLIR_PP/val/',
 
         'save_dir': './save_dir/'
         # 'train_img_path': DATASET_PP_PATH + '/train/RGB_cropped/',
