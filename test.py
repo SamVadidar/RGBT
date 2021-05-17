@@ -161,12 +161,13 @@ if __name__ == '__main__':
             'momentum': 0.937,  # SGD momentum/Adam beta1
             'weight_decay': 0.0005,  # optimizer weight decay
             'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
-            'nclasses': 80, #Number of classes
-            'img_size': 640, #Input image size. Must be a multiple of 32
+            'nclasses': 3, #Number of classes
+            'names': ['person', 'bicycle', 'car'],
+            'img_size': 320, #Input image size. Must be a multiple of 32
             'strides': [8,16,32], #strides of p3,p4,p5
             'epochs': 10, #number of epochs
             'batch_size': 16, #train batch size
-            'test_size': 4, #test batch size
+            'test_size': 16, #test batch size
             'use_adam': False, #Bool to use Adam optimiser
             'multi_scale': False, #Bool to do multi-scale training
             'test_all': False, #Run test after end of each epoch
@@ -193,7 +194,7 @@ if __name__ == '__main__':
     # VAL_SET_IMG_PATH = DATASET_PATH + '/val/thermal_8_bit'
 
     LOG_DIR = './Fusion/runs'
-    WEIGHT_PATH = './Fusion/yolo_pre.pt'
+    WEIGHT_PATH = './Fusion/yolo_pre_3c.pt'
 
-    test_set = Dataset(hyp, VAL_SET_IMG_PATH, VAL_SET_LABEL_PATH, augment= False)
-    results = test(test_set, names, hyp, WEIGHT_PATH, plot_all=False)
+    test_set = Dataset(hyp, VAL_SET_IMG_PATH, VAL_SET_LABEL_PATH, augment= False, mosaic=False)
+    results = test(test_set, hyp['names'], hyp, WEIGHT_PATH, plot_all=True)
