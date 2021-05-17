@@ -440,11 +440,13 @@ class BCEBlurWithLogitsLoss(nn.Module):
         return loss.mean()
 
 
-def compute_loss(p, targets, model):  # predictions, targets, model
+# def compute_loss(p, targets, model):  # predictions, targets, model
+def compute_loss(p, targets, hyp, dict):  # predictions, targets, model
     device = targets.device
     lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
-    tcls, tbox, indices, anchors = build_targets(p, targets, model)  # targets
-    h = model.hyp  # hyperparameters
+    # tcls, tbox, indices, anchors = build_targets(p, targets, model)  # targets
+    tcls, tbox, indices, anchors = build_targets(p, targets, hyp, dict)  # targets    
+    h = hyp  # hyperparameters
 
     # Define criteria
     BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([h['cls_pw']])).to(device)
@@ -481,10 +483,11 @@ def compute_loss(p, targets, model):  # predictions, targets, model
             lbox += (1.0 - giou).mean()  # giou loss
 
             # Objectness
-            tobj[b, a, gj, gi] = (1.0 - model.gr) + model.gr * giou.detach().clamp(0).type(tobj.dtype)  # giou ratio
+            # tobj[b, a, gj, gi] = (1.0 - model.gr) + model.gr * giou.detach().clamp(0).type(tobj.dtype)  # giou ratio
+            tobj[b, a, gj, gi] = (1.0 - dict['gr']) + dict['gr'] * giou.detach().clamp(0).type(tobj.dtype)  # giou ratio
 
             # Classification
-            if model.nc > 1:  # cls loss (only if multiple classes)
+            if dict['nclasses'] > 1:  # cls loss (only if multiple classes)
                 t = torch.full_like(ps[:, 5:], cn, device=device)  # targets
                 t[range(n), tcls[i]] = cp
                 lcls += BCEcls(ps[:, 5:], t)  # BCE
@@ -504,18 +507,23 @@ def compute_loss(p, targets, model):  # predictions, targets, model
     loss = lbox + lobj + lcls
     return loss * bs, torch.cat((lbox, lobj, lcls, loss)).detach()
 
-
-def build_targets(p, targets, model):
+# def build_targets(p, targets, model):
+def build_targets(p, targets,hyp, dict):
     nt = targets.shape[0]  # number of anchors, targets
     tcls, tbox, indices, anch = [], [], [], []
     gain = torch.ones(6, device=targets.device)  # normalized to gridspace gain
     off = torch.tensor([[1, 0], [0, 1], [-1, 0], [0, -1]], device=targets.device).float()  # overlap offsets
 
     g = 0.5  # offset
-    multi_gpu = is_parallel(model)
-    for i, jj in enumerate(model.module.yolo_layers if multi_gpu else model.yolo_layers):
-        # get number of grid points and anchor vec for this yolo layer
-        anchors = model.module.module_list[jj].anchor_vec if multi_gpu else model.module_list[jj].anchor_vec
+    # # org below
+    # multi_gpu = is_parallel(model)
+    # for i, jj in enumerate(model.module.yolo_layers if multi_gpu else model.yolo_layers):
+    #     # get number of grid points and anchor vec for this yolo layer
+    #     anchors = model.module.module_list[jj].anchor_vec if multi_gpu else model.module_list[jj].anchor_vec
+    #     gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
+
+    for i, anchors in enumerate(torch.from_numpy(np.array(dict['anchors_g'])).reshape(3,3,2).to(dict['device'])):#model.module.yolo_layers if multi_gpu else model.yolo_layers):
+        ancs = anchors // dict['strides'][i]
         gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
 
         # Match targets to anchors
@@ -524,7 +532,7 @@ def build_targets(p, targets, model):
             na = anchors.shape[0]  # number of anchors
             at = torch.arange(na).view(na, 1).repeat(1, nt)  # anchor tensor, same as .repeat_interleave(nt)
             r = t[None, :, 4:6] / anchors[:, None]  # wh ratio
-            j = torch.max(r, 1. / r).max(2)[0] < model.hyp['anchor_t']  # compare
+            j = torch.max(r, 1. / r).max(2)[0] < hyp['anchor_t']  # compare
             # j = wh_iou(anchors, t[:, 4:6]) > model.hyp['iou_t']  # iou(3,n) = wh_iou(anchors(3,2), gwh(n,2))
             a, t = at[j], t.repeat(na, 1, 1)[j]  # filter
 

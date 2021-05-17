@@ -49,16 +49,15 @@ def load_classes(path):
 #          merge=False,
 #          save_txt=False):
 def test(dict,
+         hyp,
         #  weight_path,
         #  imgsz=640,
          model=None,
          augment=False,
          verbose=False,
-         dataloader=None,
+         dataloader=None):
         #  save_dir='',
-        #  merge=False,
-         plot_all = True,
-         save_txt=False):
+        #  merge=False:
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
@@ -80,7 +79,8 @@ def test(dict,
 
         # Load model
         # device = dict['device']
-        model = Darknet(dict).to(device)
+        img_size = dict['img_size']
+        model = Darknet(dict, (img_size, img_size)).to(device)
         model.load_state_dict(torch.load(dict['weight_path'])['model'])
         
         # org below:
@@ -117,7 +117,7 @@ def test(dict,
         # _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
         path = dict['test_path'] if dict['validation_mode'] == 'test' else dict['val_path']  # path to val/test images
         dataloader = create_dataloader(path, imgsz, dict['batch_size'], 32,
-                                       hyp=None, augment=False, cache=False, pad=0.5, rect=True)[0]
+                                       hyp=None, augment=False, cache=False, pad=0.5, rect=True)[0] # grid_size=32
 
     seen = 0
     # # org below
@@ -149,11 +149,13 @@ def test(dict,
 
             # Compute loss
             if training:  # if model has loss hyperparameters
-                loss += compute_loss([x.float() for x in train_out], targets, model)[1][:3]  # GIoU, obj, cls
+                # # org below
+                # loss += compute_loss([x.float() for x in train_out], targets, model)[1][:3]  # GIoU, obj, cls
+                loss += compute_loss([x.float() for x in train_out], targets, hyp, dict)[1][:3]  # GIoU, obj, cls
 
             # Run NMS
             t = time_synchronized()
-            output = non_max_suppression(inf_out, conf_thres=dict['nms_conf_t'], iou_thres=dict['iou_t'], merge=dict['nms_merge'])
+            output = non_max_suppression(inf_out, conf_thres=dict['nms_conf_t'], iou_thres=hyp['iou_t'], merge=dict['nms_merge'])
             t1 += time_synchronized() - t
 
         # Statistics per image
@@ -235,7 +237,7 @@ def test(dict,
         #     f = Path(dict['save_dir']) / ('test_batch%g_pred.jpg' % batch_i)
         #     plot_images(img, output_to_target(output, width, height), paths, str(f), names)  # predictions
 
-        if plot_all:
+        if dict['plot_all']:
             original_img = Image.open(os.path.join(paths[si]))
             plt.rcParams['figure.figsize'] = (20,20)
             fig,ax = plt.subplots(1)
@@ -332,6 +334,7 @@ if __name__ == '__main__':
         'multi_scale': False, #Bool to do multi-scale training
         'test_all': True, #Run test after end of each epoch
         'save_all': True, #Save checkpoints after every epoch
+        'plot_all': True,
         
         'giou': 0.05,  # GIoU loss gain
         'cls': 0.025,  # cls loss gain
@@ -366,7 +369,8 @@ if __name__ == '__main__':
         # 'test_path' : '/home/ub145/Documents/Dataset/FLIR/FLIR_PP/val',
         'test_path' : '/data/Sam/FLIR_PP/val/',
 
-        'save_dir': './save_dir/'
+        'save_dir': './save_dir/',
+        'log_dir': './runs'
         # 'train_img_path': DATASET_PP_PATH + '/train/RGB_cropped/',
         # 'train_label_path': DATASET_PP_PATH + '/train/yolo_format_labels',
 
@@ -378,7 +382,7 @@ if __name__ == '__main__':
         # 'test_label_path': DATASET_PP_PATH + '/test/yolo_format_labels',
      }
 
-    test(dict, augment=False, plot_all=True)
+    test(dict, augment=False)
 
     # LOG_DIR = './Fusion/runs'
 
