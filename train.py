@@ -462,13 +462,13 @@ if __name__ == '__main__':
             'weight_decay': 0.0005,  # optimizer weight decay
             'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
             'nclasses': 3, #Number of classes
-            'names' : ['person', 'RidableVehicle', 'car', 'LargeVehicle'],
+            'names' :  ['person', 'bicycle', 'car'],
             'gs': 32, #Image size multiples
             'img_size': 256, #Input image size. Must be a multiple of 32
             'strides': [8,16,32], #strides of p3,p4,p5
             'epochs': 30, #number of epochs
             'batch_size': 1, #train batch size
-            'test_size': 16, #test batch size
+            # 'test_size': 16, #test batch size
             'use_adam': False, #Bool to use Adam optimiser
             'use_ema': True, #Exponential moving average control
             'multi_scale': False, #Bool to do multi-scale training
@@ -510,7 +510,7 @@ if __name__ == '__main__':
     WEIGHT_PATH = './Fusion/yolo_pre_3c.pt'
 
     train_set = Dataset(hyp, TRAIN_SET_IMG_PATH, TRAIN_SET_LABEL_PATH, augment= True)
-    test_set = Dataset(hyp, VAL_SET_IMG_PATH, VAL_SET_LABEL_PATH, augment= False)
+    test_set = Dataset(hyp, VAL_SET_IMG_PATH, VAL_SET_LABEL_PATH, augment= False, mosaic=False)
 
     tb_writer = SummaryWriter(log_dir = LOG_DIR)
     results = train(hyp, tb_writer, train_set, WEIGHT_PATH, test_set)

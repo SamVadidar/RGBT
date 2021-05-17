@@ -12,7 +12,7 @@ import random
 import numpy as np
 import torchvision as tv
 from matplotlib import pyplot as plt
-from Fusion.utils import xyxy2xywh, create_mosaic, letterbox, load_image, load_label, random_perspective, augment_hsv
+from Fusion.utils_me import xyxy2xywh, create_mosaic, letterbox, load_image, load_label, random_perspective, augment_hsv
 
 
 class Dataset(object):

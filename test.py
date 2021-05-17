@@ -14,7 +14,7 @@ import matplotlib.patches as patches
 
 from Fusion.yolo import Darknet
 from Fusion.data_processor import Dataset
-from Fusion.utils import non_max_suppression, xywh2xyxy, xyxy2xywh, time_synchronized, box_iou, ap_per_class, clip_coords, scale_coords
+from Fusion.utils_me import non_max_suppression, xywh2xyxy, xyxy2xywh, time_synchronized, box_iou, ap_per_class, clip_coords, scale_coords
 from FLIR_PP.arg_parser import DATASET_PP_PATH, DATASET_PATH
 
 
@@ -161,7 +161,8 @@ if __name__ == '__main__':
             'momentum': 0.937,  # SGD momentum/Adam beta1
             'weight_decay': 0.0005,  # optimizer weight decay
             'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
-            'nclasses': 80, #Number of classes
+            'nclasses': 3,
+            'names' :  ['person', 'bicycle', 'car'], #Number of classes
             'img_size': 640, #Input image size. Must be a multiple of 32
             'strides': [8,16,32], #strides of p3,p4,p5
             'epochs': 10, #number of epochs
@@ -193,7 +194,7 @@ if __name__ == '__main__':
     # VAL_SET_IMG_PATH = DATASET_PATH + '/val/thermal_8_bit'
 
     LOG_DIR = './Fusion/runs'
-    WEIGHT_PATH = './Fusion/yolo_pre.pt'
+    WEIGHT_PATH = './Fusion/yolo_pre_3c.pt'
 
-    test_set = Dataset(hyp, VAL_SET_IMG_PATH, VAL_SET_LABEL_PATH, augment= False)
-    results = test(test_set, names, hyp, WEIGHT_PATH, plot_all=False)
+    test_set = Dataset(hyp, VAL_SET_IMG_PATH, VAL_SET_LABEL_PATH, augment= False, mosaic=False)
+    results = test(test_set, names, hyp, WEIGHT_PATH, plot_all=True)
