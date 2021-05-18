@@ -69,6 +69,7 @@ def train(dict_, hyp, tb_writer=None):
     test_path = dict_['test_path'] if dict_['validation_mode']=='test' else dict_['val_path']
     nc = dict_['nclasses']
     names = dict_['names']
+    assert len(names) == nc, '%g names found for nc=%g dataset in %s' % (len(names), nc, train_path)  # check
 
     # # org below
     # Model
@@ -83,10 +84,22 @@ def train(dict_, hyp, tb_writer=None):
     #     print('Transferred %g/%g items from %s' % (len(state_dict), len(model.state_dict()), weights))  # report
     # else:
     #     model = Darknet(dict_).to(device) # create
-    
-    pretrained = False
+
     img_size = dict_['img_size']
-    model = Darknet(dict_, (img_size, img_size)).to(device) # create
+
+    # Model
+    pretrained = weights.endswith('.pt')
+    if pretrained:
+        ckpt = torch.load(weights, map_location=device)  # load checkpoint
+        model = Darknet(dict_, (img_size, img_size)).to(device)  # create
+        state_dict = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
+        model.load_state_dict(state_dict, strict=False)
+        print('Transferred %g/%g items from %s' % (len(state_dict), len(model.state_dict()), weights))  # report
+    else:
+        model = Darknet(dict_, (img_size, img_size)).to(device) # create
+
+    # pretrained = False
+    # model = Darknet(dict_, (img_size, img_size)).to(device) # create
 
     # Optimizer
     nbs = 64  # nominal batch size
@@ -140,20 +153,41 @@ def train(dict_, hyp, tb_writer=None):
     #         epochs += ckpt['epoch']  # finetune additional epochs
 
     #     del ckpt, state_dict
+
+    # if pretrained:
+    #     # Optimizer
+    #     if ckpt['optimizer'] is not None:
+    #         optimizer.load_state_dict(ckpt['optimizer'])
+    #         best_fitness = ckpt['best_fitness']
+
+    #     # Results
+    #     if ckpt.get('training_results') is not None:
+    #         with open(results_file, 'w') as file:
+    #             file.write(ckpt['training_results'])  # write results.txt
     
+    #     # Epochs
+    #     if ckpt['epoch'] is not None:
+    #         start_epoch = ckpt['epoch'] + 1 if not ckpt['epoch']==None else 0
+    #         if dict_['epochs'] < start_epoch:
+    #             print('Model has been trained for %g epochs. Fine-tuning for %g additional epochs.' %
+    #                 (ckpt['epoch'], dict_['epochs']))
+    #             dict_['epochs'] += ckpt['epoch']  # finetune additional epochs
+    
+    #     del ckpt, state_dict
+
     # Image sizes
     gs = 32 # grid size (max stride)
     # imgsz, imgsz_test = [check_img_size(x, gs) for x in dict_['img_size']]  # verify imgsz are gs-multiples
     
     # # org below
-    # # DP mode
-    # if cuda and rank == -1 and torch.cuda.device_count() > 1:
-    #     model = torch.nn.DataParallel(model)
+    # DP mode
+    if cuda and rank == -1 and torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
 
-    # # SyncBatchNorm
-    # if opt.sync_bn and cuda and rank != -1:
-    #     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model).to(device)
-    #     print('Using SyncBatchNorm()')
+    # SyncBatchNorm
+    if dict_['sync_bn'] and cuda and rank != -1:
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model).to(device)
+        print('Using SyncBatchNorm()')
 
     # Exponential moving average
     ema = ModelEMA(model) if rank in [-1, 0] else None
@@ -166,6 +200,7 @@ def train(dict_, hyp, tb_writer=None):
     dataloader, dataset = create_dataloader(train_path, dict_['img_size'], batch_size, gs, hyp=hyp, augment=True,
                                             cache=dict_['cache_images'], rect=dict_['rect'], local_rank=rank,
                                             world_size=dict_['world_size'])
+
     mlc = np.concatenate(dataset.labels, 0)[:, 0].max()  # max label class
     nb = len(dataloader)  # number of batches
     assert mlc < nc, 'Label class %g exceeds nc=%g in %s. Possible class labels are 0-%g' % (mlc, nc, dict_['names'], nc - 1)
@@ -174,8 +209,8 @@ def train(dict_, hyp, tb_writer=None):
     if rank in [-1, 0]:
         ema.updates = start_epoch * nb // accumulate  # set EMA updates ***
         # local_rank is set to -1. Because only the first process is expected to do evaluation.
-        testloader = create_dataloader(test_path, dict_['img_size'], batch_size, gs, hyp=hyp, augment=False,
-                                       cache=dict_['cache_images'], rect=True, local_rank=-1, world_size=dict_['world_size'])[0]
+        testloader = create_dataloader(test_path, dict_['img_size'], batch_size, gs, hyp=hyp, augment=True,
+                                       cache=dict_['cache_images'], rect=dict_['rect'], local_rank=-1, world_size=dict_['world_size'])[0]
 
     # Model parameters
     # dict['cls'] *= nc / 80.  # scale coco-tuned hyp['cls'] to current dataset
@@ -274,8 +309,8 @@ def train(dict_, hyp, tb_writer=None):
 
                 # Loss
                 # # org below
-                # loss, loss_items = compute_loss(pred, targets.to(device), model)  # scaled by batch_size
-                loss, loss_items = compute_loss(pred, targets.to(device), hyp, dict_)  # scaled by batch_size
+                loss, loss_items = compute_loss(pred, targets.to(device), model, hyp['anchor_t'], dict_)  # scaled by batch_size
+                # loss, loss_items = compute_loss(pred, targets.to(device), hyp, dict_)  # scaled by batch_size
                 if rank != -1:
                     loss *= dict_['world_size']  # gradient averaged between devices in DDP mode
                 # if not torch.isfinite(loss):
@@ -322,15 +357,14 @@ def train(dict_, hyp, tb_writer=None):
             final_epoch = epoch + 1 == epochs
             if dict_['test_all'] or final_epoch:  # Calculate mAP
                 # # org below
-                # results, maps, times = test.test(opt.data,
-                #                                  batch_size=batch_size,
-                #                                  imgsz=imgsz_test,
-                #                                  save_json=final_epoch and opt.data.endswith(os.sep + 'coco.yaml'),
-                #                                  model=ema.ema.module if hasattr(ema.ema, 'module') else ema.ema,
-                #                                  single_cls=opt.single_cls,
-                #                                  dataloader=testloader,
-                #                                  save_dir=log_dir)
-
+                # results, maps, times = test(opt.data,
+                #                             batch_size=batch_size,
+                #                             imgsz=imgsz_test,
+                #                             save_json=final_epoch and opt.data.endswith(os.sep + 'coco.yaml'),
+                #                             model=ema.ema.module if hasattr(ema.ema, 'module') else ema.ema,
+                #                             single_cls=opt.single_cls,
+                #                             dataloader=testloader,
+                #                             save_dir=log_dir)
                 results, maps, times = test(dict_,
                                             hyp,
                                             model = ema.ema.module if hasattr(ema.ema, 'module') else ema.ema,
@@ -419,21 +453,33 @@ if __name__ == '__main__':
         'use_ema': True, #Exponential moving average control
         'multi_scale': False, #Bool to do multi-scale training
         'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
-        'nms_conf_t':0.2, # Confidence training threshold
-        'nms_merge': False,
+        'nms_conf_t':0.6, #0.2 Confidence training threshold
+        'nms_merge': True,
+
+        #logs
         'test_all': True, #Run test after end of each epoch
         'save_all': False, #Save checkpoints after every epoch
         'plot_all': True,
+        # 'resume': 'get_last',
+        'resume': False,
 
+        # DP
         'global_rank': -1,
         'local_rank': -1,
-        'world_size': 1,
+        'sync_bn': False,
+
+        # Data loader
         'cache_images': True,
         'rect': True,
+        'world_size': 1,
+
+        # ?
         'evolve': False,
-        
+
+
         #____________________ PATH
-        'weight_path': './Fusion/yolo_pre_3c.pt',
+        # 'weight_path': './Fusion/yolo_pre_3c.pt',
+        'weight_path': '/home/efs-gx/Sam/dev/Goku/yolov4-OriginalGokuVersion/runs_30/weights/best.pt',
         # 'train_path': DATASET_PP_PATH + '/train/RGB_cropped/',
         'train_path': '/data/Sam/FLIR_PP/val/',
 
@@ -483,35 +529,31 @@ if __name__ == '__main__':
         'mixup': 0.0, #mix up probability
     }
 
-    # # Resume
-    # if opt.resume:
-    #     last = get_latest_run() if opt.resume == 'get_last' else opt.resume  # resume from most recent run
-    #     if last and not opt.weights:
-    #         print(f'Resuming training from {last}')
-    #     opt.weights = last if opt.resume and not opt.weights else opt.weights
-    # if opt.local_rank == -1 or ("RANK" in os.environ and os.environ["RANK"] == "0"):
+    # Resume
+    if dict_['resume']:
+        last = get_latest_run() if dict_['resume'] == 'get_last' else dict_['resume']  # resume from most recent run
+        if last and not dict_['weight_path']:
+            print(f'Resuming training from {last}')
+        dict_['weight_path'] = last if dict_['resume'] and not dict_['weight_path'] else dict_['weight_path']
+    # if dict_['local_rank'] == -1 or ("RANK" in os.environ and os.environ["RANK"] == "0"):
     #     check_git_status()
 
-    # opt.hyp = opt.hyp or ('data/hyp.scratch.yaml')
-    # opt.data, opt.cfg, opt.hyp = check_file(opt.data), check_file(opt.cfg), check_file(opt.hyp)  # check files
-    # assert len(opt.cfg) or len(opt.weights), 'either --cfg or --weights must be specified'
-
     # opt.img_size.extend([opt.img_size[-1]] * (2 - len(opt.img_size)))  # extend to 2 sizes (train, test)
-    # device = select_device(opt.device, batch_size=opt.batch_size)
-    # opt.total_batch_size = opt.batch_size
+    device = select_device(dict_['device_num'], batch_size=dict_['batch_size'])
+    total_batch_size = dict_['batch_size']
     # opt.world_size = 1
     # opt.global_rank = -1
 
-    # # DDP mode
-    # if opt.local_rank != -1:
-    #     assert torch.cuda.device_count() > opt.local_rank
-    #     torch.cuda.set_device(opt.local_rank)
-    #     device = torch.device('cuda', opt.local_rank)
-    #     dist.init_process_group(backend='nccl', init_method='env://')  # distributed backend
-    #     opt.world_size = dist.get_world_size()
-    #     opt.global_rank = dist.get_rank()
-    #     assert opt.batch_size % opt.world_size == 0, '--batch-size must be multiple of CUDA device count'
-    #     opt.batch_size = opt.total_batch_size // opt.world_size
+    # DDP mode
+    if dict_['local_rank'] != -1:
+        assert torch.cuda.device_count() > dict_['local_rank']
+        torch.cuda.set_device(dict_['local_rank'])
+        device = torch.device('cuda', dict_['local_rank'])
+        dist.init_process_group(backend='nccl', init_method='env://')  # distributed backend
+        dict_['world_size'] = dist.get_world_size()
+        dict_['global_rank'] = dist.get_rank()
+        assert dict_['batch_size'] % dict_['world_size'] == 0, '--batch-size must be multiple of CUDA device count'
+        dict_['batch_size'] = dict_['total_batch_size'] // dict_['world_size']
 
     # print(opt)
     # with open(opt.hyp) as f:
