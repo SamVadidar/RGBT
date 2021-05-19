@@ -63,6 +63,7 @@ def test(dict,
     if training:  # called by train.py
         merge = dict['nms_merge']
         device = next(model.parameters()).device  # get model device
+        # print(list(model.named_parameters())[-1])
 
     else:  # called directly
         # org below
@@ -92,6 +93,7 @@ def test(dict,
             ckpt = torch.load(dict['weight_path'], map_location=device)  # load checkpoint
             ckpt['model'] = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
             model.load_state_dict(ckpt['model'], strict=False)
+            # print(list(model.named_parameters())[-1])
         except:
             # load_darknet_weights(model, weights[0])
             load_darknet_weights(model, dict['weight_path'])
@@ -119,8 +121,9 @@ def test(dict,
         img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
         # _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
         path = dict['test_path'] if dict['validation_mode'] == 'test' else dict['val_path']  # path to val/test images
+        pad = 0 if dict['plot_all'] else 0.5 #  org pad=0.5
         dataloader = create_dataloader(path, imgsz, dict['batch_size'], 32,
-                                       hyp=None, augment=False, cache=False, pad=0.5, rect=True)[0] # grid_size=32
+                                       hyp=None, augment=False, cache=False, pad=pad, rect=True)[0] # grid_size=32
 
     seen = 0
     # # org below
@@ -153,7 +156,7 @@ def test(dict,
             # Compute loss
             if training:  # if model has loss hyperparameters
                 # # org below
-                loss += compute_loss([x.float() for x in train_out], targets, model, hyp['anchor_t'], dict)[1][:3]  # GIoU, obj, cls
+                loss += compute_loss([x.float() for x in train_out], targets, hyp, dict)[1][:3]  # GIoU, obj, cls
                 # loss += compute_loss([x.float() for x in train_out], targets, hyp, dict)[1][:3]  # GIoU, obj, cls
 
             # Run NMS
@@ -348,73 +351,6 @@ def test(dict,
 
 
 if __name__ == '__main__':
-    # dict = { 
-    #     'device':'cuda', #Intialise device as cpu. Later check if cuda is avaialbel and change to cuda    
-    #     'device_num': '0',
-    #     'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
-    #     'momentum': 0.937,  # SGD momentum/Adam beta1
-    #     'weight_decay': 0.0005,  # optimizer weight decay
-    #     'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
-    #     'nclasses': 3, #Number of classes
-    #     'names' : ['person', 'bicycle', 'car'],
-    #     'gs': 32, #Image size multiples
-    #     'img_size': 640, #Input image size. Must be a multiple of 32
-    #     'strides': [8,16,32], #strides of p3,p4,p5
-    #     'epochs': 30, #number of epochs
-    #     'batch_size': 32, #train batch size
-    #     'test_size': 32, #test batch size
-    #     'use_adam': False, #Bool to use Adam optimiser
-    #     'use_ema': True, #Exponential moving average control
-    #     'multi_scale': False, #Bool to do multi-scale training
-    #     'test_all': True, #Run test after end of each epoch
-    #     'save_all': True, #Save checkpoints after every epoch
-    #     'plot_all': True,
-        
-    #     'giou': 0.05,  # GIoU loss gain
-    #     'cls': 0.025,  # cls loss gain
-    #     'cls_pw': 1.0,  # cls BCELoss positive_weight
-    #     'obj': 1.0,  # obj loss gain (scale with pixels)
-    #     'obj_pw': 1.0,  # obj BCELoss positive_weight
-    #     'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
-    #     'iou_t': 0.6,  # IoU training threshold
-    #     'nms_conf_t':0.2, # Confidence training threshold
-    #     'nms_merge': False,
-    #     'anchor_t': 4.0,  # anchor-multiple threshold
-        
-    #     'fl_gamma': 0.0,  # focal loss gamma (efficientDet default gamma=1.5)
-    #     'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)
-    #     'hsv_s': 0.7,  # image HSV-Saturation augmentation (fraction)
-    #     'hsv_v': 0.4,  # image HSV-Value augmentation (fraction)
-    #     'degrees': 0.0,  # image rotation (+/- deg)
-    #     'translate': 0.0,  # image translation (+/- fraction)
-    #     'scale': 0.5,  # image scale (+/- gain)
-    #     'shear': 0.0,  # image shear (+/- deg)
-    #     'perspective': 0.0,  # image perspective (+/- fraction), range 0-0.001
-    #     'flipud': 0.0,  # image flip up-down (probability)
-    #     'fliplr': 0.5,  # image flip left-right (probability)
-    #     'mixup': 0.0, #mix up probability
-
-    #     'weight_path': './Fusion/yolo_pre_3c.pt',
-    #     'train_path': DATASET_PP_PATH + '/train/RGB_cropped/',
-
-    #     'validation_mode': 'test', # change to test for the final test
-    #     'val_path': DATASET_PP_PATH + '/val/',
-
-    #     # 'test_path' : '/home/ub145/Documents/Dataset/FLIR/FLIR_PP/val',
-    #     'test_path' : '/data/Sam/FLIR_PP/val/',
-
-    #     'save_dir': './save_dir/',
-    #     'log_dir': './runs'
-    #     # 'train_img_path': DATASET_PP_PATH + '/train/RGB_cropped/',
-    #     # 'train_label_path': DATASET_PP_PATH + '/train/yolo_format_labels',
-
-    #     # 'validation_mode': 'validation', # change to test for the final test
-    #     # 'val_img_path': DATASET_PP_PATH + '/val/',
-    #     # 'val_label_path': DATASET_PP_PATH + '/val/yolo_format_labels',
-
-    #     # 'test_img_path' : DATASET_PP_PATH + '/test/RGB_cropped/',
-    #     # 'test_label_path': DATASET_PP_PATH + '/test/yolo_format_labels',
-    #  }
     dict_ = { 
         'device':'cuda', #Intialise device as cpu. Later check if cuda is avaialbel and change to cuda    
         'device_num': '0',
@@ -426,18 +362,21 @@ if __name__ == '__main__':
         'img_size': 320, #Input image size. Must be a multiple of 32
         'strides': [8,16,32], #strides of p3,p4,p5
         'epochs': 30, #number of epochs
-        'batch_size': 8, #train batch size
-        'test_size': 8, #test batch size
+        'batch_size': 16, #train batch size
+        'test_size': 16, #test batch size
         'use_adam': False, #Bool to use Adam optimiser
         'use_ema': True, #Exponential moving average control
         'multi_scale': False, #Bool to do multi-scale training
         'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
-        'nms_conf_t':0.6, # 0.2Confidence training threshold
+        # test
+        'nms_conf_t':0.001, #Confidence test threshold
         'nms_merge': True,
+
+        #logs
         'test_all': True, #Run test after end of each epoch
         'save_all': False, #Save checkpoints after every epoch
         'save_txt': True,
-        'plot_all': True,
+        'plot_all': False,
 
         # DP
         'global_rank': -1,
@@ -452,7 +391,7 @@ if __name__ == '__main__':
         # ?
         'evolve': False,
 
-        #____________________ PATH
+        # PATH
         # 'weight_path': './Fusion/yolo_pre_3c.pt',
         'weight_path': '/home/efs-gx/Sam/dev/Goku/yolov4-OriginalGokuVersion/runs_30/weights/best.pt',
 
@@ -480,16 +419,16 @@ if __name__ == '__main__':
      }
 
     hyp = {
-        #____________________ Hyp
         'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
         'momentum': 0.937,  # SGD momentum/Adam beta1
         'weight_decay': 0.0005,  # optimizer weight decay
         'giou': 0.05,  # GIoU loss gain
-        'cls': 0.5,  # cls loss gain 0.025_goku
+        'cls': 0.01875,  # cls loss gain | cls_org = 0.5 | ['cls'] *= nc / 80
         'cls_pw': 1.0,  # cls BCELoss positive_weight
         'obj': 1.0,  # obj loss gain (scale with pixels)
         'obj_pw': 1.0,  # obj BCELoss positive_weight
-        'iou_t': 0.6,  # IoU training threshold
+        # test
+        'iou_t': 0.6,  # IoU test threshold
         'anchor_t': 4.0,  # anchor-multiple threshold
         'fl_gamma': 0.0,  # focal loss gamma (efficientDet default gamma=1.5)
         'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)
@@ -506,11 +445,3 @@ if __name__ == '__main__':
     }
 
     test(dict_, hyp, augment=False)
-
-    # LOG_DIR = './Fusion/runs'
-
-    # train_set = Dataset(hyp, TRAIN_SET_IMG_PATH, TRAIN_SET_LABEL_PATH, augment= True)
-    # test_set = Dataset(hyp, VAL_SET_IMG_PATH, VAL_SET_LABEL_PATH, augment= False)
-
-    # tb_writer = SummaryWriter(log_dir = LOG_DIR)
-    # results = train(hyp, tb_writer, train_set, WEIGHT_PATH, test_set)

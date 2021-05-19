@@ -92,9 +92,10 @@ def train(dict_, hyp, tb_writer=None):
     if pretrained:
         ckpt = torch.load(weights, map_location=device)  # load checkpoint
         model = Darknet(dict_, (img_size, img_size)).to(device)  # create
-        state_dict = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
-        model.load_state_dict(state_dict, strict=False)
-        print('Transferred %g/%g items from %s' % (len(state_dict), len(model.state_dict()), weights))  # report
+        model.load_state_dict(ckpt['model'])
+        # state_dict = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
+        # model.load_state_dict(state_dict, strict=False)
+        # print('Transferred %g/%g items from %s' % (len(state_dict), len(model.state_dict()), weights))  # report
     else:
         model = Darknet(dict_, (img_size, img_size)).to(device) # create
 
@@ -107,11 +108,20 @@ def train(dict_, hyp, tb_writer=None):
     hyp['weight_decay'] *= total_batch_size * accumulate / nbs  # scale weight_decay
 
     pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
+    # for k, v in dict(model.named_parameters()).items():
+    #     if '.bias' in k:
+    #         pg2.append(v)  # biases
+    #     elif 'Conv2d.weight' in k:
+    #         pg1.append(v)  # apply weight_decay
+    #     else:
+    #         pg0.append(v)  # all else
     for k, v in dict(model.named_parameters()).items():
         if '.bias' in k:
             pg2.append(v)  # biases
-        elif 'Conv2d.weight' in k:
+        elif 'conv.weight' in k: # or '1.weight'in k:
             pg1.append(v)  # apply weight_decay
+        elif k in ['head.final3.weight','head.final4.weight','head.final5.weight']:
+            pg1.append(v)
         else:
             pg0.append(v)  # all else
 
@@ -154,26 +164,35 @@ def train(dict_, hyp, tb_writer=None):
 
     #     del ckpt, state_dict
 
-    # if pretrained:
-    #     # Optimizer
-    #     if ckpt['optimizer'] is not None:
-    #         optimizer.load_state_dict(ckpt['optimizer'])
-    #         best_fitness = ckpt['best_fitness']
+    if pretrained:
+        # ckpt = torch.load(weights, map_location=device)  # load checkpoint # , map_location=device
+        # state_dict = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
+        # model.load_state_dict(state_dict)
+        # model.load_state_dict(ckpt['model'])
+        # ckpt = torch.load(weights, map_location=device)  # load checkpoint
+        
+        # state_dict = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
+        # model.load_state_dict(state_dict, strict=False)
+        # print('Transferred %g/%g items from %s' % (len(state_dict), len(model.state_dict()), weights))  # report
+        # Optimizer
+        if ckpt['optimizer'] is not None:
+            optimizer.load_state_dict(ckpt['optimizer'])
+            best_fitness = ckpt['best_fitness']
 
-    #     # Results
-    #     if ckpt.get('training_results') is not None:
-    #         with open(results_file, 'w') as file:
-    #             file.write(ckpt['training_results'])  # write results.txt
+        # Results
+        if ckpt.get('training_results') is not None:
+            with open(results_file, 'w') as file:
+                file.write(ckpt['training_results'])  # write results.txt
     
-    #     # Epochs
-    #     if ckpt['epoch'] is not None:
-    #         start_epoch = ckpt['epoch'] + 1 if not ckpt['epoch']==None else 0
-    #         if dict_['epochs'] < start_epoch:
-    #             print('Model has been trained for %g epochs. Fine-tuning for %g additional epochs.' %
-    #                 (ckpt['epoch'], dict_['epochs']))
-    #             dict_['epochs'] += ckpt['epoch']  # finetune additional epochs
+        # Epochs
+        if ckpt['epoch'] is not None:
+            start_epoch = ckpt['epoch'] + 1 if not ckpt['epoch']==None else 0
+            if dict_['epochs'] < start_epoch:
+                print('Model has been trained for %g epochs. Fine-tuning for %g additional epochs.' %
+                    (ckpt['epoch'], dict_['epochs']))
+                dict_['epochs'] += ckpt['epoch']  # finetune additional epochs
     
-    #     del ckpt, state_dict
+        del ckpt
 
     # Image sizes
     gs = 32 # grid size (max stride)
@@ -209,8 +228,8 @@ def train(dict_, hyp, tb_writer=None):
     if rank in [-1, 0]:
         ema.updates = start_epoch * nb // accumulate  # set EMA updates ***
         # local_rank is set to -1. Because only the first process is expected to do evaluation.
-        testloader = create_dataloader(test_path, dict_['img_size'], batch_size, gs, hyp=hyp, augment=True,
-                                       cache=dict_['cache_images'], rect=dict_['rect'], local_rank=-1, world_size=dict_['world_size'])[0]
+        testloader = create_dataloader(test_path, dict_['img_size'], batch_size, gs, hyp=None, augment=False,
+                                       cache=False, rect=dict_['rect'], local_rank=-1, world_size=dict_['world_size'])[0]
 
     # Model parameters
     # dict['cls'] *= nc / 80.  # scale coco-tuned hyp['cls'] to current dataset
@@ -218,17 +237,18 @@ def train(dict_, hyp, tb_writer=None):
     model.hyp = hyp  # attach hyperparameters to model
     model.gr = 1.0  # giou loss ratio (obj_loss = 1.0 or giou)
     model.class_weights = labels_to_class_weights(dataset.labels, nc).to(device)  # attach class weights
+    # print(model.class_weights)
     model.names = names
 
-    # Class frequency
-    if rank in [-1, 0]:
-        labels = np.concatenate(dataset.labels, 0)
-        c = torch.tensor(labels[:, 0])  # classes
-        # cf = torch.bincount(c.long(), minlength=nc) + 1.
-        # model._initialize_biases(cf.to(device))
-        plot_labels(labels, save_dir=log_dir)
-        if tb_writer:
-            tb_writer.add_histogram('classes', c, 0)
+    # # Class frequency ******
+    # if rank in [-1, 0]:
+    #     labels = np.concatenate(dataset.labels, 0)
+    #     c = torch.tensor(labels[:, 0])  # classes
+    #     # cf = torch.bincount(c.long(), minlength=nc) + 1.
+    #     # model._initialize_biases(cf.to(device))
+    #     plot_labels(labels, save_dir=log_dir)
+    #     if tb_writer:
+    #         tb_writer.add_histogram('classes', c, 0)
 
         # Check anchors
         #if not opt.noautoanchor:
@@ -250,22 +270,22 @@ def train(dict_, hyp, tb_writer=None):
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
 
-        # Update image weights (optional)
-        if dataset.image_weights:
-            # Generate indices
-            if rank in [-1, 0]:
-                w = model.class_weights.cpu().numpy() * (1 - maps) ** 2  # class weights
-                image_weights = labels_to_image_weights(dataset.labels, nc=nc, class_weights=w)
-                dataset.indices = random.choices(range(dataset.n), weights=image_weights,
-                                                 k=dataset.n)  # rand weighted idx
-            # Broadcast if DDP
-            if rank != -1:
-                indices = torch.zeros([dataset.n], dtype=torch.int)
-                if rank == 0:
-                    indices[:] = torch.from_tensor(dataset.indices, dtype=torch.int)
-                dist.broadcast(indices, 0)
-                if rank != 0:
-                    dataset.indices = indices.cpu().numpy()
+        # # Update image weights (optional) ******
+        # if dataset.image_weights:
+        #     # Generate indices
+        #     if rank in [-1, 0]:
+        #         w = model.class_weights.cpu().numpy() * (1 - maps) ** 2  # class weights
+        #         image_weights = labels_to_image_weights(dataset.labels, nc=nc, class_weights=w)
+        #         dataset.indices = random.choices(range(dataset.n), weights=image_weights,
+        #                                          k=dataset.n)  # rand weighted idx
+        #     # Broadcast if DDP
+        #     if rank != -1:
+        #         indices = torch.zeros([dataset.n], dtype=torch.int)
+        #         if rank == 0:
+        #             indices[:] = torch.from_tensor(dataset.indices, dtype=torch.int)
+        #         dist.broadcast(indices, 0)
+        #         if rank != 0:
+        #             dataset.indices = indices.cpu().numpy()
 
         # Update mosaic border
         # b = int(random.uniform(0.25 * imgsz, 0.75 * imgsz + gs) // gs * gs)
@@ -309,8 +329,8 @@ def train(dict_, hyp, tb_writer=None):
 
                 # Loss
                 # # org below
-                loss, loss_items = compute_loss(pred, targets.to(device), model, hyp['anchor_t'], dict_)  # scaled by batch_size
-                # loss, loss_items = compute_loss(pred, targets.to(device), hyp, dict_)  # scaled by batch_size
+                # loss, loss_items = compute_loss(pred, targets.to(device), model, hyp['anchor_t'], dict_)  # scaled by batch_size
+                loss, loss_items = compute_loss(pred, targets.to(device), hyp, dict_)  # scaled by batch_size
                 if rank != -1:
                     loss *= dict_['world_size']  # gradient averaged between devices in DDP mode
                 # if not torch.isfinite(loss):
@@ -365,9 +385,11 @@ def train(dict_, hyp, tb_writer=None):
                 #                             single_cls=opt.single_cls,
                 #                             dataloader=testloader,
                 #                             save_dir=log_dir)
+
                 results, maps, times = test(dict_,
                                             hyp,
                                             model = ema.ema.module if hasattr(ema.ema, 'module') else ema.ema,
+                                            # model=model,
                                             augment=False,
                                             dataloader=testloader)
 
@@ -453,13 +475,13 @@ if __name__ == '__main__':
         'use_ema': True, #Exponential moving average control
         'multi_scale': False, #Bool to do multi-scale training
         'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
-        'nms_conf_t':0.6, #0.2 Confidence training threshold
+        'nms_conf_t':0.001, #0.2 Confidence training threshold
         'nms_merge': True,
 
         #logs
         'test_all': True, #Run test after end of each epoch
         'save_all': False, #Save checkpoints after every epoch
-        'plot_all': True,
+        'plot_all': False,
         # 'resume': 'get_last',
         'resume': False,
 
@@ -477,7 +499,7 @@ if __name__ == '__main__':
         'evolve': False,
 
 
-        #____________________ PATH
+        # PATH
         # 'weight_path': './Fusion/yolo_pre_3c.pt',
         'weight_path': '/home/efs-gx/Sam/dev/Goku/yolov4-OriginalGokuVersion/runs_30/weights/best.pt',
         # 'train_path': DATASET_PP_PATH + '/train/RGB_cropped/',
@@ -504,12 +526,11 @@ if __name__ == '__main__':
      }
 
     hyp = {
-        #____________________ Hyp
         'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
         'momentum': 0.937,  # SGD momentum/Adam beta1
         'weight_decay': 0.0005,  # optimizer weight decay
         'giou': 0.05,  # GIoU loss gain
-        'cls': 0.5,  # cls loss gain 0.025_goku
+        'cls': 0.01875,  # cls loss gain | cls_org = 0.5 | ['cls'] *= nc / 80
         'cls_pw': 1.0,  # cls BCELoss positive_weight
         'obj': 1.0,  # obj loss gain (scale with pixels)
         'obj_pw': 1.0,  # obj BCELoss positive_weight

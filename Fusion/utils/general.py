@@ -133,7 +133,7 @@ def make_divisible(x, divisor):
     return math.ceil(x / divisor) * divisor
 
 
-def labels_to_class_weights(labels, nc=3): # nc were 80 in original yolov4_scaled
+def labels_to_class_weights(labels, nc=80): # nc were 80 in original yolov4_scaled
     # Get class weights (inverse frequency) from training labels
     if labels[0] is None:  # no labels loaded
         return torch.Tensor()
@@ -152,7 +152,7 @@ def labels_to_class_weights(labels, nc=3): # nc were 80 in original yolov4_scale
     return torch.from_numpy(weights)
 
 
-def labels_to_image_weights(labels, nc=3, class_weights=np.ones(3)): #nc and np.ones were 80 in original yolov4_scaled
+def labels_to_image_weights(labels, nc=80, class_weights=np.ones(80)): #nc and np.ones were 80 in original yolov4_scaled
     # Produces image weights based on class mAPs
     n = len(labels)
     class_counts = np.array([np.bincount(labels[i][:, 0].astype(np.int), minlength=nc) for i in range(n)])
@@ -440,15 +440,15 @@ class BCEBlurWithLogitsLoss(nn.Module):
         return loss.mean()
 
 
-def compute_loss(p, targets, model, anchor_t, dict):  # predictions, targets, model
-# def compute_loss(p, targets, hyp, dict):  # predictions, targets, model
+# def compute_loss(p, targets, model, anchor_t, dict):  # predictions, targets, model
+def compute_loss(p, targets, hyp, dict):  # predictions, targets, model
     device = targets.device
     lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
-    tcls, tbox, indices, anchors = build_targets(p, targets, model, anchor_t, dict)  # targets
-    h = model.hyp  # hyperparameters
+    # tcls, tbox, indices, anchors = build_targets(p, targets, model, anchor_t, dict)  # targets
+    # h = model.hyp  # hyperparameters
 
-    # tcls, tbox, indices, anchors = build_targets(p, targets, hyp, dict)  # targets    
-    # h = hyp  # hyperparameters
+    tcls, tbox, indices, anchors = build_targets(p, targets, hyp, dict)  # targets    
+    h = hyp  # hyperparameters
 
     # Define criteria
     BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([h['cls_pw']])).to(device)
@@ -485,12 +485,12 @@ def compute_loss(p, targets, model, anchor_t, dict):  # predictions, targets, mo
             lbox += (1.0 - giou).mean()  # giou loss
 
             # Objectness
-            tobj[b, a, gj, gi] = (1.0 - model.gr) + model.gr * giou.detach().clamp(0).type(tobj.dtype)  # giou ratio
-            # tobj[b, a, gj, gi] = (1.0 - dict['gr']) + dict['gr'] * giou.detach().clamp(0).type(tobj.dtype)  # giou ratio
+            # tobj[b, a, gj, gi] = (1.0 - model.gr) + model.gr * giou.detach().clamp(0).type(tobj.dtype)  # giou ratio
+            tobj[b, a, gj, gi] = (1.0 - dict['gr']) + dict['gr'] * giou.detach().clamp(0).type(tobj.dtype)  # giou ratio
 
             # Classification
-            if model.nc > 1:  # cls loss (only if multiple classes)
-            # if dict['nclasses'] > 1:  # cls loss (only if multiple classes)
+            # if model.nc > 1:  # cls loss (only if multiple classes)
+            if dict['nclasses'] > 1:  # cls loss (only if multiple classes)
                 t = torch.full_like(ps[:, 5:], cn, device=device)  # targets
                 t[range(n), tcls[i]] = cp
                 lcls += BCEcls(ps[:, 5:], t)  # BCE
@@ -510,8 +510,8 @@ def compute_loss(p, targets, model, anchor_t, dict):  # predictions, targets, mo
     loss = lbox + lobj + lcls
     return loss * bs, torch.cat((lbox, lobj, lcls, loss)).detach()
 
-def build_targets(p, targets, model, anchor_t, dict):
-# def build_targets(p, targets,hyp, dict):
+# def build_targets(p, targets, model, anchor_t, dict):
+def build_targets(p, targets, hyp, dict):
     nt = targets.shape[0]  # number of anchors, targets
     tcls, tbox, indices, anch = [], [], [], []
     gain = torch.ones(6, device=targets.device)  # normalized to gridspace gain
@@ -519,7 +519,7 @@ def build_targets(p, targets, model, anchor_t, dict):
 
     g = 0.5  # offset
     # org below
-    multi_gpu = is_parallel(model)
+    # multi_gpu = is_parallel(model)
     # for i, jj in enumerate(model.module.yolo_layers if multi_gpu else model.yolo_layers):
     #     # get number of grid points and anchor vec for this yolo layer
     #     # anchors = model.module.module_list[jj].anchor_vec if multi_gpu else model.module_list[jj].anchor_vec
@@ -536,7 +536,7 @@ def build_targets(p, targets, model, anchor_t, dict):
             at = torch.arange(na).view(na, 1).repeat(1, nt)  # anchor tensor, same as .repeat_interleave(nt)
             r = t[None, :, 4:6] / anchors[:, None]  # wh ratio
             # j = torch.max(r, 1. / r).max(2)[0] < model.hyp['anchor_t']  # compare
-            j = torch.max(r, 1. / r).max(2)[0] < anchor_t  # compare
+            j = torch.max(r, 1. / r).max(2)[0] < hyp['anchor_t']  # compare
             a, t = at[j], t.repeat(na, 1, 1)[j]  # filter
 
             # overlaps

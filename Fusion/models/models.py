@@ -343,14 +343,16 @@ class Head(torch.nn.Module):
         return y3,y4,y5
 
 
-class YOLOLayer(nn.Module):
-    def __init__(self, anchors, nc, img_size, stride): # yolo_index, layers
+class YOLOLayer(torch.nn.Module):
+    def __init__(self, anchors, nc, img_size, stride):
+    # def __init__(self, anchors, nc, img_size, stride): # yolo_index, layers
         super(YOLOLayer, self).__init__()
         self.anchors = torch.Tensor(anchors)
         # self.index = yolo_index  # index of this layer in layers
         # self.layers = layers  # model output layer indices
         self.stride = stride  # layer stride
         # self.nl = len(layers)  # number of output layers (3)
+        # self.nl = layers  # number of output layers (3)
         self.na = len(anchors)  # number of anchors (3)
         self.nc = nc  # number of classes (80)
         self.no = nc + 5  # number of outputs (85)
@@ -358,9 +360,9 @@ class YOLOLayer(nn.Module):
         self.anchor_vec = self.anchors / self.stride
         self.anchor_wh = self.anchor_vec.view(1, self.na, 1, 1, 2)
 
-        if ONNX_EXPORT:
-            self.training = False
-            self.create_grids((img_size[1] // stride, img_size[0] // stride))  # number x, y grid points
+        # if ONNX_EXPORT:******
+        #     self.training = False
+        #     self.create_grids((img_size[1] // stride, img_size[0] // stride))  # number x, y grid points
 
     def create_grids(self, ng=(13, 13), device='cpu'):
         self.nx, self.ny = ng  # x and y grid size
@@ -398,8 +400,8 @@ class YOLOLayer(nn.Module):
         #             p += w[:, j:j + 1] * \
         #                  F.interpolate(out[self.layers[j]][:, :-n], size=[ny, nx], mode='bilinear', align_corners=False)
 
-        elif ONNX_EXPORT:
-            bs = 1  # batch size
+        # elif ONNX_EXPORT:******
+        #     bs = 1  # batch size
         else:
             bs, _, ny, nx = p.shape  # bs, 255, 13, 13
             if (self.nx, self.ny) != (nx, ny):
@@ -411,19 +413,19 @@ class YOLOLayer(nn.Module):
         if self.training:
             return p
 
-        elif ONNX_EXPORT:
-            # Avoid broadcasting for ANE operations
-            m = self.na * self.nx * self.ny
-            ng = 1. / self.ng.repeat(m, 1)
-            grid = self.grid.repeat(1, self.na, 1, 1, 1).view(m, 2)
-            anchor_wh = self.anchor_wh.repeat(1, 1, self.nx, self.ny, 1).view(m, 2) * ng
+        # elif ONNX_EXPORT:******
+        #     # Avoid broadcasting for ANE operations
+        #     m = self.na * self.nx * self.ny
+        #     ng = 1. / self.ng.repeat(m, 1)
+        #     grid = self.grid.repeat(1, self.na, 1, 1, 1).view(m, 2)
+        #     anchor_wh = self.anchor_wh.repeat(1, 1, self.nx, self.ny, 1).view(m, 2) * ng
 
-            p = p.view(m, self.no)
-            xy = torch.sigmoid(p[:, 0:2]) + grid  # x, y
-            wh = torch.exp(p[:, 2:4]) * anchor_wh  # width, height
-            p_cls = torch.sigmoid(p[:, 4:5]) if self.nc == 1 else \
-                torch.sigmoid(p[:, 5:self.no]) * torch.sigmoid(p[:, 4:5])  # conf
-            return p_cls, xy * ng, wh
+        #     p = p.view(m, self.no)
+        #     xy = torch.sigmoid(p[:, 0:2]) + grid  # x, y
+        #     wh = torch.exp(p[:, 2:4]) * anchor_wh  # width, height
+        #     p_cls = torch.sigmoid(p[:, 4:5]) if self.nc == 1 else \
+        #         torch.sigmoid(p[:, 5:self.no]) * torch.sigmoid(p[:, 4:5])  # conf
+        #     return p_cls, xy * ng, wh
 
         else:  # inference
             io = p.sigmoid()
@@ -438,7 +440,7 @@ class YOLOLayer(nn.Module):
             return io.view(bs, -1, self.no), p  # view [1, 3, 13, 13, 85] as [1, 507, 85]
 
 
-class Darknet(nn.Module):
+class Darknet(torch.nn.Module):
     # YOLOv3 object detection model
 
     # # org below
@@ -467,42 +469,43 @@ class Darknet(nn.Module):
         self.yolo4 = YOLOLayer(self.anchors[3:6], self.nclasses, img_size, stride = 16)
         self.yolo5 = YOLOLayer(self.anchors[6:9], self.nclasses, img_size, stride = 32)
         
-        self.yolo_layers = get_yolo_layers(self)
-        self.version = np.array([0, 2, 5], dtype=np.int32)  # (int32) version info: major, minor, revision
-        self.seen = np.array([0], dtype=np.int64)  # (int64) number of images seen during training
-        self.info(verbose) if not ONNX_EXPORT else None  # print model description
+        # self.yolo_layers = get_yolo_layers(self)):******
+        # self.version = np.array([0, 2, 5], dtype=np.int32)  # (int32) version info: major, minor, revision
+        # self.seen = np.array([0], dtype=np.int64)  # (int64) number of images seen during training
+        # self.info(verbose) if not ONNX_EXPORT else None  # print model description
 
+    # def forward(self, x, augment=False, verbose=False):******
+
+    #     if not augment:
+    #         return self.forward_once(x)
+    #     else:  # Augment images (inference and test only) https://github.com/ultralytics/yolov3/issues/931
+    #         img_size = x.shape[-2:]  # height, width
+    #         s = [0.83, 0.67]  # scales
+    #         y = []
+    #         for i, xi in enumerate((x,
+    #                                 torch_utils.scale_img(x.flip(3), s[0], same_shape=False),  # flip-lr and scale
+    #                                 torch_utils.scale_img(x, s[1], same_shape=False),  # scale
+    #                                 )):
+    #             # cv2.imwrite('img%g.jpg' % i, 255 * xi[0].numpy().transpose((1, 2, 0))[:, :, ::-1])
+    #             y.append(self.forward_once(xi)[0])
+
+    #         y[1][..., :4] /= s[0]  # scale
+    #         y[1][..., 0] = img_size[1] - y[1][..., 0]  # flip lr
+    #         y[2][..., :4] /= s[1]  # scale
+
+    #         # for i, yi in enumerate(y):  # coco small, medium, large = < 32**2 < 96**2 <
+    #         #     area = yi[..., 2:4].prod(2)[:, :, None]
+    #         #     if i == 1:
+    #         #         yi *= (area < 96. ** 2).float()
+    #         #     elif i == 2:
+    #         #         yi *= (area > 32. ** 2).float()
+    #         #     y[i] = yi
+
+    #         y = torch.cat(y, 1)
+    #         return y, None
+
+    # def forward_once(self, x, augment=False, verbose=False):******
     def forward(self, x, augment=False, verbose=False):
-
-        if not augment:
-            return self.forward_once(x)
-        else:  # Augment images (inference and test only) https://github.com/ultralytics/yolov3/issues/931
-            img_size = x.shape[-2:]  # height, width
-            s = [0.83, 0.67]  # scales
-            y = []
-            for i, xi in enumerate((x,
-                                    torch_utils.scale_img(x.flip(3), s[0], same_shape=False),  # flip-lr and scale
-                                    torch_utils.scale_img(x, s[1], same_shape=False),  # scale
-                                    )):
-                # cv2.imwrite('img%g.jpg' % i, 255 * xi[0].numpy().transpose((1, 2, 0))[:, :, ::-1])
-                y.append(self.forward_once(xi)[0])
-
-            y[1][..., :4] /= s[0]  # scale
-            y[1][..., 0] = img_size[1] - y[1][..., 0]  # flip lr
-            y[2][..., :4] /= s[1]  # scale
-
-            # for i, yi in enumerate(y):  # coco small, medium, large = < 32**2 < 96**2 <
-            #     area = yi[..., 2:4].prod(2)[:, :, None]
-            #     if i == 1:
-            #         yi *= (area < 96. ** 2).float()
-            #     elif i == 2:
-            #         yi *= (area > 32. ** 2).float()
-            #     y[i] = yi
-
-            y = torch.cat(y, 1)
-            return y, None
-
-    def forward_once(self, x, augment=False, verbose=False):
         img_size = x.shape[-2:]  # height, width
         # yolo_out, out = [], []
         y3,y4,y5 = self.head(self.neck(self.backbone(x)))
@@ -510,18 +513,19 @@ class Darknet(nn.Module):
         y4 = self.yolo4(y4)
         y5 = self.yolo5(y5)
         yolo_out = [y3,y4,y5]
-        if verbose:
-            print('0', x.shape)
-            str = ''
+        # if verbose:):******
+        #     print('0', x.shape)
+        #     str = ''
 
-        # Augment images (inference and test only)
-        if augment:  # https://github.com/ultralytics/yolov3/issues/931
-            nb = x.shape[0]  # batch size
-            s = [0.83, 0.67]  # scales
-            x = torch.cat((x,
-                           torch_utils.scale_img(x.flip(3), s[0]),  # flip-lr and scale
-                           torch_utils.scale_img(x, s[1]),  # scale
-                           ), 0)
+        # # Augment images (inference and test only) ******
+        # if augment:  # https://github.com/ultralytics/yolov3/issues/931
+        #     nb = x.shape[0]  # batch size
+        #     s = [0.83, 0.67]  # scales
+        #     x = torch.cat((x,
+        #                    torch_utils.scale_img(x.flip(3), s[0]),  # flip-lr and scale
+        #                    torch_utils.scale_img(x, s[1]),  # scale
+        #                    ), 0)
+
         # # org below
         # for i, module in enumerate(self.module_list):
         #     name = module.__class__.__name__
@@ -540,42 +544,41 @@ class Darknet(nn.Module):
             # if verbose:
             #     print('%g/%g %s -' % (i, len(self.module_list), name), list(x.shape), str)
             #     str = ''
-
         if self.training:  # train
             return yolo_out
-        elif ONNX_EXPORT:  # export
-            x = [torch.cat(x, 0) for x in zip(*yolo_out)]
-            return x[0], torch.cat(x[1:3], 1)  # scores, boxes: 3780x80, 3780x4
+        # elif ONNX_EXPORT:  # export ******
+        #     x = [torch.cat(x, 0) for x in zip(*yolo_out)]
+        #     return x[0], torch.cat(x[1:3], 1)  # scores, boxes: 3780x80, 3780x4
         else:  # inference or test
             x, p = zip(*yolo_out)  # inference output, training output
             x = torch.cat(x, 1)  # cat yolo outputs
-            if augment:  # de-augment results
-                x = torch.split(x, nb, dim=0)
-                x[1][..., :4] /= s[0]  # scale
-                x[1][..., 0] = img_size[1] - x[1][..., 0]  # flip lr
-                x[2][..., :4] /= s[1]  # scale
-                x = torch.cat(x, 1)
+            # if augment:  # de-augment results ******
+            #     x = torch.split(x, nb, dim=0)
+            #     x[1][..., :4] /= s[0]  # scale
+            #     x[1][..., 0] = img_size[1] - x[1][..., 0]  # flip lr
+            #     x[2][..., :4] /= s[1]  # scale
+            #     x = torch.cat(x, 1)
             return x, p
 
-    def fuse(self):
-        # Fuse Conv2d + BatchNorm2d layers throughout model
-        print('Fusing layers...')
-        fused_list = nn.ModuleList()
-        for a in list(self.children())[0]:
-            if isinstance(a, nn.Sequential):
-                for i, b in enumerate(a):
-                    if isinstance(b, nn.modules.batchnorm.BatchNorm2d):
-                        # fuse this bn layer with the previous conv2d layer
-                        conv = a[i - 1]
-                        fused = torch_utils.fuse_conv_and_bn(conv, b)
-                        a = nn.Sequential(fused, *list(a.children())[i + 1:])
-                        break
-            fused_list.append(a)
-        self.module_list = fused_list
-        self.info() if not ONNX_EXPORT else None  # yolov3-spp reduced from 225 to 152 layers
+    # def fuse(self):
+    #     # Fuse Conv2d + BatchNorm2d layers throughout model
+    #     print('Fusing layers...')
+    #     fused_list = nn.ModuleList()
+    #     for a in list(self.children())[0]:
+    #         if isinstance(a, nn.Sequential):
+    #             for i, b in enumerate(a):
+    #                 if isinstance(b, nn.modules.batchnorm.BatchNorm2d):
+    #                     # fuse this bn layer with the previous conv2d layer
+    #                     conv = a[i - 1]
+    #                     fused = torch_utils.fuse_conv_and_bn(conv, b)
+    #                     a = nn.Sequential(fused, *list(a.children())[i + 1:])
+    #                     break
+    #         fused_list.append(a)
+    #     self.module_list = fused_list
+    #     self.info() if not ONNX_EXPORT else None  # yolov3-spp reduced from 225 to 152 layers
 
-    def info(self, verbose=False):
-        torch_utils.model_info(self, verbose)
+    # def info(self, verbose=False):
+    #     torch_utils.model_info(self, verbose)
 
 
 def get_yolo_layers(model):
