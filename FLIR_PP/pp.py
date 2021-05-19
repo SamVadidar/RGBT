@@ -1,17 +1,20 @@
-import cv2
 import os
+import cv2
 import glob
-import pickle
-from pathlib import Path
+import math
+import random
 import shutil
+import pickle
+import numpy as np
+from pathlib import Path
 
-from arg_parser import DATASET_PATH, DATASET_PP_PATH
-from align_IR2RGB import calc_para
-from crop_RGB2IR import crop_resolution_1800_1600
-from annotation_handler import draw_rgb_annotation_from_json
-from annotation_handler import print_progress
-from annotation_handler import convert_labels_to_yolo_format
-from annotation_handler import merge_labels
+from FLIR_PP.arg_parser import DATASET_PATH, DATASET_PP_PATH
+from FLIR_PP.align_IR2RGB import calc_para
+from FLIR_PP.crop_RGB2IR import crop_resolution_1800_1600
+from FLIR_PP.annotation_handler import draw_rgb_annotation_from_json
+from FLIR_PP.annotation_handler import print_progress
+from FLIR_PP.annotation_handler import convert_labels_to_yolo_format
+from FLIR_PP.annotation_handler import merge_labels
 
 
 def make_FLIR_PP_folder(dataset_path):
@@ -489,6 +492,75 @@ def add_low_Res_from_align_version(dataset_path, path_align):
             shutil.copyfile(img, (FLIR_PP_TRAIN_PATH+'/RGB_cropped/FLIR_'+str(img_num).zfill(5)+'.jpg'))
             shutil.copyfile((str(src_path)+'/'+str(img_name)[0:11]+'PreviewData.jpeg'), (FLIR_PP_TRAIN_PATH+'/thermal_8_bit/FLIR_'+str(img_num).zfill(5)+'.jpeg'))
 
+def train_test_split(dataset_path, train_size=0.7, dev_size=0.1, test_size=0.2):
+    def list_split(list, train_size, dev_size, test_size):
+        num_train = math.ceil(train_size*len(list))
+        num_dev = math.ceil(dev_size*len(list))
+        num_test = math.ceil(test_size*len(list))
+
+        test = np.array(list[:num_test])
+        dev = np.array(list[num_test:(num_test+num_dev)])
+        train = np.array(list[(num_test+num_dev):])
+        return train, dev, test
+
+    def copy_to_split(path_list, folder):
+        for element in path_list:
+            _, file_name = os.path.split(element)
+            # print(os.path.join(os.path.join(dst, folder), file_name))
+            dst = os.path.join(folder, file_name)
+            shutil.copyfile(element, dst)
+
+    sets_path = os.path.join(dataset_path, 'Train_Test_Split')
+    # mini_sets_path = os.path.join(dataset_path, 'Mini_Sets') # for faster development process during training
+
+    if os.path.isdir(sets_path): 
+        shutil.rmtree(sets_path)
+        # shutil.rmtree(mini_sets_path)
+        os.mkdir(sets_path)
+        os.mkdir(os.path.join(sets_path, 'train'))
+        os.mkdir(os.path.join(sets_path, 'dev'))
+        os.mkdir(os.path.join(sets_path, 'test'))
+    else:
+        os.mkdir(sets_path)
+        os.mkdir(os.path.join(sets_path, 'train'))
+        os.mkdir(os.path.join(sets_path, 'dev'))
+        os.mkdir(os.path.join(sets_path, 'test'))
+        # os.mkdir(mini_sets_path)
+
+    for folder in glob.glob(str(dataset_path) + "/*"):
+        _, folder_name = os.path.split(folder)
+        if folder_name =='Sets': continue
+        # if not os.path.isdir(os.path.join(sets_path, folder_name)): os.mkdir(os.path.join(sets_path, folder_name))
+        # if not os.path.isdir(os.path.join(mini_sets_path, folder_name)): os.mkdir(os.path.join(mini_sets_path, folder_name))
+        rgb_folder = os.path.join(folder, 'RGB_cropped')
+
+        rgb_path_list = []
+        ir_path_list = []
+        label_path_list = []
+        for img in Path(rgb_folder).rglob('*.jpg'):
+            _, img_name = os.path.split(img)
+            rgb_path_list.append(img)
+
+        SEED = 0
+        random.Random(SEED).shuffle(rgb_path_list)
+        for row in rgb_path_list:
+            _, img_name = os.path.split(row)
+            ir_path_list.append(os.path.join(dataset_path, folder_name)+'/thermal_8_bit/'+img_name.replace('.jpg', '.jpeg'))
+            label_path_list.append(os.path.join(dataset_path, folder_name)+'/yolo_format_labels/'+img_name.replace('.jpg', '.txt'))
+
+        rgb_train, rgb_dev, rgb_test = list_split(rgb_path_list, train_size, dev_size, test_size)
+        ir_train, ir_dev, ir_test = list_split(ir_path_list, train_size, dev_size, test_size)
+        label_train, label_dev, label_test = list_split(label_path_list, train_size, dev_size, test_size)
+
+        dataset = [rgb_train, ir_train, label_train, rgb_dev, ir_dev, label_dev, rgb_test, ir_test, label_test]
+
+        i=0
+        for element in dataset:
+            folder = 'train' if(i <3) else 'dev' if(i>=3 and i<6) else 'test'
+            folder = os.path.join(sets_path, folder)
+            copy_to_split(element, folder)
+            i += 1
+
 
 if __name__ == "__main__":
     # # find all the different available RGB resolutions
@@ -538,5 +610,9 @@ if __name__ == "__main__":
     manually_added_labels = './FLIR_PP/manual_data_cleaning/label_RGB_manual'
     merge_labels(DATASET_PP_PATH, manually_added_labels)
 
-    # # if you'd like to add 2048*1536 and 1280*1024 images from aligned version (653 paired images will be added)
-    # add_low_Res_from_align_version(DATASET_PP_PATH, '/home/ub145/Documents/Dataset/FLIR/aligned/align/JPEGImages')
+    # if you'd like to add 2048*1536 and 1280*1024 images from aligned version (653 paired images will be added)
+    align_ver_path = '/home/ub145/Documents/Dataset/FLIR/aligned/align/JPEGImages'
+    add_low_Res_from_align_version(DATASET_PP_PATH, align_ver_path)
+
+    train_test_split(DATASET_PP_PATH)
+
