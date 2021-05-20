@@ -384,7 +384,7 @@ if __name__ == '__main__':
         'sync_bn': False,
 
         # Data loader
-        'cache_images': True,
+        'cache_images': False,
         'rect': True,
         'world_size': 1,
 
@@ -396,14 +396,14 @@ if __name__ == '__main__':
         'weight_path': '/home/efs-gx/Sam/dev/Goku/yolov4-OriginalGokuVersion/runs_30/weights/best.pt',
 
         # 'train_path': DATASET_PP_PATH + '/train/RGB_cropped/',
-        'train_path': '/data/Sam/FLIR_PP/val/',
+        'train_path': '/data/Sam/FLIR_PP_Plus/mini_Train_Test_Split/train/',
 
         'validation_mode': 'val', # change to test for the final test
         # 'val_path': DATASET_PP_PATH + '/val/',
-        'val_path': '/data/Sam/FLIR_PP/val/',
+        'val_path': '/data/Sam/FLIR_PP_Plus/mini_Train_Test_Split/dev/',
 
         # 'test_path' : '/home/ub145/Documents/Dataset/FLIR/FLIR_PP/val',
-        'test_path' : '/data/Sam/FLIR_PP/val/',
+        'test_path' : '/data/Sam/FLIR_PP_Plus/mini_Train_Test_Split/test/',
 
         'save_dir': './save_dir/',
         'logdir': './runs',

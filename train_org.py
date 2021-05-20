@@ -469,8 +469,8 @@ if __name__ == '__main__':
         'img_size': 320, #Input image size. Must be a multiple of 32
         'strides': [8,16,32], #strides of p3,p4,p5
         'epochs': 30, #number of epochs
-        'batch_size': 8, #train batch size
-        'test_size': 8, #test batch size
+        'batch_size': 16, #train batch size
+        'test_size': 16, #test batch size
         'use_adam': False, #Bool to use Adam optimiser
         'use_ema': True, #Exponential moving average control
         'multi_scale': False, #Bool to do multi-scale training
@@ -481,7 +481,7 @@ if __name__ == '__main__':
         #logs
         'test_all': True, #Run test after end of each epoch
         'save_all': False, #Save checkpoints after every epoch
-        'plot_all': False,
+        'plot_all': True,
         # 'resume': 'get_last',
         'resume': False,
 
@@ -503,15 +503,23 @@ if __name__ == '__main__':
         # 'weight_path': './Fusion/yolo_pre_3c.pt',
         'weight_path': '/home/efs-gx/Sam/dev/Goku/yolov4-OriginalGokuVersion/runs_30/weights/best.pt',
         # 'train_path': DATASET_PP_PATH + '/train/RGB_cropped/',
-        'train_path': '/data/Sam/FLIR_PP/val/',
+        # 'train_path': '/data/Sam/FLIR_PP/val/',
+
+        # 'validation_mode': 'val', # change to test for the final test
+        # # 'val_path': DATASET_PP_PATH + '/val/',
+        # 'val_path': '/data/Sam/FLIR_PP/val/',
+
+        # # 'test_path' : '/home/ub145/Documents/Dataset/FLIR/FLIR_PP/val',
+        # 'test_path' : '/data/Sam/FLIR_PP/val/',
+        # 'train_path': DATASET_PP_PATH + '/train/RGB_cropped/',
+        'train_path': '/data/Sam/FLIR_PP_Plus/mini_Train_Test_Split/train/',
 
         'validation_mode': 'val', # change to test for the final test
         # 'val_path': DATASET_PP_PATH + '/val/',
-        'val_path': '/data/Sam/FLIR_PP/val/',
+        'val_path': '/data/Sam/FLIR_PP_Plus/mini_Train_Test_Split/dev/',
 
         # 'test_path' : '/home/ub145/Documents/Dataset/FLIR/FLIR_PP/val',
-        'test_path' : '/data/Sam/FLIR_PP/val/',
-
+        'test_path' : '/data/Sam/FLIR_PP_Plus/mini_Train_Test_Split/test/',
         'save_dir': './save_dir/',
         'logdir': './runs',
         # 'train_img_path': DATASET_PP_PATH + '/train/RGB_cropped/',

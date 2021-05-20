@@ -526,7 +526,7 @@ def build_targets(p, targets, hyp, dict):
     #     gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
 
     for i, anchors in enumerate(torch.from_numpy(np.array(dict['anchors_g'])).reshape(3,3,2).to(dict['device'])):#model.module.yolo_layers if multi_gpu else model.yolo_layers):
-        ancs = anchors // dict['strides'][i]
+        anchors = anchors // dict['strides'][i]
         gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
 
         # Match targets to anchors
@@ -769,7 +769,7 @@ def kmean_anchors(path='./data/coco128.yaml', n=9, img_size=640, thr=4.0, gen=10
     if isinstance(path, str):  # *.yaml file
         with open(path) as f:
             data_dict = yaml.load(f, Loader=yaml.FullLoader)  # model dict
-        from utils.datasets import LoadImagesAndLabels
+        from Fusion.utils.datasets import LoadImagesAndLabels
         dataset = LoadImagesAndLabels(data_dict['train'], augment=True, rect=True)
     else:
         dataset = path  # dataset
