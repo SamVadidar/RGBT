@@ -619,4 +619,4 @@ if __name__ == "__main__":
 
     # 30% of the actual size(mini) for faster developing phase
     dst_path = 'mini_Train_Test_Split'
-    train_test_split('/data/Sam/FLIR_PP_Plus', dst_path, train_size=0.21, dev_size=0.06, test_size=0.12, mini=True)
+    train_test_split(DATASET_PP_PATH, dst_path, train_size=0.21, dev_size=0.06, test_size=0.12, mini=True)
