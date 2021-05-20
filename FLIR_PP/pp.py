@@ -8,13 +8,13 @@ import pickle
 import numpy as np
 from pathlib import Path
 
-from FLIR_PP.arg_parser import DATASET_PATH, DATASET_PP_PATH
-from FLIR_PP.align_IR2RGB import calc_para
-from FLIR_PP.crop_RGB2IR import crop_resolution_1800_1600
-from FLIR_PP.annotation_handler import draw_rgb_annotation_from_json
-from FLIR_PP.annotation_handler import print_progress
-from FLIR_PP.annotation_handler import convert_labels_to_yolo_format
-from FLIR_PP.annotation_handler import merge_labels
+from arg_parser import DATASET_PATH, DATASET_PP_PATH
+from align_IR2RGB import calc_para
+from crop_RGB2IR import crop_resolution_1800_1600
+from annotation_handler import draw_rgb_annotation_from_json
+from annotation_handler import print_progress
+from annotation_handler import convert_labels_to_yolo_format
+from annotation_handler import merge_labels
 
 
 def make_FLIR_PP_folder(dataset_path):
@@ -492,7 +492,7 @@ def add_low_Res_from_align_version(dataset_path, path_align):
             shutil.copyfile(img, (FLIR_PP_TRAIN_PATH+'/RGB_cropped/FLIR_'+str(img_num).zfill(5)+'.jpg'))
             shutil.copyfile((str(src_path)+'/'+str(img_name)[0:11]+'PreviewData.jpeg'), (FLIR_PP_TRAIN_PATH+'/thermal_8_bit/FLIR_'+str(img_num).zfill(5)+'.jpeg'))
 
-def train_test_split(dataset_path, train_size=0.7, dev_size=0.1, test_size=0.2):
+def train_test_split(dataset_path, dst_path, train_size=0.7, dev_size=0.1, test_size=0.2, mini=False):
     def list_split(list, train_size, dev_size, test_size):
         num_train = math.ceil(train_size*len(list))
         num_dev = math.ceil(dev_size*len(list))
@@ -500,7 +500,7 @@ def train_test_split(dataset_path, train_size=0.7, dev_size=0.1, test_size=0.2):
 
         test = np.array(list[:num_test])
         dev = np.array(list[num_test:(num_test+num_dev)])
-        train = np.array(list[(num_test+num_dev):])
+        train = np.array(list[(num_test+num_dev):(num_test+num_dev+num_train)]) if mini else np.array(list[(num_test+num_dev):]) 
         return train, dev, test
 
     def copy_to_split(path_list, folder):
@@ -510,7 +510,7 @@ def train_test_split(dataset_path, train_size=0.7, dev_size=0.1, test_size=0.2):
             dst = os.path.join(folder, file_name)
             shutil.copyfile(element, dst)
 
-    sets_path = os.path.join(dataset_path, 'Train_Test_Split')
+    sets_path = os.path.join(dataset_path, dst_path)
     # mini_sets_path = os.path.join(dataset_path, 'Mini_Sets') # for faster development process during training
 
     if os.path.isdir(sets_path): 
@@ -614,5 +614,9 @@ if __name__ == "__main__":
     align_ver_path = '/home/ub145/Documents/Dataset/FLIR/aligned/align/JPEGImages'
     add_low_Res_from_align_version(DATASET_PP_PATH, align_ver_path)
 
-    train_test_split(DATASET_PP_PATH)
+    dst_path = 'Train_Test_Split'
+    train_test_split(DATASET_PP_PATH, dst_path, train_size=0.7, dev_size=0.1, test_size=0.2, mini=False)
 
+    # 30% of the actual size(mini) for faster developing phase
+    dst_path = 'mini_Train_Test_Split'
+    train_test_split('/data/Sam/FLIR_PP_Plus', dst_path, train_size=0.21, dev_size=0.06, test_size=0.12, mini=True)
