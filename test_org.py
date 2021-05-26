@@ -21,52 +21,29 @@ from Fusion.utils.general import (
     scale_coords, xyxy2xywh, clip_coords, plot_images, xywh2xyxy, box_iou, output_to_target, ap_per_class)
 from Fusion.utils.torch_utils import select_device, time_synchronized
 from Fusion.models.models import *
-#from utils.datasets import *
 from FLIR_PP.arg_parser import DATASET_PP_PATH
 
-def load_classes(path):
-    # Loads *.names file at 'path'
-    with open(path, 'r') as f:
-        names = f.read().split('\n')
-    return list(filter(None, names))  # filter removes empty strings (such as last line)
+
+# def load_classes(path):
+#     with open(path, 'r') as f:
+#         names = f.read().split('\n')
+#     return list(filter(None, names))  # filter removes empty strings (such as last line)
 
 
-# def test(data,
-#          dict,
-#          weight_path,
-#          weights=None,
-#          batch_size=16,
-#          imgsz=640,
-#          conf_thres=0.001,
-#          iou_thres=0.6,  # for NMS
-#          save_json=False,
-#          single_cls=False,
-#          augment=False,
-#          verbose=False,
-#          model=None,
-#          dataloader=None,
-#          save_dir='',
-#          merge=False,
-#          save_txt=False):
 def test(dict,
          hyp,
-        #  weight_path,
-        #  imgsz=640,
          model=None,
          augment=False,
          verbose=False,
          dataloader=None):
-        #  save_dir='',
-        #  merge=False:
+
     # Initialize/load model and set device
     training = model is not None
     if training:  # called by train.py
         merge = dict['nms_merge']
         device = next(model.parameters()).device  # get model device
-        # print(list(model.named_parameters())[-1])
 
     else:  # called directly
-        # org below
         device = select_device(device=dict['device_num'], batch_size=dict['batch_size'])
         merge, save_txt = dict['nms_merge'], dict['save_txt']  # use Merge NMS, save *.txt labels
         if save_txt:
@@ -79,38 +56,25 @@ def test(dict,
         for f in glob.glob(str(Path(dict['save_dir']) / 'test_batch*.jpg')):
             os.remove(f)
 
-        # Load model
-        # device = dict['device']
+
         img_size = dict['img_size']
         model = Darknet(dict, (img_size, img_size)).to(device)
-        # model.load_state_dict(torch.load(dict['weight_path'])['model'])
-        
-        # org below:
-        # model = Darknet(opt.cfg).to(device)
-        # load model 
+
+        # load model
         try:
-            # ckpt = torch.load(weights[0], map_location=device)  # load checkpoint
-            ckpt = torch.load(dict['weight_path'], map_location=device)  # load checkpoint
+            ckpt = torch.load(dict['weight_path']) # load checkpoint
+            if ckpt['epoch'] != -1: print('Saved @ epoch: ', ckpt['epoch'])
             ckpt['model'] = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
             model.load_state_dict(ckpt['model'], strict=False)
-            # print(list(model.named_parameters())[-1])
         except:
-            # load_darknet_weights(model, weights[0])
-            load_darknet_weights(model, dict['weight_path'])
+            raise ValueError('The Weight does not exist!')
+
         imgsz = check_img_size(dict['img_size'], s=32)  # check img_size
 
     # Half
     half = device.type != 'cpu'  # half precision only supported on CUDA
-    # half = False
     if half:
         model.half()
-
-    # # org below
-    # # Configure
-    # model.eval()
-    # with open(data) as f:
-    #     data = yaml.load(f, Loader=yaml.FullLoader)  # model dict
-    # nc = 1 if single_cls else int(data['nc'])  # number of classes
 
     model = model.eval()
     iouv = torch.linspace(0.5, 0.95, 10).to(device)  # iou vector for mAP@0.5:0.95
@@ -126,12 +90,6 @@ def test(dict,
                                        hyp=None, augment=False, cache=False, pad=pad, rect=True)[0] # grid_size=32
 
     seen = 0
-    # # org below
-    # try:
-    #     names = model.names if hasattr(model, 'names') else model.module.names
-    # except:
-    #     names = load_classes(opt.names)
-    # coco91class = coco80_to_coco91_class()
 
     names = dict['names']
     s = ('%20s' + '%12s' * 6) % ('Class', 'Images', 'Targets', 'P', 'R', 'mAP@.5', 'mAP@.5:.95')
@@ -155,7 +113,6 @@ def test(dict,
 
             # Compute loss
             if training:  # if model has loss hyperparameters
-                # # org below
                 loss += compute_loss([x.float() for x in train_out], targets, hyp, dict)[1][:3]  # GIoU, obj, cls
                 # loss += compute_loss([x.float() for x in train_out], targets, hyp, dict)[1][:3]  # GIoU, obj, cls
 
@@ -176,34 +133,8 @@ def test(dict,
                     stats.append((torch.zeros(0, niou, dtype=torch.bool), torch.Tensor(), torch.Tensor(), tcls))
                 continue
 
-            # # Append to text file
-            # if save_txt:
-            #     gn = torch.tensor(shapes[si][0])[[1, 0, 1, 0]]  # normalization gain whwh
-            #     txt_path = os.path.joint(dict['txt_path'], 
-            #     # txt_path = str(out / Path(paths[si]).stem)
-            #     pred[:, :4] = scale_coords(img[si].shape[1:], pred[:, :4], shapes[si][0], shapes[si][1])  # to original
-            #     for *xyxy, conf, cls in pred:
-            #         xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-            #         with open(txt_path, 'a') as f:
-            #             f.write(('%g ' * 5 + '\n') % (cls, *xywh))  # label format
-
             # Clip boxes to image bounds
             clip_coords(pred, (height, width))
-
-            # # org below
-            # # Append to pycocotools JSON dictionary
-            # if save_json:
-            #     # [{"image_id": 42, "category_id": 18, "bbox": [258.15, 41.29, 348.26, 243.78], "score": 0.236}, ...
-            #     image_id = Path(paths[si]).stem
-            #     box = pred[:, :4].clone()  # xyxy
-            #     scale_coords(img[si].shape[1:], box, shapes[si][0], shapes[si][1])  # to original shape
-            #     box = xyxy2xywh(box)  # xywh
-            #     box[:, :2] -= box[:, 2:] / 2  # xy center to top-left corner
-            #     for p, b in zip(pred.tolist(), box.tolist()):
-            #         jdict.append({'image_id': int(image_id) if image_id.isnumeric() else image_id,
-            #                       'category_id': coco91class[int(p[5])],
-            #                       'bbox': [round(x, 3) for x in b],
-            #                       'score': round(p[4], 5)})
 
             # Assign all predictions as incorrect
             correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool, device=device)
@@ -236,31 +167,15 @@ def test(dict,
             # Append statistics (correct, conf, pcls, tcls)
             stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
 
-        # # Plot images
-        # if batch_i < 1:
-        #     f = Path(dict['save_dir']) / ('test_batch%g_gt.jpg' % batch_i)  # filename
-        #     plot_images(img, targets, paths, str(f), names)  # ground truth
-        #     f = Path(dict['save_dir']) / ('test_batch%g_pred.jpg' % batch_i)
-        #     plot_images(img, output_to_target(output, width, height), paths, str(f), names)  # predictions
+        # Plot images
+        if batch_i < 1:
+            if not os.path.isdir(dict['save_dir']): os.mkdir(dict['save_dir'])
+            f = Path(dict['save_dir']) / ('test_batch%g_gt.jpg' % batch_i)  # filename
+            plot_images(img, targets, paths, './'+str(f), names)  # ground truth
+            f = Path(dict['save_dir']) / ('test_batch%g_pred.jpg' % batch_i)
+            plot_images(img, output_to_target(output, width, height), paths, str(f), names)  # predictions
 
         if dict['plot_all']:
-            # original_img = Image.open(os.path.join(paths[si]))
-            # plt.rcParams['figure.figsize'] = (20,20)
-            # fig,ax = plt.subplots(1)
-            # ax.imshow(original_img)
-            # if pred is not None:
-            #     boxes = pred
-            #     boxes[:, :4] = scale_coords(img[si].shape[1:], boxes[:, :4], shapes[si][0], shapes[si][1])  # to original
-            #     for i, box in enumerate(boxes.cpu()):
-            #         xmin = box[0]
-            #         ymin = box[1]
-            #         w = (box[2]-box[0])
-            #         h = (box[3]-box[1])
-            #         rect = patches.Rectangle((xmin,ymin),w,h,linewidth=2,edgecolor='r',facecolor='none')
-            #         ax.add_patch(rect)
-            #         ax.text(xmin, ymin, '%s %s'%(names[int(box[-1])],int(box[-2]*100)/100), fontsize = 12)
-            #     plt.show()
-
             for si, pred in enumerate(output):
                 labels = targets[targets[:, 0] == si, 1:]
                 # imgs = img[si].permute(1, 2, 0).cpu()
@@ -288,7 +203,6 @@ def test(dict,
                         hei = label[4]*height
                         rect1 = patches.Rectangle((x,y),wid,hei,linewidth=2,edgecolor='g',facecolor='none')
                         ax.add_patch(rect1)
-                    #plt.savefig(os.path.join(r'E:\Datasets\Dense\runs',paths[si].split(os.sep)[-1]))
                     plt.show()
                     plt.close()
 
@@ -325,23 +239,6 @@ def test(dict,
     #     with open(f, 'w') as file:
     #         json.dump(jdict, file)
 
-        # # org below
-        # try:  # https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb
-        #     from pycocotools.coco import COCO
-        #     from pycocotools.cocoeval import COCOeval
-
-        #     imgIds = [int(Path(x).stem) for x in dataloader.dataset.img_files]
-        #     cocoGt = COCO(glob.glob('../coco/annotations/instances_val*.json')[0])  # initialize COCO ground truth api
-        #     cocoDt = cocoGt.loadRes(f)  # initialize COCO pred api
-        #     cocoEval = COCOeval(cocoGt, cocoDt, 'bbox')
-        #     cocoEval.params.imgIds = imgIds  # image IDs to evaluate
-        #     cocoEval.evaluate()
-        #     cocoEval.accumulate()
-        #     cocoEval.summarize()
-        #     map, map50 = cocoEval.stats[:2]  # update results (mAP@0.5:0.95, mAP@0.5)
-        # except Exception as e:
-        #     print('ERROR: pycocotools unable to run: %s' % e)
-
     # Return results
     model.float()  # for training
     maps = np.zeros(dict['nclasses']) + map
@@ -351,97 +248,48 @@ def test(dict,
 
 
 if __name__ == '__main__':
-    dict_ = { 
-        'device':'cuda', #Intialise device as cpu. Later check if cuda is avaialbel and change to cuda    
+    dict_ = {
+        'device':'cuda', #Intialise device as cpu. Later check if cuda is avaialbel and change to cuda
         'device_num': '0',
 
+        # Kmeans on COCO
         'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
+
+        # # Kmeans on FLIR
+        # 'anchors_g': [[7, 16], [16, 15], [12, 30], [28, 24], [18, 57], [49, 39], [43, 99], [113, 74], [163, 168]],
+
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         'gs': 32, #Image size multiples
         'img_size': 320, #Input image size. Must be a multiple of 32
-        'strides': [8,16,32], #strides of p3,p4,p5
-        'epochs': 30, #number of epochs
         'batch_size': 16, #train batch size
         'test_size': 16, #test batch size
-        'use_adam': False, #Bool to use Adam optimiser
-        'use_ema': True, #Exponential moving average control
-        'multi_scale': False, #Bool to do multi-scale training
         'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
+
+        # Data loader
+        'rect': True,
+
         # test
         'nms_conf_t':0.001, #Confidence test threshold
         'nms_merge': True,
 
         #logs
-        'test_all': True, #Run test after end of each epoch
-        'save_all': False, #Save checkpoints after every epoch
         'save_txt': True,
         'plot_all': False,
-
-        # DP
-        'global_rank': -1,
-        'local_rank': -1,
-        'sync_bn': False,
-
-        # Data loader
-        'cache_images': False,
-        'rect': True,
-        'world_size': 1,
-
-        # ?
-        'evolve': False,
+        'save_dir': './save_dir/',
 
         # PATH
-        # 'weight_path': './Fusion/yolo_pre_3c.pt',
-        'weight_path': '/home/efs-gx/Sam/dev/Goku/yolov4-OriginalGokuVersion/runs_30/weights/best.pt',
+        'weight_path': './miniRuns/exp3_FinalBL/weights/best_.pt',
+        'train_path': DATASET_PP_PATH + '/Train_Test_Split/train/',
+        'val_path': DATASET_PP_PATH + '/Train_Test_Split/dev/',
+        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test/',
 
-        # 'train_path': DATASET_PP_PATH + '/train/RGB_cropped/',
-        'train_path': '/data/Sam/FLIR_PP_Plus/mini_Train_Test_Split/train/',
-
-        'validation_mode': 'val', # change to test for the final test
-        # 'val_path': DATASET_PP_PATH + '/val/',
-        'val_path': '/data/Sam/FLIR_PP_Plus/mini_Train_Test_Split/dev/',
-
-        # 'test_path' : '/home/ub145/Documents/Dataset/FLIR/FLIR_PP/val',
-        'test_path' : '/data/Sam/FLIR_PP_Plus/mini_Train_Test_Split/test/',
-
-        'save_dir': './save_dir/',
-        'logdir': './runs',
-        # 'train_img_path': DATASET_PP_PATH + '/train/RGB_cropped/',
-        # 'train_label_path': DATASET_PP_PATH + '/train/yolo_format_labels',
-
-        # 'validation_mode': 'validation', # change to test for the final test
-        # 'val_img_path': DATASET_PP_PATH + '/val/',
-        # 'val_label_path': DATASET_PP_PATH + '/val/yolo_format_labels',
-
-        # 'test_img_path' : DATASET_PP_PATH + '/test/RGB_cropped/',
-        # 'test_label_path': DATASET_PP_PATH + '/test/yolo_format_labels',
+        'validation_mode': 'test', # change to test for the final test
      }
 
     hyp = {
-        'lr0': 0.01,  # initial learning rate (SGD=1E-2, Adam=1E-3)
-        'momentum': 0.937,  # SGD momentum/Adam beta1
-        'weight_decay': 0.0005,  # optimizer weight decay
-        'giou': 0.05,  # GIoU loss gain
-        'cls': 0.01875,  # cls loss gain | cls_org = 0.5 | ['cls'] *= nc / 80
-        'cls_pw': 1.0,  # cls BCELoss positive_weight
-        'obj': 1.0,  # obj loss gain (scale with pixels)
-        'obj_pw': 1.0,  # obj BCELoss positive_weight
         # test
         'iou_t': 0.6,  # IoU test threshold
-        'anchor_t': 4.0,  # anchor-multiple threshold
-        'fl_gamma': 0.0,  # focal loss gamma (efficientDet default gamma=1.5)
-        'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)
-        'hsv_s': 0.7,  # image HSV-Saturation augmentation (fraction)
-        'hsv_v': 0.4,  # image HSV-Value augmentation (fraction)
-        'degrees': 0.0,  # image rotation (+/- deg)
-        'translate': 0.0,  # image translation (+/- fraction)
-        'scale': 0.5,  # image scale (+/- gain)
-        'shear': 0.0,  # image shear (+/- deg)
-        'perspective': 0.0,  # image perspective (+/- fraction), range 0-0.001
-        'flipud': 0.0,  # image flip up-down (probability)
-        'fliplr': 0.5,  # image flip left-right (probability)
-        'mixup': 0.0, #mix up probability
     }
 
     test(dict_, hyp, augment=False)

@@ -444,9 +444,6 @@ class BCEBlurWithLogitsLoss(nn.Module):
 def compute_loss(p, targets, hyp, dict):  # predictions, targets, model
     device = targets.device
     lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
-    # tcls, tbox, indices, anchors = build_targets(p, targets, model, anchor_t, dict)  # targets
-    # h = model.hyp  # hyperparameters
-
     tcls, tbox, indices, anchors = build_targets(p, targets, hyp, dict)  # targets    
     h = hyp  # hyperparameters
 
@@ -518,13 +515,6 @@ def build_targets(p, targets, hyp, dict):
     off = torch.tensor([[1, 0], [0, 1], [-1, 0], [0, -1]], device=targets.device).float()  # overlap offsets
 
     g = 0.5  # offset
-    # org below
-    # multi_gpu = is_parallel(model)
-    # for i, jj in enumerate(model.module.yolo_layers if multi_gpu else model.yolo_layers):
-    #     # get number of grid points and anchor vec for this yolo layer
-    #     # anchors = model.module.module_list[jj].anchor_vec if multi_gpu else model.module_list[jj].anchor_vec
-    #     gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
-
     for i, anchors in enumerate(torch.from_numpy(np.array(dict['anchors_g'])).reshape(3,3,2).to(dict['device'])):#model.module.yolo_layers if multi_gpu else model.yolo_layers):
         anchors = anchors // dict['strides'][i]
         gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
@@ -915,6 +905,7 @@ def output_to_target(output, width, height):
 
                 targets.append([i, cls, x, y, w, h, conf])
 
+    targets = torch.Tensor(targets).cpu()
     return np.array(targets)
 
 
@@ -985,7 +976,7 @@ def plot_wh_methods():  # from utils.utils import *; plot_wh_methods()
     fig.savefig('comparison.png', dpi=200)
 
 
-def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max_size=640, max_subplots=16):
+def plot_images(images, targets, paths=None, fname='./images.jpg', names=None, max_size=640, max_subplots=16):
     tl = 3  # line thickness
     tf = max(tl - 1, 1)  # font thickness
     if os.path.isfile(fname):  # do not overwrite
