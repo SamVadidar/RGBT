@@ -336,11 +336,17 @@ def train(dict_, hyp, tb_writer=None):
                             'optimizer': None if final_epoch else optimizer.state_dict()}
 
                 # Save last, best and delete
-                torch.save(ckpt, last.replace('.pt','_{:03d}.pt'.format(epoch)))
+                torch.save(ckpt, last)
                 if epoch >= (epochs-5):
                     torch.save(ckpt, last.replace('.pt','_{:03d}.pt'.format(epoch)))
                 if (best_fitness == fi) and not final_epoch:
+                    # Delete previous best
+                    for weight in Path(wdir).rglob('*.pt'):
+                        _, weight_name = os.path.split(weight)
+                        if str(weight_name).startswith('best'): os.remove(str(weight))
+                    # Save the current best
                     torch.save(ckpt, best.replace('.pt','_{:03d}.pt'.format(best_epoch)))
+
                 del ckpt
         # end epoch ----------------------------------------------------------------------------------------------------
     # end training
@@ -385,7 +391,7 @@ if __name__ == '__main__':
         'test_size': 8, #test batch size
         'use_adam': False, #Bool to use Adam optimiser
         'use_ema': True, #Exponential moving average control
-        'multi_scale': True, #Bool to do multi-scale training
+        'multi_scale': False, #Bool to do multi-scale training
         'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
         'nms_conf_t':0.001, #0.2 Confidence training threshold
         'nms_merge': True,
@@ -393,6 +399,7 @@ if __name__ == '__main__':
         #logs
         'save_dir': './save_dir/',
         'logdir': './miniRuns',
+        'comment': 'mini320IR',
         'test_all': True, #Run test after end of each epoch
         'save_all': True, #Save checkpoints after every epoch
         'plot_all': False,
@@ -412,8 +419,8 @@ if __name__ == '__main__':
         'evolve': False,
 
         # PATH
-        # 'weight_path': './miniRuns/exp8_FinalBL/weights/last_001.pt',
-        'weight_path': '/home/efs-gx/Sam/dev/RGBT/Fusion/yolo_pre_3c.pt',
+        'weight_path': './miniRuns/exp8_mini320IR/weights/last.pt',
+        # 'weight_path': '/home/efs-gx/Sam/dev/RGBT/Fusion/yolo_pre_3c.pt',
 
         'validation_mode': 'val',
 
@@ -471,8 +478,9 @@ if __name__ == '__main__':
     if not dict_['evolve']:
         tb_writer = None
         if dict_['global_rank'] in [-1, 0]:
-            print('Start Tensorboard with "tensorboard --logdir %s", view at http://localhost:6006/' % dict_['logdir'])
-            tb_writer = SummaryWriter(log_dir=increment_dir(Path(dict_['logdir']) / 'exp', 'IR'))  # runs/exp
+            logPath = increment_dir(Path(dict_['logdir']) / 'exp', dict_['comment'])
+            print('\nStart Tensorboard with "tensorboard --logdir %s", view at http://localhost:6006/\n' % str(dict_['logdir']+'/'+logPath))
+            tb_writer = SummaryWriter(log_dir=logPath)  # runs/exp
 
         train(dict_, hyp, tb_writer)
 

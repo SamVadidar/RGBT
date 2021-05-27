@@ -17,7 +17,7 @@ from tqdm import tqdm
 from Fusion.utils.general import xyxy2xywh, xywh2xyxy, torch_distributed_zero_first
 
 help_url = ''
-img_formats = ['.jpg'] #  ['.bmp', '.jpg', '.jpeg', '.png', '.tif', '.tiff', '.dng']
+img_formats = ['.jpeg'] #  ['.bmp', '.jpg', '.jpeg', '.png', '.tif', '.tiff', '.dng']
 vid_formats = ['.mov', '.avi', '.mp4', '.mpg', '.mpeg', '.m4v', '.wmv', '.mkv']
 
 # Get orientation exif tag
