@@ -5,6 +5,9 @@ Remark: Before running the python scripts, make sure you are in the RGBT folder 
 - [x] Finish literature review of both Object Detection and Fusion 
 - [x] Find the conversion Matrix btw. RGB and IR Frame
 - [x] Prepare the FLIR Dataset for fusion
-- [ ] Implement Scaled_Yolov4
-- [ ] Test the RGB frames from FLIR Dataset on Scaled_Yolov4 (Baseline)
-- [ ] Fusion
+- [x] Implement Scaled_Yolov4
+- [x] Test the RGB frames from FLIR Dataset on Scaled_Yolov4 (Baseline)
+- [ ] Ablation Study for the Baseline
+- [ ] Dive deeper into SPP, PAN, FPN, DCN, SAM, GIOU and other relevant papers for Fusion
+- [ ] Design the Fusion Network
+- [ ] Start the Fusion Training

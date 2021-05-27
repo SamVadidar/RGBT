@@ -610,9 +610,10 @@ if __name__ == "__main__":
     manually_added_labels = './FLIR_PP/manual_data_cleaning/label_RGB_manual'
     merge_labels(DATASET_PP_PATH, manually_added_labels)
 
-    # if you'd like to add 2048*1536 and 1280*1024 images from aligned version (653 paired images will be added)
-    align_ver_path = '/home/ub145/Documents/Dataset/FLIR/aligned/align/JPEGImages'
-    add_low_Res_from_align_version(DATASET_PP_PATH, align_ver_path)
+    # # if you'd like to add 2048*1536 and 1280*1024 images from aligned version (653 paired images will be added)
+    # # You can Download it here:  http://shorturl.at/ahAY4 and replace the second argument in the func. below
+    # align_ver_path = '/home/ub145/Documents/Dataset/FLIR/aligned/align/JPEGImages'
+    # add_low_Res_from_align_version(DATASET_PP_PATH, align_ver_path)
 
     dst_path = 'Train_Test_Split'
     train_test_split(DATASET_PP_PATH, dst_path, train_size=0.7, dev_size=0.1, test_size=0.2, mini=False)

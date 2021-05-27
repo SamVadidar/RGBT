@@ -14,25 +14,30 @@
 - [x] Manually labelling the objects, which were not seen by IR sensor (For Fusion)
 - [x] Convert labels from json file (COCO format) to Yolo format
 - [x] Merge two label files
+- [x] Train-Dev-Test Split and mini-Splits
+- [x] Other FOV added from aligned version (Optional Function)
+- [ ] Day and Night Splitter
 
 ## How to use:
 
 ```
 # clone the repo.
 https://github.com/SamVadidar/RGBT.git
-cd RGBT/FLIR_PP
+cd RGBT
 
 # Create a virtualenv. and install the requirements
 python3 -m venv <name of your virtualenv.>
 source path/to/env./bin/activate
-pip install -r requirements.txt
+pip install -r req.txt
 
 # Make sure the path to the Dataset is pointing to a folder containing Train, Val and Video sets.
 python3 pp.py path/to/FLIR/DATASET
-
-# Output:
-  A folder with FLIR_PP will be created under your FLIR Dataset directory, which contains the sane version of the original dataset. It will help you, if you are
-  planning to fuse RGB and IR.
 ```
+
+## Output:
+
+- FLIR_PP: The Sane Version
+- Train_Test_Split: 70% Train - 10% Dev./Val. - 20% Test by Default (can be changed by train_test_split func. in pp.py)
+- mini_Train_Test_Split: Small Version of the Split for Faster Development
 
 ![Labeled RGB](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/FLIR_02743.jpg)

@@ -17,17 +17,11 @@ import matplotlib.patches as patches
 from Fusion.models.experimental import attempt_load
 from Fusion.utils.datasets import create_dataloader
 from Fusion.utils.general import (
-    coco80_to_coco91_class, check_file, check_img_size, compute_loss, non_max_suppression,
+    check_img_size, compute_loss, non_max_suppression,
     scale_coords, xyxy2xywh, clip_coords, plot_images, xywh2xyxy, box_iou, output_to_target, ap_per_class)
 from Fusion.utils.torch_utils import select_device, time_synchronized
 from Fusion.models.models import *
 from FLIR_PP.arg_parser import DATASET_PP_PATH
-
-
-# def load_classes(path):
-#     with open(path, 'r') as f:
-#         names = f.read().split('\n')
-#     return list(filter(None, names))  # filter removes empty strings (such as last line)
 
 
 def test(dict,
