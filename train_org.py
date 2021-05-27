@@ -380,7 +380,7 @@ if __name__ == '__main__':
         'gs': 32, #Image size multiples
         'img_size': 320, #Input image size. Must be a multiple of 32
         'strides': [8,16,32], #strides of p3,p4,p5
-        'epochs': 1, #number of epochs
+        'epochs': 50, #number of epochs
         'batch_size': 8, #train batch size
         'test_size': 8, #test batch size
         'use_adam': False, #Bool to use Adam optimiser
@@ -391,6 +391,8 @@ if __name__ == '__main__':
         'nms_merge': True,
 
         #logs
+        'save_dir': './save_dir/',
+        'logdir': './miniRuns',
         'test_all': True, #Run test after end of each epoch
         'save_all': True, #Save checkpoints after every epoch
         'plot_all': False,
@@ -412,12 +414,11 @@ if __name__ == '__main__':
         # PATH
         # 'weight_path': './miniRuns/exp8_FinalBL/weights/last_001.pt',
         'weight_path': '/home/efs-gx/Sam/dev/RGBT/Fusion/yolo_pre_3c.pt',
-        'train_path': DATASET_PP_PATH + '/mini_Train_Test_Split/dev/',
-        'val_path': DATASET_PP_PATH + '/mini_Train_Test_Split/dev/',
+
         'validation_mode': 'val',
 
-        'save_dir': './save_dir/',
-        'logdir': './miniRuns',
+        'train_path': DATASET_PP_PATH + '/mini_Train_Test_Split/train/',
+        'val_path': DATASET_PP_PATH + '/mini_Train_Test_Split/dev/',
      }
 
     hyp = {
@@ -471,7 +472,7 @@ if __name__ == '__main__':
         tb_writer = None
         if dict_['global_rank'] in [-1, 0]:
             print('Start Tensorboard with "tensorboard --logdir %s", view at http://localhost:6006/' % dict_['logdir'])
-            tb_writer = SummaryWriter(log_dir=increment_dir(Path(dict_['logdir']) / 'exp', 'FinalBL'))  # runs/exp
+            tb_writer = SummaryWriter(log_dir=increment_dir(Path(dict_['logdir']) / 'exp', 'IR'))  # runs/exp
 
         train(dict_, hyp, tb_writer)
 

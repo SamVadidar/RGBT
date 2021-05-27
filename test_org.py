@@ -279,12 +279,14 @@ if __name__ == '__main__':
         'save_dir': './save_dir/',
 
         # PATH
-        'weight_path': './miniRuns/exp3_FinalBL/weights/best_.pt',
+        # 'weight_path': './miniRuns/exp3_FinalBL/weights/best_.pt',
+        'weight_path': '/home/efs-gx/Sam/dev/Goku/yolov4-OriginalGokuVersion/runs_30/weights/best.pt',
+
+        'validation_mode': 'test', # change to test only for the final test
+
         'train_path': DATASET_PP_PATH + '/Train_Test_Split/train/',
         'val_path': DATASET_PP_PATH + '/Train_Test_Split/dev/',
         'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test/',
-
-        'validation_mode': 'test', # change to test for the final test
      }
 
     hyp = {
