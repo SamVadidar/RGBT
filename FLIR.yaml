@@ -1,0 +1,14 @@
+# # train and val datasets (image directory or *.txt file with image paths)
+# train: ../coco/train2017.txt  # 118k images
+# val: ../coco/val2017.txt  # 5k images
+# test: ../coco/testdev2017.txt  # 20k images for submission to https://competitions.codalab.org/competitions/20794
+
+# train and val datasets (image directory or *.txt file with image paths)
+train: /home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/Train_Test_Split/train/  # 118k images
+val : /home/ub145/Documents/Dataset/FLIR/FLIR/FLIR_PP/Train_Test_Split/val/
+
+# number of classes
+nc: 3
+
+# class names
+names: ['person', 'bicycle', 'car']

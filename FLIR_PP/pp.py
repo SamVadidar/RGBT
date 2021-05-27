@@ -8,13 +8,13 @@ import pickle
 import numpy as np
 from pathlib import Path
 
-from arg_parser import DATASET_PATH, DATASET_PP_PATH
-from align_IR2RGB import calc_para
-from crop_RGB2IR import crop_resolution_1800_1600
-from annotation_handler import draw_rgb_annotation_from_json
-from annotation_handler import print_progress
-from annotation_handler import convert_labels_to_yolo_format
-from annotation_handler import merge_labels
+from FLIR_PP.arg_parser import DATASET_PATH, DATASET_PP_PATH
+from FLIR_PP.align_IR2RGB import calc_para
+from FLIR_PP.crop_RGB2IR import crop_resolution_1800_1600
+from FLIR_PP.annotation_handler import draw_rgb_annotation_from_json
+from FLIR_PP.annotation_handler import print_progress
+from FLIR_PP.annotation_handler import convert_labels_to_yolo_format
+from FLIR_PP.annotation_handler import merge_labels
 
 
 def make_FLIR_PP_folder(dataset_path):
