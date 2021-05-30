@@ -506,16 +506,13 @@ def train_test_split(dataset_path, dst_path, train_size=0.7, dev_size=0.1, test_
     def copy_to_split(path_list, folder):
         for element in path_list:
             _, file_name = os.path.split(element)
-            # print(os.path.join(os.path.join(dst, folder), file_name))
             dst = os.path.join(folder, file_name)
             shutil.copyfile(element, dst)
 
     sets_path = os.path.join(dataset_path, dst_path)
-    # mini_sets_path = os.path.join(dataset_path, 'Mini_Sets') # for faster development process during training
 
     if os.path.isdir(sets_path): 
         shutil.rmtree(sets_path)
-        # shutil.rmtree(mini_sets_path)
         os.mkdir(sets_path)
         os.mkdir(os.path.join(sets_path, 'train'))
         os.mkdir(os.path.join(sets_path, 'dev'))
@@ -525,17 +522,15 @@ def train_test_split(dataset_path, dst_path, train_size=0.7, dev_size=0.1, test_
         os.mkdir(os.path.join(sets_path, 'train'))
         os.mkdir(os.path.join(sets_path, 'dev'))
         os.mkdir(os.path.join(sets_path, 'test'))
-        # os.mkdir(mini_sets_path)
 
     for folder in glob.glob(str(dataset_path) + "/*"):
         _, folder_name = os.path.split(folder)
-        if folder_name =='Sets': continue
-        # if not os.path.isdir(os.path.join(sets_path, folder_name)): os.mkdir(os.path.join(sets_path, folder_name))
-        # if not os.path.isdir(os.path.join(mini_sets_path, folder_name)): os.mkdir(os.path.join(mini_sets_path, folder_name))
+
         rgb_folder = os.path.join(folder, 'RGB_cropped')
 
         rgb_path_list = []
-        ir_path_list = []
+        ir_8_path_list = []
+        ir_16_path_list = []
         label_path_list = []
         for img in Path(rgb_folder).rglob('*.jpg'):
             _, img_name = os.path.split(img)
@@ -545,18 +540,20 @@ def train_test_split(dataset_path, dst_path, train_size=0.7, dev_size=0.1, test_
         random.Random(SEED).shuffle(rgb_path_list)
         for row in rgb_path_list:
             _, img_name = os.path.split(row)
-            ir_path_list.append(os.path.join(dataset_path, folder_name)+'/thermal_8_bit/'+img_name.replace('.jpg', '.jpeg'))
+            ir_8_path_list.append(os.path.join(dataset_path, folder_name)+'/thermal_8_bit/'+img_name.replace('.jpg', '.jpeg'))
+            ir_16_path_list.append(os.path.join(dataset_path, folder_name)+'/thermal_16_bit/'+img_name.replace('.jpg', '.tiff'))
             label_path_list.append(os.path.join(dataset_path, folder_name)+'/yolo_format_labels/'+img_name.replace('.jpg', '.txt'))
 
         rgb_train, rgb_dev, rgb_test = list_split(rgb_path_list, train_size, dev_size, test_size)
-        ir_train, ir_dev, ir_test = list_split(ir_path_list, train_size, dev_size, test_size)
+        ir_8_train, ir_8_dev, ir_8_test = list_split(ir_8_path_list, train_size, dev_size, test_size)
+        ir_16_train, ir_16_dev, ir_16_test = list_split(ir_16_path_list, train_size, dev_size, test_size)
         label_train, label_dev, label_test = list_split(label_path_list, train_size, dev_size, test_size)
 
-        dataset = [rgb_train, ir_train, label_train, rgb_dev, ir_dev, label_dev, rgb_test, ir_test, label_test]
+        dataset = [rgb_train, ir_8_train, ir_16_train, label_train, rgb_dev, ir_8_dev, ir_16_dev, label_dev, rgb_test, ir_8_test, ir_16_test, label_test]
 
         i=0
         for element in dataset:
-            folder = 'train' if(i <3) else 'dev' if(i>=3 and i<6) else 'test'
+            folder = 'train' if(i <4) else 'dev' if(i>=4 and i<8) else 'test'
             folder = os.path.join(sets_path, folder)
             copy_to_split(element, folder)
             i += 1
@@ -581,6 +578,23 @@ def day_night_split(split_path):
             shutil.copyfile(file, os.path.join(Night_folder, file_name))
         else:
             shutil.copyfile(file, os.path.join(Day_folder, file_name))
+
+def add_16_bit_thermal(dataset_path, FLIR_PP_Path):
+    import re
+
+    for folder in glob.glob(str(FLIR_PP_Path) + '/*'):
+        dst_folder = folder + '/' + 'thermal_16_bit'
+        os.mkdir(dst_folder)
+        for img in Path(folder).rglob('*.jpeg'):
+            _, img_name = os.path.split(img)
+            path = re.search(r'\b(FLIR_PP)\b', str(img))
+            index = path.end() # get the path, starting from the set name
+            path = str(img)[index:] # split the path
+            path = path.replace('8_bit', '16_bit')
+            path = path.replace('jpeg', 'tiff')
+            path = dataset_path + path
+            dst = dst_folder + '/' + img_name.replace('jpeg', 'tiff')
+            shutil.copyfile(path, dst)
 
 
 if __name__ == "__main__":
@@ -636,6 +650,8 @@ if __name__ == "__main__":
     # align_ver_path = '/home/ub145/Documents/Dataset/FLIR/aligned/align/JPEGImages'
     # add_low_Res_from_align_version(DATASET_PP_PATH, align_ver_path)
 
+    add_16_bit_thermal(DATASET_PATH, DATASET_PP_PATH)
+
     dst_path = 'Train_Test_Split'
     train_test_split(DATASET_PP_PATH, dst_path, train_size=0.7, dev_size=0.1, test_size=0.2, mini=False)
 
@@ -645,3 +661,4 @@ if __name__ == "__main__":
 
     split_path = os.path.join(DATASET_PP_PATH, 'Train_Test_Split')
     day_night_split(split_path)
+
