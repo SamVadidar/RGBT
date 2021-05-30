@@ -8,13 +8,13 @@ import pickle
 import numpy as np
 from pathlib import Path
 
-from FLIR_PP.arg_parser import DATASET_PATH, DATASET_PP_PATH
-from FLIR_PP.align_IR2RGB import calc_para
-from FLIR_PP.crop_RGB2IR import crop_resolution_1800_1600
-from FLIR_PP.annotation_handler import draw_rgb_annotation_from_json
-from FLIR_PP.annotation_handler import print_progress
-from FLIR_PP.annotation_handler import convert_labels_to_yolo_format
-from FLIR_PP.annotation_handler import merge_labels
+from arg_parser import DATASET_PATH, DATASET_PP_PATH
+from align_IR2RGB import calc_para
+from crop_RGB2IR import crop_resolution_1800_1600
+from annotation_handler import draw_rgb_annotation_from_json
+from annotation_handler import print_progress
+from annotation_handler import convert_labels_to_yolo_format
+from annotation_handler import merge_labels
 
 
 def make_FLIR_PP_folder(dataset_path):
@@ -561,6 +561,27 @@ def train_test_split(dataset_path, dst_path, train_size=0.7, dev_size=0.1, test_
             copy_to_split(element, folder)
             i += 1
 
+def day_night_split(split_path):
+    Night_folder = os.path.join(split_path, '0Night')
+    Day_folder = os.path.join(split_path, '0Day')
+    os.mkdir(Night_folder)
+    os.mkdir(Day_folder)
+
+    # for folder in glob.glob(str(split_path) + "/*"):
+    for file in Path(os.path.join(split_path, 'test')).rglob('*.*'):
+        _, file_name = os.path.split(file)
+        file_num = int(file_name[5:10]) if file_name[5]!='v' else int(file_name[11:16])
+        # Night frames from video set in test set
+        if file_num >= 1 and file_num <4225 and file_name[5]=='v':
+            shutil.copyfile(file, os.path.join(Night_folder, file_name))
+        elif (((file_num >= 135 and file_num <187) or 
+               (file_num >= 3677 and file_num <4089) or
+               (file_num >= 8863 and file_num <9020) or
+               (file_num >= 9320 and file_num <9673)) and file_name[5]!='v'):
+            shutil.copyfile(file, os.path.join(Night_folder, file_name))
+        else:
+            shutil.copyfile(file, os.path.join(Day_folder, file_name))
+
 
 if __name__ == "__main__":
     # # find all the different available RGB resolutions
@@ -621,3 +642,6 @@ if __name__ == "__main__":
     # 30% of the actual size(mini) for faster developing phase
     dst_path = 'mini_Train_Test_Split'
     train_test_split(DATASET_PP_PATH, dst_path, train_size=0.21, dev_size=0.06, test_size=0.12, mini=True)
+
+    split_path = os.path.join(DATASET_PP_PATH, 'Train_Test_Split')
+    day_night_split(split_path)
