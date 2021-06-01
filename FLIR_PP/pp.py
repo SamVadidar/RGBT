@@ -558,14 +558,14 @@ def train_test_split(dataset_path, dst_path, train_size=0.7, dev_size=0.1, test_
             copy_to_split(element, folder)
             i += 1
 
-def day_night_split(split_path):
-    Night_folder = os.path.join(split_path, '0Night')
-    Day_folder = os.path.join(split_path, '0Day')
+def day_night_split(path_to_split, whichset):
+    Night_folder = os.path.join(path_to_split, (whichset+'_Night'))
+    Day_folder = os.path.join(path_to_split,( whichset+'_Day'))
     os.mkdir(Night_folder)
     os.mkdir(Day_folder)
 
-    # for folder in glob.glob(str(split_path) + "/*"):
-    for file in Path(os.path.join(split_path, 'test')).rglob('*.*'):
+    # for folder in glob.glob(str(path_to_split) + "/*"):
+    for file in Path(os.path.join(path_to_split, whichset)).rglob('*.*'):
         _, file_name = os.path.split(file)
         file_num = int(file_name[5:10]) if file_name[5]!='v' else int(file_name[11:16])
         # Night frames from video set in test set
@@ -659,6 +659,5 @@ if __name__ == "__main__":
     dst_path = 'mini_Train_Test_Split'
     train_test_split(DATASET_PP_PATH, dst_path, train_size=0.21, dev_size=0.06, test_size=0.12, mini=True)
 
-    split_path = os.path.join(DATASET_PP_PATH, 'Train_Test_Split')
-    day_night_split(split_path)
-
+    path_to_split = os.path.join(DATASET_PP_PATH, 'Train_Test_Split')
+    day_night_split(path_to_split, whichset='train')
