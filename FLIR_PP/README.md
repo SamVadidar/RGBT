@@ -16,7 +16,7 @@
 - [x] Merge two label files
 - [x] Train-Dev-Test Split and mini-Splits
 - [x] Other FOV added from aligned version (Optional Function)
-- [ ] Day and Night Splitter
+- [x] Day and Night Splitter
 
 ## How to use:
 
@@ -31,6 +31,7 @@ source path/to/env./bin/activate
 pip install -r req.txt
 
 # Make sure the path to the Dataset is pointing to a folder containing Train, Val and Video sets.
+# Make sure that your terminal is in full size window mode, otherwise you might see an strage progress bar!
 python3 pp.py path/to/FLIR/DATASET
 ```
 
@@ -39,5 +40,6 @@ python3 pp.py path/to/FLIR/DATASET
 - FLIR_PP: The Sane Version
 - Train_Test_Split: 70% Train - 10% Dev./Val. - 20% Test by Default (can be changed by train_test_split func. in pp.py)
 - mini_Train_Test_Split: Small Version of the Split for Faster Development
+- Day and Night splitted set based on your choice (look at the last function in the pp.py script)
 
 ![Labeled RGB](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/FLIR_02743.jpg)

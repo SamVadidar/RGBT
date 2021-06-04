@@ -1,7 +1,6 @@
 ## ToDo List
 - [x] Find all the Datasets, which provide IR images 
 - [x] Review their specifications 
-- [ ] Have a look on: 20-03-(Yolov3 PedestrianOnly)Pedestrian Detection in Severe Weather Condition.pdf
 
 DataSet Review:
 ===================================

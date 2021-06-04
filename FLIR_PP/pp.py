@@ -660,4 +660,4 @@ if __name__ == "__main__":
     train_test_split(DATASET_PP_PATH, dst_path, train_size=0.21, dev_size=0.06, test_size=0.12, mini=True)
 
     path_to_split = os.path.join(DATASET_PP_PATH, 'Train_Test_Split')
-    day_night_split(path_to_split, whichset='train')
+    day_night_split(path_to_split, whichset='test')
