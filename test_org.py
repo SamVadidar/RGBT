@@ -87,7 +87,7 @@ def test(dict,
         img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
         _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
         path = dict['test_path'] if dict['task'] == 'test' else dict['val_path']  # path to val/test images
-        dataloader = create_dataloader(path, imgsz, dict['batch_size'], 64, pad=0.5, rect=True, img_format=dict['img_format'])[0] # grid_size=32
+        dataloader = create_dataloader(path, imgsz, dict['batch_size'], 64, hyp=hyp, augment=dict['aug'], pad=0.5, rect=True, img_format=dict['img_format'])[0] # grid_size=32
 
     seen = 0
 
@@ -267,11 +267,12 @@ if __name__ == '__main__':
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         'img_size': 640, #Input image size. Must be a multiple of 32
-        'batch_size': 4, #train batch size
-        'test_size': 4, #test batch size
+        'batch_size': 32, #train batch size
+        'test_size': 32, #test batch size
 
         # Data loader
         'rect': True,
+        'aug': False,
         'img_format': '.jpeg',
 
         # test
@@ -287,7 +288,9 @@ if __name__ == '__main__':
         # TODO: Image Format, , Comment, Weight_path, Img size, Aug., train/val set
 
         # PATH
-        'weight_path': './runs/train/exp_IR_BL_640_100ms-from44RGB/weights/last.pt',
+        # 'weight_path': './runs/train/exp_RGB_BL_exp3_cuda/weights/last.pt',
+        'weight_path': './runs/train/exp_IR_BL_640_100ms-from44RGB/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/aug/exp_IR320_MSMos_640for100_4/weights/last_299.pt',
 
         'task': 'test', # change to test only for the final test
 
@@ -309,23 +312,24 @@ if __name__ == '__main__':
     hyp = {
         # test
         'iou_t': 0.65,  # IoU test threshold
+
         'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)
         'hsv_s': 0.7,  # image HSV-Saturation augmentation (fraction)
         'hsv_v': 0.4,  # image HSV-Value augmentation (fraction)
-        'degrees': 45.0,  # image rotation (+/- deg)
+        'degrees': 0.0,  # image rotation (+/- deg)
         'translate': 0.1,  # image translation (+/- fraction)
         'scale': 0.9,  # image scale (+/- gain)
-        'shear': 45.0,  # image shear (+/- deg)
-        'perspective': 0.5,  # image perspective (+/- fraction), range 0-0.001
+        'shear': 0.0,  # image shear (+/- deg)
+        'perspective': 0.0,  # image perspective (+/- fraction), range 0-0.001
         'flipud': 0.0,  # image flip up-down (probability)
         'fliplr': 0.5,  # image flip left-right (probability)
-        'mosaic': 1.0,
+        'mosaic': 0.0,
         'mixup': 0.0, #mix up probability
     }
 
 
     if not dict_['study']:  # run normally
-        test(dict_, hyp, augment=True) # test augmentation
+        test(dict_, hyp, augment=dict_['aug']) # test augmentation
 
     # else:  # run over a range of settings and save/plot
     #     for weights in ['yolov4-csp.pt', 'yolov4-csp-x.pt']:

@@ -18,17 +18,15 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-# from test import test  # import test.py to get mAP after each epoch
 import test_org
 from Fusion.models.models import *
 from Fusion.utils.datasets import create_dataloader
 from Fusion.utils.general import labels_to_class_weights, increment_path, labels_to_image_weights, init_seeds, \
-    fitness, fitness_p, fitness_r, fitness_ap50, fitness_ap, fitness_f, strip_optimizer, get_latest_run,\
-    check_dataset, check_file, check_git_status, check_img_size, print_mutation, set_logging
-from Fusion.utils.google_utils import attempt_download
+    fitness, fitness_p, fitness_r, fitness_ap50, fitness_ap, fitness_f, strip_optimizer,\
+    print_mutation, set_logging, check_img_size
 from Fusion.utils.loss import compute_loss
 from Fusion.utils.plots import plot_images, plot_labels, plot_results, plot_evolution
-from Fusion.utils.torch_utils import ModelEMA, select_device, intersect_dicts, torch_distributed_zero_first
+from Fusion.utils.torch_utils import ModelEMA, select_device
 from FLIR_PP.arg_parser import DATASET_PP_PATH
 
 
@@ -40,6 +38,18 @@ except ImportError:
     wandb = None
     logger.info("Install Weights & Biases for experiment logging via 'pip install wandb' (recommended)")
 
+def weight_sanity(ckpt, dict):
+    if ckpt['epoch'] == -1:
+        weights, _ = os.path.split(dict['weight_path'])
+        for file in Path(weights).rglob('*.pt'):
+            if os.path.getsize(str(file)) > 400000000: # 400MB
+                print('Weight Path is replaced with: ', str(file))
+                ckpt = torch.load(str(file), map_location='cuda')
+                print('Saved @ epoch: ', ckpt['epoch'])
+                return ckpt, str(file)
+    else:
+        print('Saved @ epoch: ', ckpt['epoch'])
+        return ckpt, dict['weight_path']
 
 def train(dict_, hyp, tb_writer=None, wandb=None):
     logger.info(f'Hyperparameters {hyp}')
@@ -53,15 +63,7 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
     last = wdir / 'last.pt'
     best = wdir / 'best.pt'
     results_file = save_dir / 'results.txt'
-    # os.makedirs(wdir, exist_ok=True)
-    # last = wdir + 'last.pt'
-    # best = wdir + 'best.pt'
-    # results_file = str(log_dir / 'results.txt')
 
-    with open(save_dir / 'dict.yaml', 'w') as f:
-        yaml.dump(dict_, f, sort_keys=False)
-    with open(save_dir / 'hyp.yaml', 'w') as f:
-        yaml.dump(hyp, f, sort_keys=False)
 
     # Configure
     plots = not dict_['evolve']  # create plots
@@ -80,14 +82,17 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
     pretrained = weights.endswith('.pt')
     if pretrained:
         ckpt = torch.load(weights, map_location=device)  # load checkpoint
-        print('Saved @ epoch: ', ckpt['epoch'])
-        model = Darknet(dict_, (img_size, img_size)).to(device)  # create
-        # model.load_state_dict(ckpt['model'])
+        ckpt, dict_['weight_path'] = weight_sanity(ckpt, dict_)
+        model = Darknet(dict_, (img_size, img_size)).to(device) # create
         state_dict = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
         model.load_state_dict(state_dict, strict=False)
-        # print('Transferred %g/%g items from %s' % (len(state_dict), len(model.state_dict()), weights))  # report
     else:
         model = Darknet(dict_, (img_size, img_size)).to(device) # create
+
+    with open(save_dir / 'dict.yaml', 'w') as f:
+        yaml.dump(dict_, f, sort_keys=False)
+    with open(save_dir / 'hyp.yaml', 'w') as f:
+        yaml.dump(hyp, f, sort_keys=False)
 
     # Optimizer
     nbs = 64  # nominal batch size
@@ -158,7 +163,6 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
 
     # gs = 32 # grid size (max stride)
     gs = 64 #int(max(model.stride))  # grid size (max stride)
-    # imgsz, imgsz_test = [check_img_size(x, gs) for x in dict_['img_size']]  # verify imgsz are gs-multiples
 
     # DP mode
     if cuda and rank == -1 and torch.cuda.device_count() > 1:
@@ -177,7 +181,7 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
         model = DDP(model, device_ids=[dict_['local_rank']], output_device=(dict_['local_rank']))
 
     # Trainloader
-    dataloader, dataset = create_dataloader(train_path, dict_['img_size'], batch_size, gs, hyp=hyp, augment=True,
+    dataloader, dataset = create_dataloader(train_path, dict_['img_size'], batch_size, gs, hyp=hyp, augment=dict_['train_aug'],
                                             cache=dict_['cache_images'], rect=dict_['rect'], rank=rank,
                                             world_size=dict_['world_size'], workers=dict_['workers'], img_format=dict_['img_format'])
 
@@ -190,7 +194,7 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
     if rank in [-1, 0]:
         ema.updates = start_epoch * nb // accumulate  # set EMA updates ***
         # local_rank is set to -1. Because only the first process is expected to do evaluation.
-        testloader = create_dataloader(test_path, dict_['img_size'], batch_size, gs, hyp=hyp,
+        testloader = create_dataloader(test_path, dict_['img_size'], batch_size, gs, hyp=hyp, augment= False,
                                        cache=dict_['cache_images'], rect=True, rank=-1, world_size=dict_['world_size'], workers=dict_['workers'], img_format=dict_['img_format'])[0]
 
         if not dict_['resume']:
@@ -282,6 +286,11 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
             # Forward
             with amp.autocast(enabled=cuda):
                 pred = model(imgs)
+                # from torchviz import make_dot
+                # dot = make_dot(pred[0])
+                # dot.format = 'png'
+                # dot.render('BL')
+
                 loss, loss_items = compute_loss(pred, targets.to(device), hyp, dict_)  # scaled by batch_size
                 if rank != -1:
                     loss *= dict_['world_size']  # gradient averaged between devices in DDP mode
@@ -306,11 +315,12 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
                 pbar.set_description(s)
 
                 # Plot
-                if plots and ni < 3:
+                # if plots and ni < 3:
+                if plots and i < 10 and epoch==start_epoch:
                     f = save_dir / f'train_batch{ni}.jpg'  # filename
                     result = plot_images(images=imgs, targets=targets, paths=paths, fname=f)
                     if tb_writer and result is not None:
-                        tb_writer.add_image(f, result, dataformats='HWC', global_step=epoch)
+                        tb_writer.add_image(str(f), result, dataformats='HWC', global_step=epoch)
                 elif plots and ni == 3 and wandb:
                     wandb.log({"Mosaics": [wandb.Image(str(x), caption=x.name) for x in save_dir.glob('train*.jpg')]})
 
@@ -402,8 +412,8 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
                 torch.save(ckpt, last)
                 if best_fitness == fi:
                     torch.save(ckpt, best)
-                if (best_fitness == fi) and (epoch >= 200):
-                    torch.save(ckpt, wdir / 'best_{:03d}.pt'.format(epoch))
+                # if (best_fitness == fi) and (epoch >= 200):
+                #     torch.save(ckpt, wdir / 'best_{:03d}.pt'.format(epoch))
                 # if best_fitness == fi:
                 #     torch.save(ckpt, wdir / 'best_overall.pt')
                 # if best_fitness_p == fi_p:
@@ -422,6 +432,8 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
                 #     torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
                 if epoch >= (epochs-5):
                     torch.save(ckpt, wdir / 'last_{:03d}.pt'.format(epoch))
+                if epoch == (epochs+start_epoch):
+                    torch.save(ckpt, wdir / 'last.pt')
                 # elif epoch >= 420:
                 #     torch.save(ckpt, wdir / 'last_{:03d}.pt'.format(epoch))
                 del ckpt
@@ -519,6 +531,7 @@ if __name__ == '__main__':
         'rect': False,
         'image_weights': True,
         'img_format': '.jpg',
+        'train_aug' : True,
 
         # Hyp. Para.
         'evolve': False,
@@ -557,6 +570,10 @@ if __name__ == '__main__':
         'iou_t': 0.2,  # IoU training threshold
         'anchor_t': 4.0,  # anchor-multiple threshold
         'fl_gamma': 0.0,  # focal loss gamma (efficientDet default gamma=1.5)
+        # To be Noted:
+        # 1) degrees, translate, scale, shear, perspective work only if mosaic is off
+        # 2) rect works only when image_weight is off
+        # 3) mixup works only if aug is true and rect is false
         'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)
         'hsv_s': 0.7,  # image HSV-Saturation augmentation (fraction)
         'hsv_v': 0.4,  # image HSV-Value augmentation (fraction)
@@ -574,10 +591,16 @@ if __name__ == '__main__':
 
     # Condition to start the training on the server
     allowed_procs = 0
-    sleep_period = 15 # in minutes
+    sleep_period = 1 # in minutes
     cond = True
     # alocated processes
     alc_procs = []
+    gp = torch.cuda.list_gpu_processes(0).split(' ')
+    for element in gp:
+        try:
+            alc_procs.append(float(element))
+        except:
+            pass
 
     while(cond):
         if (len(alc_procs)==allowed_procs):
@@ -617,33 +640,103 @@ if __name__ == '__main__':
                 # if dict_['global_rank'] in [-1, 0]:
                 #     tb_writer = SummaryWriter(dict_['project'])  # Tensorboard
 
-                # to script dev. in local machine!
-                # dict_['img_format'] = '.jpg'
-                # dict_['img_size'] = 160
-                # dict_['epochs'] = 50
-                # dict_['batch_size'] = 1
-                # dict_['test_size'] = 1
-                # hyp['mosaic'] = 0.0
-                # dict_['multi_scale'] = False
-
-
-                dict_['train_path'] = DATASET_PP_PATH + '/mini_Train_Test_Split/dev/'
-                dict_['val_path'] = DATASET_PP_PATH + '/mini_Train_Test_Split/dev/'
+                dict_['img_format'] = '.jpeg'
+                dict_['train_path'] = DATASET_PP_PATH + '/Train_Test_Split/train/'
+                dict_['val_path'] = DATASET_PP_PATH + '/Train_Test_Split/dev/'
                 dict_['img_size'] = 320
-                dict_['epochs'] = 50
+                dict_['epochs'] = 200
                 dict_['batch_size'] = 32
                 dict_['test_size'] = 32
+                dict_['multi_scale'] = True
+                hyp['mosaic'] = 1.0
 
+                # dict_['comment'] = '_IR320_MSMos_for200_2'
+                # # dict_['weight_path'] = './yolo_pre_3c.pt'
+                # dict_['weight_path'] = './runs/train/aug/exp_IR320_MSMos_for200/weights/last.pt'
+                # dict_['project'] = './runs/train/aug'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+
+                # hyp['degrees'] = 20.0  # image rotation (+/- deg)
+                # hyp['translate'] = 0.1  # image translation (+/- fraction)
+                # hyp['scale'] =  0.9  # image scale (+/- gain)
+                # hyp['shear'] = 5.0  # image shear (+/- deg)
+                # hyp['perspective'] = 0.001  # image perspective (+/- fraction), range 0-0.001
+                # hyp['mixup'] = 0.0
                 # hyp['mosaic'] = 0.0
-                # dict_['multi_scale'] = False
-                dict_['comment'] = '_RGB320_default-from100ms'
-                dict_['weight_path'] = './runs/train/exp_RGB_100ms/weights/best_ap50.pt'
-                dict_['project'] = './runs/train'
+
+                # dict_['epochs'] = 100
+                # dict_['comment'] = '_IR320_MS_aug'
+                # dict_['weight_path'] = './runs/train/aug/exp_IR320_MS/weights/last.pt'
+                # dict_['project'] = './runs/train/aug'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+                # hyp['degrees'] = 0.0  # image rotation (+/- deg)
+                # hyp['translate'] = 0.1  # image translation (+/- fraction)
+                # hyp['scale'] =  0.9  # image scale (+/- gain)
+                # hyp['shear'] = 0.0  # image shear (+/- deg)
+                # hyp['perspective'] = 0.0  # image perspective (+/- fraction), range 0-0.001
+
+                # hyp['mosaic'] = 1.0
+                # dict_['epochs'] = 150
+                # dict_['comment'] = '_IR320_MS_aug_Mos'
+                # dict_['weight_path'] = './runs/train/aug/exp_IR320_MS_aug/weights/last.pt'
+                # dict_['project'] = './runs/train/aug'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 1.0
+                # dict_['comment'] = '_IR320_MS_aug_Mos_Mixup'
+                # dict_['epochs'] = 200
+                # dict_['weight_path'] = './runs/train/aug/exp_IR320_MS_aug_Mos/weights/last.pt'
+                # dict_['project'] = './runs/train/aug'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+
+                dict_['img_size'] = 640
+                dict_['epochs'] += 200
+                dict_['batch_size'] = 8
+                dict_['test_size'] = 8
+                dict_['comment'] = '_IR320_MSMos_640for100_5'
+                dict_['weight_path'] = './runs/train/aug/exp_IR320_MSMos_640for100_4/weights/last_299.pt'
+                dict_['project'] = './runs/train/aug'
                 dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
                 tb_writer = None
                 tb_writer = SummaryWriter(dict_['project'])
                 train(dict_, hyp, tb_writer, wandb=False)
 
+                dict_['multi_scale'] = False
+                hyp['mosaic'] = 0.0
+                dict_['train_aug'] = False
+                dict_['epochs'] += 40
+                dict_['comment'] = '_IR320_MSMos_640for100_640for50Raw_2'
+                dict_['weight_path'] = './runs/train/aug/exp_IR320_MSMos_640for100_5/weights/last.pt'
+                dict_['project'] = './runs/train/aug'
+                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                tb_writer = None
+                tb_writer = SummaryWriter(dict_['project'])
+                train(dict_, hyp, tb_writer, wandb=False)
+                dict_['multi_scale'] = True
+                hyp['mosaic'] = 1.0
+                dict_['train_aug'] = True
+
+                dict_['epochs'] = 250
+                dict_['comment'] = '_IR_BL_640_100ms-from44RGB_2'
+                dict_['weight_path'] = './runs/train/exp_IR_BL_640_100ms-from44RGB/weights/best_ap50.pt'
+                dict_['project'] = './runs/train'
+                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                tb_writer = None
+                tb_writer = SummaryWriter(dict_['project'])
+                train(dict_, hyp, tb_writer, wandb=False)
 #################################################################################################################################################
             # Evolve hyperparameters (optional)
             else:
@@ -734,6 +827,7 @@ if __name__ == '__main__':
             t = time.localtime()
             current_time = time.strftime("%H:%M:%S", t)
             if len(alc_procs)!=allowed_procs:
-                print(len(alc_procs), "processes are running -> GPU BUSY @ ", current_time)
+                print(len(alc_procs), 'processes are running -> Process sizes: ', alc_procs, ', number of allowed processes =', allowed_procs)
+                print('GPU BUSY @ {}. Will try again in {} minutes'.format(current_time, sleep_period))
                 time.sleep(sleep_period*60)
             else: print("Training is starting @ ", current_time)
