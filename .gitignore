@@ -16,4 +16,6 @@ FLIR_PP/Crop
 FLIR_PP/manual_data_cleaning/off_frame_by_AlignedVer.txt
 miniRuns/
 save_dir/
-
+BL
+*.pdf
+*.gv

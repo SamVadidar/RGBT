@@ -104,6 +104,12 @@ def test(dict,
         nb, _, height, width = img.shape  # batch size, channels, height, width
         whwh = torch.Tensor([width, height, width, height]).to(device)
 
+        inf_out, train_out = model(img, augment=augment)  # inference and training outputs
+        # from torchviz import make_dot
+        # dot = make_dot(inf_out)
+        # dot.format = 'pdf'
+        # dot.render('BL2')
+
         # Disable gradients
         with torch.no_grad():
             # Run model
@@ -267,8 +273,8 @@ if __name__ == '__main__':
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         'img_size': 640, #Input image size. Must be a multiple of 32
-        'batch_size': 32, #train batch size
-        'test_size': 32, #test batch size
+        'batch_size': 4, #train batch size
+        'test_size': 4, #test batch size
 
         # Data loader
         'rect': True,
@@ -288,9 +294,12 @@ if __name__ == '__main__':
         # TODO: Image Format, , Comment, Weight_path, Img size, Aug., train/val set
 
         # PATH
-        # 'weight_path': './runs/train/exp_RGB_BL_exp3_cuda/weights/last.pt',
+        # 'weight_path': './runs/train/exp_RGB_BL_exp3_cuda/weights/best.pt',
+        # 'weight_path': './runs/train/exp_RGB_100ms/weights/best_ap50.pt',
+
+
         'weight_path': './runs/train/exp_IR_BL_640_100ms-from44RGB/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/aug/exp_IR320_MSMos_640for100_4/weights/last_299.pt',
+        # 'weight_path': './runs/train/aug/exp_IR320_MSMos_640for100_5/weights/best_ap50.pt',
 
         'task': 'test', # change to test only for the final test
 
@@ -311,7 +320,9 @@ if __name__ == '__main__':
 
     hyp = {
         # test
-        'iou_t': 0.65,  # IoU test threshold
+        # best for rgb = 0.55
+        # best for ir = 
+        'iou_t': 0.55, # 0.65  # IoU test threshold
 
         'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)
         'hsv_s': 0.7,  # image HSV-Saturation augmentation (fraction)

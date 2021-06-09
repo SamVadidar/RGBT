@@ -95,6 +95,57 @@ class rCSP(torch.nn.Module):
         return x
 
 
+class Fused_Backbone(torch.nn.Module):
+    def __init__(self):
+        super(Fused_Backbone,self).__init__()
+        self.main3_rgb = torch.nn.Sequential(CBM(in_filters=3,out_filters=32,kernel_size=3,stride=1),
+                                        CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
+                                        ResUnit(filters = 64, first= True),
+                                        CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
+                                        CSP(filters=128,nblocks = 2), 
+                                        CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2),
+                                        CSP(filters=256,nblocks = 8))
+        self.main4_rgb = torch.nn.Sequential(CBM(in_filters=256,out_filters=512,kernel_size=3,stride=2),
+                                        CSP(filters=512,nblocks = 8))
+        self.main5_rgb = torch.nn.Sequential(CBM(in_filters=512,out_filters=1024,kernel_size=3,stride=2),
+                                        CSP(filters=1024,nblocks = 4))
+
+        self.main3_ir = torch.nn.Sequential(CBM(in_filters=3,out_filters=32,kernel_size=3,stride=1),
+                                        CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
+                                        ResUnit(filters = 64, first= True),
+                                        CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
+                                        CSP(filters=128,nblocks = 2), 
+                                        CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2),
+                                        CSP(filters=256,nblocks = 8))
+        self.main4_ir = torch.nn.Sequential(CBM(in_filters=256,out_filters=512,kernel_size=3,stride=2),
+                                        CSP(filters=512,nblocks = 8))
+        self.main5_ir = torch.nn.Sequential(CBM(in_filters=512,out_filters=1024,kernel_size=3,stride=2),
+                                        CSP(filters=1024,nblocks = 4))
+        
+        self.f_x3_Conv2d = torch.nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, stride=1, bias=False) # torch.Size([1, 512, 80, 80])
+        self.f_x4_Conv2d = torch.nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, stride=1, bias=False)
+        self.f_x5_Conv2d = torch.nn.Conv2d(in_channels=2048, out_channels=1024, kernel_size=1, stride=1, bias=False)
+    
+    def forward(self, rgb, ir):
+        rgb_x3 = self.main3_rgb(rgb)
+        rgb_x4 = self.main4_rgb(rgb_x3)
+        rgb_x5 = self.main5_rgb(rgb_x4)
+
+        ir_x3 = self.main3_ir(ir)
+        ir_x4 = self.main4_ir(ir_x3)
+        ir_x5 = self.main5_ir(ir_x4)
+        
+        f_x3 = torch.cat((rgb_x3, ir_x3), dim=1) # torch.Size([1, 512, 80, 80])
+        f_x4 = torch.cat((rgb_x4, ir_x4), dim=1) # torch.Size([1, 1024, 40, 40])
+        f_x5 = torch.cat((rgb_x5, ir_x5), dim=1) # torch.Size([1, 2048, 20, 20])
+
+        f_x3 = self.f_x3_Conv2d(f_x3)
+        f_x4 = self.f_x4_Conv2d(f_x4)
+        f_x5 = self.f_x5_Conv2d(f_x5)
+
+        return (f_x3, f_x4, f_x5)
+
+
 class Backbone(torch.nn.Module):
     def __init__(self):
         super(Backbone,self).__init__()
@@ -348,6 +399,95 @@ class JDELayer(nn.Module):
             io[..., :4] *= self.stride
             io[..., 4:] = F.softmax(io[..., 4:])
             return io.view(bs, -1, self.no), p  # view [1, 3, 13, 13, 85] as [1, 507, 85]
+
+class Fused_Darknets(torch.nn.Module):
+    def __init__(self, dict, img_size=(416, 416), verbose=False):
+        super(Fused_Darknets, self).__init__()
+        self.nclasses = dict['nclasses']
+        self.anchors = dict['anchors_g']
+        
+        self.fused_backbone = Fused_Backbone()
+        self.neck = Neck()
+        self.head = Head(self.nclasses)
+        self.yolo3 = YOLOLayer(self.anchors[0:3], self.nclasses, img_size, stride = 8)
+        self.yolo4 = YOLOLayer(self.anchors[3:6], self.nclasses, img_size, stride = 16)
+        self.yolo5 = YOLOLayer(self.anchors[6:9], self.nclasses, img_size, stride = 32)
+        self.yolo_layers = get_yolo_layers(self)
+
+        # Darknet Header https://github.com/AlexeyAB/darknet/issues/2914#issuecomment-496675346
+        self.version = np.array([0, 2, 5], dtype=np.int32)  # (int32) version info: major, minor, revision
+        self.seen = np.array([0], dtype=np.int64)  # (int64) number of images seen during training
+        self.info(verbose) if not ONNX_EXPORT else None  # print model description
+
+    def forward(self, x, y, augment=False, verbose=False):
+
+        if not augment:
+            return self.forward_once(x, y)
+        else:  # Augment images (inference and test only) https://github.com/ultralytics/yolov3/issues/931
+            img_size = x.shape[-2:]  # height, width
+            s = [0.83, 0.67]  # scales
+            y = []
+            for i, xi in enumerate((x,
+                                    torch_utils.scale_img(x.flip(3), s[0], same_shape=False),  # flip-lr and scale
+                                    torch_utils.scale_img(x, s[1], same_shape=False),  # scale
+                                    )):
+                # cv2.imwrite('img%g.jpg' % i, 255 * xi[0].numpy().transpose((1, 2, 0))[:, :, ::-1])
+                y.append(self.forward_once(xi)[0])
+
+            y[1][..., :4] /= s[0]  # scale
+            y[1][..., 0] = img_size[1] - y[1][..., 0]  # flip lr
+            y[2][..., :4] /= s[1]  # scale
+
+            y = torch.cat(y, 1)
+            return y, None
+
+    def forward_once(self, rgb, ir, augment=False, verbose=False):
+    # def forward(self, x, augment=False, verbose=False):
+        img_size = rgb.shape[-2:]  # height, width
+        # x3_rgb, x4_rgb, x5_rgb = self.backbone(x)
+        # x3_ir, x4_ir, x5_ir = self.backbone(y)
+        # self.x3_f, self.x4_f, self.x5_f = torch.cat((x3_ir, x3_rgb)), torch.cat((x4_ir, x4_rgb)), torch.cat((x5_ir, x5_rgb))
+        # y3,y4,y5 = self.head(self.neck([self.x3_f, self.x4_f, self.x5_f]))
+        
+        # a = self.fused_backbone(rgb, ir)
+        # print(a[0].shape)
+        
+        y3,y4,y5 = self.head(self.neck(self.fused_backbone(rgb, ir)))
+        y3 = self.yolo3(y3)
+        y4 = self.yolo4(y4)
+        y5 = self.yolo5(y5)
+        yolo_out = [y3,y4,y5]
+        if verbose:
+            print('0', rgb.shape)
+            str = ''
+
+        # Augment images (inference and test only) ******
+        if augment:  # https://github.com/ultralytics/yolov3/issues/931
+            nb = rgb.shape[0]  # batch size
+            s = [0.83, 0.67]  # scales
+            x = torch.cat((rgb,
+                           torch_utils.scale_img(rgb.flip(3), s[0]),  # flip-lr and scale
+                           torch_utils.scale_img(rgb, s[1]),  # scale
+                           ), 0)
+
+        if self.training:  # train
+            return yolo_out
+        elif ONNX_EXPORT:  # export 
+            x = [torch.cat(x, 0) for x in zip(*yolo_out)]
+            return x[0], torch.cat(x[1:3], 1)  # scores, boxes: 3780x80, 3780x4
+        else:  # inference or test
+            x, p = zip(*yolo_out)  # inference output, training output
+            x = torch.cat(x, 1)  # cat yolo outputs
+            if augment:  # de-augment results
+                x = torch.split(x, nb, dim=0)
+                x[1][..., :4] /= s[0]  # scale
+                x[1][..., 0] = img_size[1] - x[1][..., 0]  # flip lr
+                x[2][..., :4] /= s[1]  # scale
+                x = torch.cat(x, 1)
+            return x, p
+
+    def info(self, verbose=False):
+        torch_utils.model_info(self, verbose)
 
 
 class Darknet(torch.nn.Module):

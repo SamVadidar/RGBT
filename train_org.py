@@ -643,10 +643,10 @@ if __name__ == '__main__':
                 dict_['img_format'] = '.jpeg'
                 dict_['train_path'] = DATASET_PP_PATH + '/Train_Test_Split/train/'
                 dict_['val_path'] = DATASET_PP_PATH + '/Train_Test_Split/dev/'
-                dict_['img_size'] = 320
+                dict_['img_size'] = 640
                 dict_['epochs'] = 200
-                dict_['batch_size'] = 32
-                dict_['test_size'] = 32
+                dict_['batch_size'] = 8
+                dict_['test_size'] = 8
                 dict_['multi_scale'] = True
                 hyp['mosaic'] = 1.0
 
@@ -702,32 +702,32 @@ if __name__ == '__main__':
                 # tb_writer = SummaryWriter(dict_['project'])
                 # train(dict_, hyp, tb_writer, wandb=False)
 
-                dict_['img_size'] = 640
-                dict_['epochs'] += 200
-                dict_['batch_size'] = 8
-                dict_['test_size'] = 8
-                dict_['comment'] = '_IR320_MSMos_640for100_5'
-                dict_['weight_path'] = './runs/train/aug/exp_IR320_MSMos_640for100_4/weights/last_299.pt'
-                dict_['project'] = './runs/train/aug'
-                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
-                tb_writer = None
-                tb_writer = SummaryWriter(dict_['project'])
-                train(dict_, hyp, tb_writer, wandb=False)
+                # dict_['img_size'] = 640
+                # dict_['epochs'] += 250
+                # dict_['batch_size'] = 8
+                # dict_['test_size'] = 8
+                # dict_['comment'] = '_IR320_MSMos_640for100_6'
+                # dict_['weight_path'] = './runs/train/aug/exp_IR320_MSMos_640for100_5/weights/last.pt'
+                # dict_['project'] = './runs/train/aug'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
 
-                dict_['multi_scale'] = False
-                hyp['mosaic'] = 0.0
-                dict_['train_aug'] = False
-                dict_['epochs'] += 40
-                dict_['comment'] = '_IR320_MSMos_640for100_640for50Raw_2'
-                dict_['weight_path'] = './runs/train/aug/exp_IR320_MSMos_640for100_5/weights/last.pt'
-                dict_['project'] = './runs/train/aug'
-                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
-                tb_writer = None
-                tb_writer = SummaryWriter(dict_['project'])
-                train(dict_, hyp, tb_writer, wandb=False)
-                dict_['multi_scale'] = True
-                hyp['mosaic'] = 1.0
-                dict_['train_aug'] = True
+                # dict_['multi_scale'] = False
+                # hyp['mosaic'] = 0.0
+                # dict_['train_aug'] = False
+                # dict_['epochs'] += 40
+                # dict_['comment'] = '_IR320_MSMos_640for100_640for50Raw_2'
+                # dict_['weight_path'] = './runs/train/aug/exp_IR320_MSMos_640for100_5/weights/last.pt'
+                # dict_['project'] = './runs/train/aug'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+                # dict_['multi_scale'] = True
+                # hyp['mosaic'] = 1.0
+                # dict_['train_aug'] = True
 
                 dict_['epochs'] = 250
                 dict_['comment'] = '_IR_BL_640_100ms-from44RGB_2'
