@@ -42,6 +42,7 @@ def select_device(device='', batch_size=None):
     cpu_request = device.lower() == 'cpu'
     if device and not cpu_request:  # if device requested other than 'cpu'
         os.environ['CUDA_VISIBLE_DEVICES'] = device  # set environment variable
+        print('cuda_visible_device set to:',str(device))
         assert torch.cuda.is_available(), 'CUDA unavailable, invalid device %s requested' % device  # check availablity
 
     cuda = False if cpu_request else torch.cuda.is_available()
@@ -60,7 +61,8 @@ def select_device(device='', batch_size=None):
         logger.info(f'Using torch {torch.__version__} CPU')
 
     logger.info('')  # skip a line
-    return torch.device('cuda:0' if cuda else 'cpu')
+    #return torch.device('cuda:0' if cuda else 'cpu')
+    return torch.device('cuda:'+str(device) if cuda else 'cpu')
 
 
 def time_synchronized():
