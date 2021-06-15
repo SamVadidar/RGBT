@@ -52,7 +52,10 @@ def test(dict,
         (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
         img_size = dict['img_size']
-        model = Darknet(dict, (img_size, img_size)).to(device)
+        if dict['mode'] == 'fusion':
+            model = Fused_Darknets(dict, (img_size, img_size)).to(device)
+        else:
+            model = Darknet(dict, (img_size, img_size)).to(device)
 
         # load model
         try:
@@ -84,10 +87,17 @@ def test(dict,
 
     # Dataloader
     if not training:
-        img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
-        _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
+        if dict['mode'] == 'fusion':
+            img = torch.zeros((1, 4, imgsz, imgsz), device=device)  # init img
+            model(img[:, :3, :, :].half(), img[:, 3:, :, :].half(), augment=augment)
+        elif dict['mode'] == 'ir':
+            img = torch.zeros((1, 1, imgsz, imgsz), device=device)  # init img
+            _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
+        else:
+            img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
+            _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
         path = dict['test_path'] if dict['task'] == 'test' else dict['val_path']  # path to val/test images
-        dataloader = create_dataloader(path, imgsz, dict['batch_size'], 64, hyp=hyp, augment=dict['aug'], pad=0.5, rect=True, img_format=dict['img_format'])[0] # grid_size=32
+        dataloader = create_dataloader(path, imgsz, dict['batch_size'], 64, hyp=hyp, augment=dict['aug'], pad=0.5, rect=True, img_format=dict['img_format'], mode = dict['mode'])[0] # grid_size=32
 
     seen = 0
 
@@ -101,10 +111,13 @@ def test(dict,
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
         targets = targets.to(device)
-        nb, _, height, width = img.shape  # batch size, channels, height, width
+        try:
+            nb, _, height, width = img.shape  # batch size, channels, height, width
+        except:
+            nb, height, width = img.shape  # batch size, _, height, width
         whwh = torch.Tensor([width, height, width, height]).to(device)
 
-        inf_out, train_out = model(img, augment=augment)  # inference and training outputs
+        # inf_out, train_out = model(img[:, :3, :, :], img[:, 3:, :, :], augment=augment)  # inference and training outputs
         # from torchviz import make_dot
         # dot = make_dot(inf_out)
         # dot.format = 'pdf'
@@ -114,7 +127,12 @@ def test(dict,
         with torch.no_grad():
             # Run model
             t = time_synchronized()
-            inf_out, train_out = model(img, augment=augment)  # inference and training outputs
+            if dict['mode'] == 'fusion':
+                inf_out, train_out = model(img[:, :3, :, :], img[:, 3:, :, :], augment=augment)  # inference and training outputs
+            elif dict['mode'] == 'ir':
+                inf_out, train_out = model(img.unsqueeze(axis=1), augment=augment)
+            else:
+                inf_out, train_out = model(img, augment=augment)  # inference and training outputs
             t0 += time_synchronized() - t
 
             # Compute loss
@@ -213,9 +231,11 @@ def test(dict,
 
         # Plot images
         if dict['plot'] and batch_i < 3:
-            f = save_dir / f'test_batch{batch_i}_labels.jpg'  # filename
+            # f = save_dir / f'test_batch{batch_i}_labels.jpg'  # filename
+            f = str(save_dir) + f'/test_batch{batch_i}_labels' + dict['img_format']  # filename
             plot_images(img, targets, paths, f, names)  # labels
-            f = save_dir / f'test_batch{batch_i}_pred.jpg'
+            # f = save_dir / f'test_batch{batch_i}_pred.jpg'
+            f = str(save_dir) + f'/test_batch{batch_i}_pred' + dict['img_format']  # filename
             plot_images(img, output_to_target(output, width, height), paths, f, names)  # predictions
 
     # Compute statistics
@@ -273,14 +293,14 @@ if __name__ == '__main__':
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         'img_size': 640, #Input image size. Must be a multiple of 32
-        'batch_size': 4, #train batch size
-        'test_size': 4, #test batch size
+        'batch_size': 16,#train batch size
+        'test_size': 16,#test batch size
 
         # Data loader
         'rect': True,
         'aug': False,
         'img_format': '.jpeg',
-
+        'mode': 'BL',
         # test
         'nms_conf_t':0.001, #Confidence test threshold
         'study': False,
@@ -295,10 +315,11 @@ if __name__ == '__main__':
 
         # PATH
         # 'weight_path': './runs/train/exp_RGB_BL_exp3_cuda/weights/best.pt',
-        # 'weight_path': './runs/train/exp_RGB_100ms/weights/best_ap50.pt',
+        'weight_path': './runs/train/exp_RGB_from_Scratch_4/weights/last.pt',
 
 
-        'weight_path': './runs/train/exp_IR_BL_640_100ms-from44RGB/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_IR_BL_640_100ms-from44RGB_2/weights/best_ap50.pt',
+        # 'weight_path': 'RGBT.pt',
         # 'weight_path': './runs/train/aug/exp_IR320_MSMos_640for100_5/weights/best_ap50.pt',
 
         'task': 'test', # change to test only for the final test
@@ -321,7 +342,7 @@ if __name__ == '__main__':
     hyp = {
         # test
         # best for rgb = 0.55
-        # best for ir = 
+        # best for ir =
         'iou_t': 0.55, # 0.65  # IoU test threshold
 
         'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)

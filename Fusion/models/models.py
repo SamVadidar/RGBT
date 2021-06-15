@@ -110,7 +110,7 @@ class Fused_Backbone(torch.nn.Module):
         self.main5_rgb = torch.nn.Sequential(CBM(in_filters=512,out_filters=1024,kernel_size=3,stride=2),
                                         CSP(filters=1024,nblocks = 4))
 
-        self.main3_ir = torch.nn.Sequential(CBM(in_filters=3,out_filters=32,kernel_size=3,stride=1),
+        self.main3_ir = torch.nn.Sequential(CBM(in_filters=1,out_filters=32,kernel_size=3,stride=1),
                                         CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
                                         ResUnit(filters = 64, first= True),
                                         CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
@@ -147,15 +147,24 @@ class Fused_Backbone(torch.nn.Module):
 
 
 class Backbone(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, mode):
         super(Backbone,self).__init__()
-        self.main3 = torch.nn.Sequential(CBM(in_filters=3,out_filters=32,kernel_size=3,stride=1),
-                                        CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
-                                        ResUnit(filters = 64, first= True),
-                                        CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
-                                        CSP(filters=128,nblocks = 2), 
-                                        CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2),
-                                        CSP(filters=256,nblocks = 8))
+        if mode == 'rgb':
+            self.main3 = torch.nn.Sequential(CBM(in_filters=3,out_filters=32,kernel_size=3,stride=1),
+                                            CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
+                                            ResUnit(filters = 64, first= True),
+                                            CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
+                                            CSP(filters=128,nblocks = 2), 
+                                            CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2),
+                                            CSP(filters=256,nblocks = 8))
+        elif mode == 'ir':
+            self.main3 = torch.nn.Sequential(CBM(in_filters=1,out_filters=32,kernel_size=3,stride=1),
+                                            CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
+                                            ResUnit(filters = 64, first= True),
+                                            CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
+                                            CSP(filters=128,nblocks = 2), 
+                                            CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2),
+                                            CSP(filters=256,nblocks = 8))
         self.main4 = torch.nn.Sequential(CBM(in_filters=256,out_filters=512,kernel_size=3,stride=2),
                                         CSP(filters=512,nblocks = 8))
         self.main5 = torch.nn.Sequential(CBM(in_filters=512,out_filters=1024,kernel_size=3,stride=2),
@@ -512,7 +521,7 @@ class Darknet(torch.nn.Module):
         self.nclasses = dict['nclasses']
         self.anchors = dict['anchors_g']
         
-        self.backbone = Backbone()
+        self.backbone = Backbone(dict['mode']) # mode: rgb or ir
         self.neck = Neck()
         self.head = Head(self.nclasses)
         self.yolo3 = YOLOLayer(self.anchors[0:3], self.nclasses, img_size, stride = 8)

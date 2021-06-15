@@ -121,9 +121,18 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
     if np.max(images[0]) <= 1:
         images *= 255
 
+    img_format = fname[fname.find('.'):]
+    if img_format == '.jpeg':
+        images = images[:, np.newaxis, :, :]
+        images = np.repeat(images, 3, axis=1)
+
     tl = 3  # line thickness
     tf = max(tl - 1, 1)  # font thickness
+    # try:
     bs, _, h, w = images.shape  # batch size, _, height, width
+    # except:
+    #     bs, h, w = images.shape  # batch size, _, height, width
+
     bs = min(bs, max_subplots)  # limit plot images
     ns = np.ceil(bs ** 0.5)  # number of subplots (square)
 
@@ -134,19 +143,28 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
         w = math.ceil(scale_factor * w)
 
     colors = color_list()  # list of colors
+    # if img_format != '.jpeg':
     mosaic = np.full((int(ns * h), int(ns * w), 3), 255, dtype=np.uint8)  # init
+    # else:
+    #     mosaic = np.full((int(ns * h), int(ns * w)), 255, dtype=np.uint8)  # init
+
     for i, img in enumerate(images):
+        
         if i == max_subplots:  # if last batch has fewer images than we expect
             break
 
         block_x = int(w * (i // ns))
         block_y = int(h * (i % ns))
 
-        img = img.transpose(1, 2, 0)
+        # if img_format != '.jpeg':
+        img = img.transpose(1, 2, 0) # DO NOT MOVE!
+        img = img[..., :3] # only 3 channels are allowed
+
         if scale_factor < 1:
             img = cv2.resize(img, (w, h))
 
         mosaic[block_y:block_y + h, block_x:block_x + w, :] = img
+        # else: mosaic[block_y:block_y + h, block_x:block_x + w] = img
         if len(targets) > 0:
             image_targets = targets[targets[:, 0] == i]
             boxes = xywh2xyxy(image_targets[:, 2:6]).T
