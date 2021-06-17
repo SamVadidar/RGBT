@@ -40,12 +40,14 @@ def test(dict,
     training = model is not None
 
     if training:  # called by train.py
+        merge = dict['nms_merge']
         device = next(model.parameters()).device  # get model device
 
     else:  # called directly
         set_logging()
         device = select_device(device=dict['device_num'], batch_size=dict['batch_size'])
         save_txt = dict['save_txt']
+        merge = dict['nms_merge']
 
         # Directories
         save_dir = Path(increment_path((Path('./runs/test') / 'exp'), exist_ok=False, sep='_'))  # increment run
@@ -110,11 +112,13 @@ def test(dict,
         img = img.to(device, non_blocking=True)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if len(img.shape) == 3: #  ir mode
+            img = torch.unsqueeze(img, axis=1)
         targets = targets.to(device)
-        try:
-            nb, _, height, width = img.shape  # batch size, channels, height, width
-        except:
-            nb, height, width = img.shape  # batch size, _, height, width
+        # try:
+        nb, _, height, width = img.shape  # batch size, channels, height, width
+        # except:
+        #     nb, height, width = img.shape  # batch size, _, height, width
         whwh = torch.Tensor([width, height, width, height]).to(device)
 
         # inf_out, train_out = model(img[:, :3, :, :], img[:, 3:, :, :], augment=augment)  # inference and training outputs
@@ -129,8 +133,6 @@ def test(dict,
             t = time_synchronized()
             if dict['mode'] == 'fusion':
                 inf_out, train_out = model(img[:, :3, :, :], img[:, 3:, :, :], augment=augment)  # inference and training outputs
-            elif dict['mode'] == 'ir':
-                inf_out, train_out = model(img.unsqueeze(axis=1), augment=augment)
             else:
                 inf_out, train_out = model(img, augment=augment)  # inference and training outputs
             t0 += time_synchronized() - t
@@ -142,7 +144,7 @@ def test(dict,
 
             # Run NMS
             t = time_synchronized()
-            output = non_max_suppression(inf_out, conf_thres=dict['nms_conf_t'], iou_thres=hyp['iou_t'])
+            output = non_max_suppression(inf_out, conf_thres=dict['nms_conf_t'], iou_thres=hyp['iou_t'], merge=merge)
             t1 += time_synchronized() - t
 
         # Statistics per image
@@ -303,6 +305,7 @@ if __name__ == '__main__':
         'mode': 'BL',
         # test
         'nms_conf_t':0.001, #Confidence test threshold
+        'nms_merge': True,
         'study': False,
 
         #logs

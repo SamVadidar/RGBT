@@ -123,15 +123,12 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
 
     img_format = fname[fname.find('.'):]
     if img_format == '.jpeg':
-        images = images[:, np.newaxis, :, :]
+        # images = images[:, np.newaxis, :, :]
         images = np.repeat(images, 3, axis=1)
 
     tl = 3  # line thickness
     tf = max(tl - 1, 1)  # font thickness
-    # try:
     bs, _, h, w = images.shape  # batch size, _, height, width
-    # except:
-    #     bs, h, w = images.shape  # batch size, _, height, width
 
     bs = min(bs, max_subplots)  # limit plot images
     ns = np.ceil(bs ** 0.5)  # number of subplots (square)

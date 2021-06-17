@@ -76,7 +76,6 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
     names = dict_['names']
     assert len(names) == nc, '%g names found for nc=%g dataset in %s' % (len(names), nc, train_path)  # check
     img_size = dict_['img_size']
-    print(torch.cuda.current_device())
 
     # Model
     pretrained = weights.endswith('.pt')
@@ -95,7 +94,6 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
         model.load_state_dict(state_dict, strict=False)
     else:
         model = Darknet(dict_, (img_size, img_size)).to(device) # create
-    print(torch.cuda.current_device())
 
     with open(save_dir / 'dict.yaml', 'w') as f:
         yaml.dump(dict_, f, sort_keys=False)
@@ -117,19 +115,16 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
             pg1.append(v)
         else:
             pg0.append(v)  # all else
-    print(torch.cuda.current_device())
 
     if dict_['use_adam']:
         optimizer = optim.Adam(pg0, lr=hyp['lr0'], betas=(hyp['momentum'], 0.999))  # adjust beta1 to momentum
     else:
         optimizer = optim.SGD(pg0, lr=hyp['lr0'], momentum=hyp['momentum'], nesterov=True)
-    print(torch.cuda.current_device())
 
     optimizer.add_param_group({'params': pg1, 'weight_decay': hyp['weight_decay']})  # add pg1 with weight_decay
     optimizer.add_param_group({'params': pg2})  # add pg2 (biases)
     print('Optimizer groups: %g .bias, %g conv.weight, %g other' % (len(pg2), len(pg1), len(pg0)))
     del pg0, pg1, pg2
-    print(torch.cuda.current_device())
 
     # Scheduler https://arxiv.org/pdf/1812.01187.pdf
     # https://pytorch.org/docs/stable/_modules/torch/optim/lr_scheduler.html#OneCycleLR
@@ -178,13 +173,10 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
 
     # gs = 32 # grid size (max stride)
     gs = 64 #int(max(model.stride))  # grid size (max stride)
-    print(torch.cuda.current_device())
 
     # DP mode
     if cuda and rank == -1 and torch.cuda.device_count() > 1:
         model = torch.nn.DataParallel(model,device_ids=device) # no device_ids
-        print('2_________________________________')
-    print(torch.cuda.current_device())
 
     # SyncBatchNorm
     if dict_['sync_bn'] and cuda and rank != -1:
@@ -193,19 +185,15 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
 
     # Exponential moving average
     ema = ModelEMA(model) if rank in [-1, 0] else None
-    print(torch.cuda.current_device())
 
     # DDP mode
     if cuda and rank != -1:
         model = DDP(model, device_ids=[dict_['local_rank']], output_device=(dict_['local_rank']))
-        print('3_____________________________________________')
-    print(torch.cuda.current_device())
 
     # Trainloader
     dataloader, dataset = create_dataloader(train_path, dict_['img_size'], batch_size, gs, hyp=hyp, augment=dict_['train_aug'],
                                             cache=dict_['cache_images'], rect=dict_['rect'], rank=rank,
                                             world_size=dict_['world_size'], workers=dict_['workers'], img_format=dict_['img_format'], mode=dict_['mode'])
-    print(torch.cuda.current_device())
 
     mlc = np.concatenate(dataset.labels, 0)[:, 0].max()  # max label class
     nb = len(dataloader)  # number of batches
@@ -237,7 +225,6 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
     model.gr = 1.0  # giou loss ratio (obj_loss = 1.0 or giou)
     model.class_weights = labels_to_class_weights(dataset.labels, nc).to(device)  # attach class weights
     model.names = names
-    print(torch.cuda.current_device())
 
     # Start training
     t0 = time.time()
@@ -256,7 +243,6 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
     epochs += 1 # because we started from our 3c.pt and there we set initial epoch to 1
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
-        print(torch.cuda.current_device())
 
         # Update image weights (optional)
         if dict_['image_weights']:
@@ -275,7 +261,6 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
         # Update mosaic border
         # b = int(random.uniform(0.25 * imgsz, 0.75 * imgsz + gs) // gs * gs)
         # dataset.mosaic_border = [b - imgsz, -b]  # height, width borders
-        print(torch.cuda.current_device())
 
         mloss = torch.zeros(4, device=device)  # mean losses
         if rank != -1:
@@ -288,6 +273,8 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
         for i, (imgs, targets, paths, _) in pbar:  # batch -------------------------------------------------------------
             ni = i + nb * epoch  # number integrated batches (since train start)
             imgs = imgs.to(device, non_blocking=True).float() / 255.0  # uint8 to float32, 0-255 to 0.0-1.0
+            if len(imgs.shape) == 3: #  ir mode
+                imgs = torch.unsqueeze(imgs, axis=1)
 
             # Warmup
             if ni <= nw and not dict_['resume_lr']: # integrated batches <= warmup iterations: max(3 epochs, 1k iterations)
@@ -312,8 +299,6 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
             with amp.autocast(enabled=cuda):
                 if dict_['mode'] == 'fusion':
                     pred = model(imgs[:, :3, :, :], imgs[:, 3:, :, :])
-                elif dict_['mode'] == 'ir':
-                    pred = model(imgs.unsqueeze(axis=1))
                 else:
                     pred = model(imgs)
 
@@ -353,7 +338,6 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
 
             # end batch ------------------------------------------------------------------------------------------------
         # end epoch ----------------------------------------------------------------------------------------------------
-        print(torch.cuda.current_device())
 
         # Scheduler
         lr = [x['lr'] for x in optimizer.param_groups]  # for tensorboard
@@ -373,7 +357,6 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
                                                 dataloader=testloader,
                                                 save_dir = save_dir,
                                                 log_imgs=dict_['log_imgs'] if wandb else 0)
-            print(torch.cuda.current_device())
 
             # Write
             with open(results_file, 'a') as f:
@@ -482,7 +465,6 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
                 # del ckpt
         # end epoch ----------------------------------------------------------------------------------------------------
     # end training
-    print(torch.cuda.current_device())
 
     if rank in [-1, 0]:
         # Strip optimizers
@@ -538,6 +520,7 @@ if __name__ == '__main__':
         'multi_scale': False, #Bool to do multi-scale training
         'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
         'nms_conf_t':0.001, #0.2 Confidence training threshold
+        'nms_merge': True, # it is passed to the test function
 
         #logs
         'project': './runs/train',
@@ -637,7 +620,7 @@ if __name__ == '__main__':
 
     while(cond):
         # 0.5 since PID is counted with the processes
-        if (len(alc_procs)==allowed_procs):
+        if (len(alc_procs)<=allowed_procs):
             # Set DDP variables
             dict_['world_size'] = int(os.environ['WORLD_SIZE']) if 'WORLD_SIZE' in os.environ else 1
             dict_['global_rank'] = int(os.environ['RANK']) if 'RANK' in os.environ else -1
@@ -656,7 +639,6 @@ if __name__ == '__main__':
 
             device = select_device(dict_['device_num'], batch_size=dict_['batch_size'])
             total_batch_size = dict_['batch_size']
-            print(torch.cuda.current_device())
 
             # DDP mode
             if dict_['local_rank'] != -1:
@@ -670,7 +652,6 @@ if __name__ == '__main__':
                 dict_['global_rank'] = dist.get_rank()
                 assert dict_['batch_size'] % dict_['world_size'] == 0, '--batch-size must be multiple of CUDA device count'
                 dict_['batch_size'] = dict_['total_batch_size'] // dict_['world_size']
-            print(torch.cuda.current_device())
 
             # Train
             if not dict_['evolve']:
@@ -682,18 +663,18 @@ if __name__ == '__main__':
                 dict_['val_path'] = DATASET_PP_PATH + '/Train_Test_Split/dev/'
 
                 # dict_['img_format'] = '.jpg'
-                # dict_['img_size'] = 320
+                # dict_['img_size'] = 640
                 # dict_['epochs'] = 50
-                # dict_['batch_size'] = 64
-                # dict_['test_size'] = 64
-                # dict_['multi_scale'] = False
-                # dict_['resume_lr'] = False
+                # dict_['batch_size'] = 8
+                # dict_['test_size'] = 8
+                # dict_['multi_scale'] = True
+                # dict_['warmup_lr'] = True
                 # dict_['resume'] = False # for optimizer and epoch num.
+                # hyp['mixup'] = 0.0
                 # dict_['mode'] = 'rgb'
-                # hyp['mosaic'] = 1.0
-                # hyp['mixup'] = 0.5
-                # dict_['comment'] = '_RGB320_50_NoMS'
+                # dict_['comment'] = '_RGB640_50'
                 # dict_['weight_path'] = './yolo_pre_3c.pt'
+                # # dict_['weight_path'] = './runs/train/last/exp_RGB640_250_MSMX/weights/last.pt'
                 # dict_['project'] = './runs/train/last'
                 # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
                 # tb_writer = None
@@ -701,16 +682,16 @@ if __name__ == '__main__':
                 # train(dict_, hyp, tb_writer, wandb=False)
 
                 # dict_['img_format'] = '.jpeg'
-                # dict_['img_size'] = 320
+                # dict_['img_size'] = 640
                 # dict_['epochs'] = 50
-                # dict_['batch_size'] = 64
-                # dict_['test_size'] = 64
-                # dict_['multi_scale'] = False
-                # dict_['resume_lr'] = False
+                # dict_['batch_size'] = 8
+                # dict_['test_size'] = 8
+                # dict_['multi_scale'] = True
+                # dict_['warmup_lr'] = True
+                # dict_['resume'] = False # for optimizer and epoch num.
+                # hyp['mixup'] = 0.0
                 # dict_['mode'] = 'ir'
-                # hyp['mosaic'] = 1.0
-                # hyp['mixup'] = 0.5
-                # dict_['comment'] = '_IR320_50_NoMS'
+                # dict_['comment'] = '_IR640_50'
                 # dict_['weight_path'] = './IR.pt'
                 # dict_['project'] = './runs/train/last'
                 # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
@@ -718,38 +699,58 @@ if __name__ == '__main__':
                 # tb_writer = SummaryWriter(dict_['project'])
                 # train(dict_, hyp, tb_writer, wandb=False)
 
-                # dict_['img_format'] = '.jpg'
-                # dict_['img_size'] = 320
-                # dict_['epochs'] = 50
-                # dict_['batch_size'] = 32
-                # dict_['test_size'] = 32
-                # dict_['multi_scale'] = False
-                # dict_['resume_lr'] = False
-                # dict_['resume'] = False # for optimizer and epoch num.
-                # dict_['mode'] = 'fusion'
-                # hyp['mosaic'] = 1.0
-                # hyp['mixup'] = 0.5
-                # dict_['comment'] = '_RGBT320_50_NoMS'
-                # dict_['weight_path'] = './RGBT.pt'
-                # dict_['project'] = './runs/train/last'
-                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
-                # tb_writer = None
-                # tb_writer = SummaryWriter(dict_['project'])
-                # train(dict_, hyp, tb_writer, wandb=False)
+                dict_['img_format'] = '.jpeg'
+                dict_['img_size'] = 320
+                dict_['epochs'] = 75
+                dict_['batch_size'] = 64
+                dict_['test_size'] = 64
+                dict_['multi_scale'] = False
+                dict_['warmup_lr'] = True
+                dict_['resume'] = False # for optimizer and epoch num.
+                dict_['mode'] = 'ir'
+                hyp['mosaic'] = 1.0
+                hyp['mixup'] = 0.0
+                dict_['comment'] = '_IR320_75_from50'
+                dict_['weight_path'] = './runs/train/last/exp_IR640_50/weights/best_ap50.pt'
+                # dict_['weight_path'] = './IR.pt'
+                dict_['project'] = './runs/train/last'
+                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                tb_writer = None
+                tb_writer = SummaryWriter(dict_['project'])
+                train(dict_, hyp, tb_writer, wandb=False)
+
+                dict_['img_format'] = '.jpg'
+                dict_['img_size'] = 320
+                dict_['epochs'] = 75
+                dict_['batch_size'] = 64
+                dict_['test_size'] = 64
+                dict_['multi_scale'] = False
+                dict_['warmup_lr'] = True
+                dict_['resume'] = False # for optimizer and epoch num.
+                dict_['mode'] = 'rgb'
+                hyp['mosaic'] = 1.0
+                hyp['mixup'] = 0.0
+                dict_['comment'] = '_RGB320_75_from50'
+                dict_['weight_path'] = 'runs/train/last/exp_RGB640_50/weights/best_ap50.pt'
+                # dict_['weight_path'] = './yolo_pre_3c.pt'
+                dict_['project'] = './runs/train/last'
+                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                tb_writer = None
+                tb_writer = SummaryWriter(dict_['project'])
+                train(dict_, hyp, tb_writer, wandb=False)
 
                 dict_['img_format'] = '.jpg'
                 dict_['img_size'] = 640
-                dict_['epochs'] = 250
+                dict_['epochs'] = 50
                 dict_['batch_size'] = 8
                 dict_['test_size'] = 8
                 dict_['multi_scale'] = True
-                dict_['resume_lr'] = False
-                dict_['resume'] = True # for optimizer and epoch num.
+                dict_['warmup_lr'] = True
+                dict_['resume'] = False # for optimizer and epoch num.
                 hyp['mixup'] = 0.5
                 dict_['mode'] = 'rgb'
-                dict_['comment'] = '_RGB640_250_MSMX'
-                dict_['weight_path'] = './runs/train/last/exp_RGB640_250_MSMX/weights/last.pt'
-                # dict_['weight_path'] = './runs/train/exp_RGB_from_Scratch_4/weights/last.pt'
+                dict_['comment'] = '_RGB640MX_50_from50'
+                dict_['weight_path'] = './runs/train/last/exp_RGB640_50/weights/last.pt'
                 dict_['project'] = './runs/train/last'
                 dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
                 tb_writer = None
@@ -758,39 +759,21 @@ if __name__ == '__main__':
 
                 dict_['img_format'] = '.jpeg'
                 dict_['img_size'] = 640
-                dict_['epochs'] = 250
+                dict_['epochs'] = 50
                 dict_['batch_size'] = 8
                 dict_['test_size'] = 8
                 dict_['multi_scale'] = True
-                dict_['resume_lr'] = False
-                dict_['resume'] = True # for optimizer and epoch num.
+                dict_['warmup_lr'] = True
+                dict_['resume'] = False # for optimizer and epoch num.
                 hyp['mixup'] = 0.5
                 dict_['mode'] = 'ir'
-                dict_['comment'] = '_IR640_250_MSMX'
-                dict_['weight_path'] = './runs/train/last/exp_IR320_50_NoMS/weights/last.pt'
+                dict_['comment'] = '_IR640MX_50_from50'
+                dict_['weight_path'] = './runs/train/last/exp_IR640_50/weights/last.pt'
                 dict_['project'] = './runs/train/last'
                 dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
                 tb_writer = None
                 tb_writer = SummaryWriter(dict_['project'])
                 train(dict_, hyp, tb_writer, wandb=False)
-
-                # dict_['img_format'] = '.jpg'
-                # dict_['img_size'] = 320
-                # dict_['epochs'] = 2
-                # dict_['batch_size'] = 64
-                # dict_['test_size'] = 64
-                # dict_['multi_scale'] = False
-                # hyp['mixup'] = 0.0
-                # dict_['mode'] = 'fusion'
-                # dict_['resume_lr'] = False
-                # dict_['comment'] = '_RGB320_50_from199RGB_5'
-                # # dict_['weight_path'] = './runs/train/exp_RGB_from_Scratch_4/weights/last.pt'
-                # dict_['weight_path'] = './IR.pt'
-                # dict_['project'] = './runs/train'
-                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
-                # tb_writer = None
-                # tb_writer = SummaryWriter(dict_['project'])
-                # train(dict_, hyp, tb_writer, wandb=False)
 #################################################################################################################################################
             # Evolve hyperparameters (optional)
             else:

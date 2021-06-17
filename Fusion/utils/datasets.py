@@ -924,14 +924,14 @@ def load_image(self, index, mode):
     img = self.imgs[index]
     if img is None:  # not cached
         path = self.img_files[index]
-        img = cv2.imread(path) if mode!='ir' else cv2.imread(path, 0)  # BGR
+        img = cv2.imread(path) if mode!='ir' else cv2.imread(path, 0)  # BGR or GrayScale
         assert img is not None, 'Image Not Found ' + path
 
         if mode == 'fusion':
             path_ir = path.replace('.jpg', '.jpeg')
             img_ir = cv2.imread(path_ir, 0) # single channel
             img_ir = np.asarray(img_ir)[..., np.newaxis]
-            img = np.concatenate((img, img_ir), axis=-1)
+            img = np.concatenate((img, img_ir), axis=-1) # 4D for fusion
         h0, w0 = img.shape[:2]  # orig hw
         r = self.img_size / max(h0, w0)  # resize image to img_size
         if r != 1:  # always resize down, only resize up if training with augmentation
