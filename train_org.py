@@ -80,7 +80,13 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
     # Model
     pretrained = weights.endswith('.pt')
     if pretrained:
-        ckpt = torch.load(weights, map_location=device)  # load checkpoint
+        try:
+            ckpt = torch.load(weights, map_location=device)  # load checkpoint
+        except:
+            weights_path, _ = os.path.split(dict_['weight_path'])
+            for file in Path(weights_path).rglob('*.pt'):
+                if os.path.getsize(str(file)) > 400000000: # 400MB
+                    ckpt = torch.load(str(file), map_location=device)  # load checkpoint
 
         # Making sure the weight file is not corrupted
         if ckpt['epoch'] != None:
@@ -107,6 +113,8 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
 
     pg0, pg1, pg2 = [], [], []  # optimizer parameter groups
     for k, v in dict(model.named_parameters()).items():
+        if 'backbone' in k and not 'f_x' in k and dict_['mode']=='fusion' and dict_['backbone_freeze']:
+            v.requires_grad = False # freeze backbones
         if '.bias' in k:
             pg2.append(v)  # biases
         elif 'conv.weight' in k: # or '1.weight'in k:
@@ -115,6 +123,9 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
             pg1.append(v)
         else:
             pg0.append(v)  # all else
+
+    if not dict_['warmup']:
+        hyp['lr0'] = ckpt['optimizer']['param_groups'][0]['lr'] # replace initial lr with last lr of loaded weight
 
     if dict_['use_adam']:
         optimizer = optim.Adam(pg0, lr=hyp['lr0'], betas=(hyp['momentum'], 0.999))  # adjust beta1 to momentum
@@ -144,18 +155,28 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
     best_fitness_p, best_fitness_r, best_fitness_ap50, best_fitness_ap, best_fitness_f = 0.0, 0.0, 0.0, 0.0, 0.0
     if pretrained:
         # Optimizer
-        if ckpt['optimizer'] is not None:
+        if ckpt['optimizer'] is not None and dict_['resume']:
             optimizer.load_state_dict(ckpt['optimizer'])
+            if not dict_['warmup']:
+                for element in optimizer.param_groups:
+                    element['initial_lr'] = element['lr']
             best_fitness = ckpt['best_fitness']
             best_fitness_p = ckpt['best_fitness_p']
             best_fitness_r = ckpt['best_fitness_r']
             best_fitness_ap50 = ckpt['best_fitness_ap50']
             best_fitness_ap = ckpt['best_fitness_ap']
             best_fitness_f = ckpt['best_fitness_f']
-        if not dict_['resume']:
+            epochs = dict_['epochs'] + ckpt['epoch'] # to continue to the correct epoch number
+        elif not dict_['resume']:
             ckpt['epoch'] = 0
             ckpt['training_results']=None
             ckpt['optimizer']=None
+            best_fitness = 0
+            best_fitness_p = 0
+            best_fitness_r = 0
+            best_fitness_ap50 = 0
+            best_fitness_ap = 0
+            best_fitness_f = 0
 
         # Results
         if ckpt.get('training_results') is not None:
@@ -163,11 +184,11 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
                 file.write(ckpt['training_results'])  # write results.txt
 
         # Epochs
-        start_epoch = ckpt['epoch'] + 1 if ckpt['epoch']!= None else 1
-        if epochs < start_epoch:
-            print('\n%s has been trained for %g epochs. Fine-tuning for %g additional epochs.\n' %
-                  (weights, ckpt['epoch'], epochs))
-            epochs += ckpt['epoch']  # finetune additional epochs
+        start_epoch = ckpt['epoch'] if ckpt['epoch']!= None else 0
+        # if epochs < start_epoch:
+        #     print('\n%s has been trained for %g epochs. Fine-tuning for %g additional epochs.\n' %
+        #           (weights, ckpt['epoch'], epochs))
+        #     epochs += ckpt['epoch']  # finetune additional epochs
 
         del ckpt, state_dict
 
@@ -240,7 +261,7 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
 
     # torch.save(model, wdir / 'init.pt')
 
-    epochs += 1 # because we started from our 3c.pt and there we set initial epoch to 1
+    # epochs += 1 # because we started from our 3c.pt and there we set initial epoch to 1
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
         model.train()
 
@@ -277,7 +298,8 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
                 imgs = torch.unsqueeze(imgs, axis=1)
 
             # Warmup
-            if ni <= nw and not dict_['resume_lr']: # integrated batches <= warmup iterations: max(3 epochs, 1k iterations)
+            # if ni <= nw and dict_['warmup']: # integrated batches <= warmup iterations: max(3 epochs, 1k iterations)
+            if epoch <= start_epoch+hyp['warmup_epochs'] and dict_['warmup']: # integrated batches <= warmup iterations: max(3 epochs, 1k iterations)
                 xi = [0, nw]  # x interp
                 # model.gr = np.interp(ni, xi, [0.0, 1.0])  # giou loss ratio (obj_loss = 1.0 or giou)
                 accumulate = max(1, np.interp(ni, xi, [1, nbs / total_batch_size]).round())
@@ -422,8 +444,8 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
 
                 # Save last, best and delete
                 torch.save(ckpt, last)
-                if best_fitness == fi:
-                    torch.save(ckpt, best)
+                # if best_fitness == fi:
+                #     torch.save(ckpt, best)
                 # if (best_fitness == fi) and (epoch >= 200):
                 #     torch.save(ckpt, wdir / 'best_{:03d}.pt'.format(epoch))
                 if best_fitness == fi:
@@ -442,10 +464,10 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
                 #     torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
                 # if ((epoch+1) % 25) == 0:
                 #     torch.save(ckpt, wdir / 'epoch_{:03d}.pt'.format(epoch))
-                if epoch >= (epochs-5):
+                if epoch >= (epochs-3):
                     torch.save(ckpt, wdir / 'last_{:03d}.pt'.format(epoch))
-                if epoch == (epochs+start_epoch):
-                    torch.save(ckpt, wdir / 'last.pt')
+                # if epoch == (epochs+start_epoch):
+                #     torch.save(ckpt, wdir / 'last.pt')
                 # elif epoch >= 420:
                 #     torch.save(ckpt, wdir / 'last_{:03d}.pt'.format(epoch))
                 del ckpt
@@ -499,7 +521,7 @@ def train(dict_, hyp, tb_writer=None, wandb=None):
 if __name__ == '__main__':
     dict_ = {
         'device':'cuda', #Intialise device as cpu. Later check if cuda is avaialbel and change to cuda
-        'device_num': '0',
+        'device_num': '1',
 
         # Kmeans on COCO
         'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
@@ -531,7 +553,8 @@ if __name__ == '__main__':
         'plot': True,
         'log_imgs': 16,
         'resume': False, # put epoch, training_results and optimizer to initial state
-        'resume_lr': False, # controls the warmup
+        # 'resume_lr': False, # defines the lr starting point
+        'warmup': False, # controls the warmup, if False -> resume lr
 
         # DP
         'global_rank': -1, # -1
@@ -547,6 +570,7 @@ if __name__ == '__main__':
         'img_format': '.jpg',
         'train_aug' : True,
         'mode': 'fusion', # 3 modes available: ir , rgb, fusion
+        'backbone_freeze': False,
 
         # Hyp. Para.
         'evolve': False,
@@ -580,9 +604,9 @@ if __name__ == '__main__':
         'box': 0.05, # box loss gain
         'cls': 0.01875,  # cls loss gain | cls_org = 0.5 | ['cls'] *= nc / 80
         'cls_pw': 1.0,  # cls BCELoss positive_weight
-        'obj': 1.0,  # obj loss gain (scale with pixels)
+        'obj': 1.0, # 0.7 # obj loss gain (scale with pixels)
         'obj_pw': 1.0,  # obj BCELoss positive_weight
-        'iou_t': 0.6,  # IoU training threshold
+        'iou_t': 0.6, # 0.2  # IoU training threshold
         'anchor_t': 4.0,  # anchor-multiple threshold
         'fl_gamma': 0.0,  # focal loss gamma (efficientDet default gamma=1.5)
         # To be Noted:
@@ -593,8 +617,8 @@ if __name__ == '__main__':
         'hsv_s': 0.7,  # image HSV-Saturation augmentation (fraction)
         'hsv_v': 0.4,  # image HSV-Value augmentation (fraction)
         'degrees': 0.0,  # image rotation (+/- deg)
-        'translate': 0.0,  # image translation (+/- fraction)
-        'scale': 0.5,  # image scale (+/- gain)
+        'translate': 0.0, # 0.1 # image translation (+/- fraction)
+        'scale': 0.5,  # 0.9  #image scale (+/- gain)
         'shear': 0.0,  # image shear (+/- deg)
         'perspective': 0.0,  # image perspective (+/- fraction), range 0-0.001
         'flipud': 0.0,  # image flip up-down (probability)
@@ -605,7 +629,7 @@ if __name__ == '__main__':
 
 
     # Condition to start the training on the server
-    allowed_procs = 1
+    allowed_procs = 2
     sleep_period = 1 # in minutes
     cond = True
     # alocated processes
@@ -668,13 +692,125 @@ if __name__ == '__main__':
                 # dict_['batch_size'] = 8
                 # dict_['test_size'] = 8
                 # dict_['multi_scale'] = True
-                # dict_['warmup_lr'] = True
-                # dict_['resume'] = False # for optimizer and epoch num.
-                # hyp['mixup'] = 0.0
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['warmup'] = True
                 # dict_['mode'] = 'rgb'
-                # dict_['comment'] = '_RGB640_50'
-                # dict_['weight_path'] = './yolo_pre_3c.pt'
-                # # dict_['weight_path'] = './runs/train/last/exp_RGB640_250_MSMX/weights/last.pt'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_RGB640WA_5050'
+                # dict_['weight_path'] = './runs/train/last/exp_RGB640WA_50/weights/last_049.pt'
+                # dict_['project'] = './runs/train/last'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+ 
+                # dict_['img_format'] = '.jpg'
+                # dict_['img_size'] = 640
+                # dict_['epochs'] = 25
+                # dict_['batch_size'] = 8
+                # dict_['test_size'] = 8
+                # dict_['multi_scale'] = True
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # hyp['warmup_epochs'] = 1
+                # hyp['warmup_momentum'] = 0.08
+                # hyp['warmup_epochs'] = 0.01
+                # dict_['mode'] = 'rgb'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.333
+                # dict_['comment'] = '_RGB640MXWAl_505025'
+                # dict_['weight_path'] = './runs/train/last/exp_RGB640WA_5050/weights/best_ap50.pt'
+                # dict_['project'] = './runs/train/last'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+                # hyp['warmup_epochs'] = 3
+                # hyp['warmup_momentum'] = 0.8
+                # hyp['warmup_epochs'] = 0.1
+
+                # dict_['img_format'] = '.jpg'
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 50
+                # dict_['batch_size'] = 64
+                # dict_['test_size'] = 64
+                # dict_['multi_scale'] = False
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # dict_['mode'] = 'rgb'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_RGB320WA_50_from505025BL'
+                # # dict_['weight_path'] = 'runs/train/last/exp_RGB640WA_5050/weights/best_ap50.pt'
+                # dict_['weight_path'] = 'runs/train/last/exp_RGB640MXWAl_505025/weights/best_ap50.pt'
+                # dict_['project'] = './runs/train/last'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+
+                # dict_['img_format'] = '.jpg'
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 50
+                # dict_['batch_size'] = 64
+                # dict_['test_size'] = 64
+                # dict_['multi_scale'] = False
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # hyp['warmup_epochs'] = 1
+                # hyp['warmup_momentum'] = 0.08
+                # hyp['warmup_epochs'] = 0.01
+                # dict_['mode'] = 'rgb'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_RGB320WAl_5050_from505025BL'
+                # dict_['weight_path'] = 'runs/train/last/exp_RGB320WA_50_from505025BL/weights/best_ap50.pt'
+                # dict_['project'] = './runs/train/last'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+
+                # dict_['img_format'] = '.jpg'
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 50
+                # dict_['batch_size'] = 64
+                # dict_['test_size'] = 64
+                # dict_['multi_scale'] = False
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # hyp['warmup_epochs'] = 1
+                # hyp['warmup_momentum'] = 0.08
+                # hyp['warmup_epochs'] = 0.01
+                # dict_['mode'] = 'rgb'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_RGB320WAl_505050_from505025BL'
+                # dict_['weight_path'] = 'runs/train/last/exp_RGB320WAl_5050_from505025BL/weights/best_ap50.pt'
+                # dict_['project'] = './runs/train/last'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+
+#============================================================================================ IR
+                # dict_['img_format'] = '.jpeg'
+                # dict_['img_size'] = 640
+                # dict_['epochs'] = 50
+                # dict_['batch_size'] = 8
+                # dict_['test_size'] = 8
+                # dict_['multi_scale'] = True
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # hyp['warmup_epochs'] = 3
+                # hyp['warmup_momentum'] = 0.8
+                # hyp['warmup_epochs'] = 0.1
+                # dict_['mode'] = 'ir'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_IR640WA_5050'
+                # dict_['weight_path'] = './runs/train/last/exp_IR640WA_50/weights/last_049.pt'
                 # dict_['project'] = './runs/train/last'
                 # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
                 # tb_writer = None
@@ -683,97 +819,115 @@ if __name__ == '__main__':
 
                 # dict_['img_format'] = '.jpeg'
                 # dict_['img_size'] = 640
-                # dict_['epochs'] = 50
+                # dict_['epochs'] = 25
                 # dict_['batch_size'] = 8
                 # dict_['test_size'] = 8
                 # dict_['multi_scale'] = True
-                # dict_['warmup_lr'] = True
-                # dict_['resume'] = False # for optimizer and epoch num.
-                # hyp['mixup'] = 0.0
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # hyp['warmup_epochs'] = 1
+                # hyp['warmup_momentum'] = 0.08
+                # hyp['warmup_epochs'] = 0.01
                 # dict_['mode'] = 'ir'
-                # dict_['comment'] = '_IR640_50'
-                # dict_['weight_path'] = './IR.pt'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.333
+                # dict_['comment'] = '_IR640MXWAl_505025'
+                # dict_['weight_path'] = './runs/train/last/exp_IR640WA_5050/weights/best_ap50.pt'
                 # dict_['project'] = './runs/train/last'
                 # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
                 # tb_writer = None
                 # tb_writer = SummaryWriter(dict_['project'])
                 # train(dict_, hyp, tb_writer, wandb=False)
 
-                dict_['img_format'] = '.jpeg'
-                dict_['img_size'] = 320
-                dict_['epochs'] = 75
-                dict_['batch_size'] = 64
-                dict_['test_size'] = 64
-                dict_['multi_scale'] = False
-                dict_['warmup_lr'] = True
-                dict_['resume'] = False # for optimizer and epoch num.
-                dict_['mode'] = 'ir'
-                hyp['mosaic'] = 1.0
-                hyp['mixup'] = 0.0
-                dict_['comment'] = '_IR320_75_from50'
-                dict_['weight_path'] = './runs/train/last/exp_IR640_50/weights/best_ap50.pt'
-                # dict_['weight_path'] = './IR.pt'
-                dict_['project'] = './runs/train/last'
-                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
-                tb_writer = None
-                tb_writer = SummaryWriter(dict_['project'])
-                train(dict_, hyp, tb_writer, wandb=False)
+                # dict_['img_format'] = '.jpeg'
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 50
+                # dict_['batch_size'] = 64
+                # dict_['test_size'] = 64
+                # dict_['multi_scale'] = False
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # hyp['warmup_epochs'] = 3
+                # hyp['warmup_momentum'] = 0.8
+                # hyp['warmup_epochs'] = 0.1
+                # dict_['mode'] = 'ir'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_IR320WA_50_from505025BL'
+                # # dict_['weight_path'] = 'runs/train/last/exp_IR640WA_5050/weights/best_ap50.pt'
+                # dict_['weight_path'] = 'runs/train/last/exp_IR640MXWAl_505025/weights/best_ap50.pt'
+                # dict_['project'] = './runs/train/last'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
 
-                dict_['img_format'] = '.jpg'
-                dict_['img_size'] = 320
-                dict_['epochs'] = 75
-                dict_['batch_size'] = 64
-                dict_['test_size'] = 64
-                dict_['multi_scale'] = False
-                dict_['warmup_lr'] = True
-                dict_['resume'] = False # for optimizer and epoch num.
-                dict_['mode'] = 'rgb'
-                hyp['mosaic'] = 1.0
-                hyp['mixup'] = 0.0
-                dict_['comment'] = '_RGB320_75_from50'
-                dict_['weight_path'] = 'runs/train/last/exp_RGB640_50/weights/best_ap50.pt'
-                # dict_['weight_path'] = './yolo_pre_3c.pt'
-                dict_['project'] = './runs/train/last'
-                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
-                tb_writer = None
-                tb_writer = SummaryWriter(dict_['project'])
-                train(dict_, hyp, tb_writer, wandb=False)
+                # dict_['img_format'] = '.jpeg'
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 50
+                # dict_['batch_size'] = 64
+                # dict_['test_size'] = 64
+                # dict_['multi_scale'] = False
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # hyp['warmup_epochs'] = 1
+                # hyp['warmup_momentum'] = 0.08
+                # hyp['warmup_epochs'] = 0.01
+                # dict_['mode'] = 'ir'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_IR320WAl_5050_from505025BL'
+                # dict_['weight_path'] = 'runs/train/last/exp_IR320WA_50_from505025BL/weights/best_ap50.pt'
+                # dict_['project'] = './runs/train/last'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
 
-                dict_['img_format'] = '.jpg'
-                dict_['img_size'] = 640
-                dict_['epochs'] = 50
-                dict_['batch_size'] = 8
-                dict_['test_size'] = 8
-                dict_['multi_scale'] = True
-                dict_['warmup_lr'] = True
-                dict_['resume'] = False # for optimizer and epoch num.
-                hyp['mixup'] = 0.5
-                dict_['mode'] = 'rgb'
-                dict_['comment'] = '_RGB640MX_50_from50'
-                dict_['weight_path'] = './runs/train/last/exp_RGB640_50/weights/last.pt'
-                dict_['project'] = './runs/train/last'
-                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
-                tb_writer = None
-                tb_writer = SummaryWriter(dict_['project'])
-                train(dict_, hyp, tb_writer, wandb=False)
+                # dict_['img_format'] = '.jpeg'
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 50
+                # dict_['batch_size'] = 64
+                # dict_['test_size'] = 64
+                # dict_['multi_scale'] = False
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # hyp['warmup_epochs'] = 1
+                # hyp['warmup_momentum'] = 0.08
+                # hyp['warmup_epochs'] = 0.01
+                # dict_['mode'] = 'ir'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_IR320WAl_505050_from505025BL'
+                # dict_['weight_path'] = 'runs/train/last/exp_IR320WAl_5050_from505025BL/weights/best_ap50.pt'
+                # dict_['project'] = './runs/train/last'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
 
-                dict_['img_format'] = '.jpeg'
-                dict_['img_size'] = 640
-                dict_['epochs'] = 50
-                dict_['batch_size'] = 8
-                dict_['test_size'] = 8
-                dict_['multi_scale'] = True
-                dict_['warmup_lr'] = True
-                dict_['resume'] = False # for optimizer and epoch num.
-                hyp['mixup'] = 0.5
-                dict_['mode'] = 'ir'
-                dict_['comment'] = '_IR640MX_50_from50'
-                dict_['weight_path'] = './runs/train/last/exp_IR640_50/weights/last.pt'
-                dict_['project'] = './runs/train/last'
-                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
-                tb_writer = None
-                tb_writer = SummaryWriter(dict_['project'])
-                train(dict_, hyp, tb_writer, wandb=False)
+#============================================================================================ Fusion
+
+                # dict_['img_format'] = '.jpg'
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 50
+                # dict_['batch_size'] = 32
+                # dict_['test_size'] = 32
+                # dict_['multi_scale'] = False
+                # dict_['warmup'] = True
+                # dict_['resume'] = True # for optimizer and epoch num.
+                # dict_['mode'] = 'fusion'
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_RGBT320WA_50_from50RGBT'
+                # dict_['weight_path'] = './runs/train/last/exp_RGBT320_50_from50BLs/weights/last_049.pt'
+                # dict_['backbone_freeze'] = False
+                # dict_['project'] = './runs/train/last'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+
 #################################################################################################################################################
             # Evolve hyperparameters (optional)
             else:

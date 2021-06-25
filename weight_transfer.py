@@ -161,8 +161,8 @@ if '__main__' == __name__:
     fusion_state_dict = torch.load("./init.pt")
     # ir_state_dict = torch.load("./runs/train/exp_IR_BL_640_100ms-from44RGB_2/weights/best_ap50.pt")['model']
     # rgb_state_dict = torch.load("./runs/train/exp_RGB_from_Scratch_4/weights/last.pt")['model']
-    ir_state_dict = torch.load("./IR.pt")['model']
-    rgb_state_dict = torch.load("./yolo_pre_3c.pt")['model']
+    ir_state_dict = torch.load("./runs/train/last/exp_IR640_50/weights/best_ap50.pt")['model']
+    rgb_state_dict = torch.load("./runs/train/last/exp_RGB640_50/weights/best_ap50.pt")['model']
     BLs_W_to_RGBT(rgb_state_dict, ir_state_dict, fusion_state_dict)
 
     #=================================================================================

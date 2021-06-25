@@ -294,15 +294,16 @@ if __name__ == '__main__':
 
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
-        'img_size': 640, #Input image size. Must be a multiple of 32
-        'batch_size': 16,#train batch size
-        'test_size': 16,#test batch size
+        'img_size': 320, #Input image size. Must be a multiple of 32
+        'batch_size': 32,#train batch size
+        'test_size': 32,#test batch size
 
         # Data loader
         'rect': True,
         'aug': False,
-        'img_format': '.jpeg',
-        'mode': 'BL',
+        'img_format': '.jpg',
+        'mode': 'rgb',
+
         # test
         'nms_conf_t':0.001, #Confidence test threshold
         'nms_merge': True,
@@ -317,18 +318,15 @@ if __name__ == '__main__':
         # TODO: Image Format, , Comment, Weight_path, Img size, Aug., train/val set
 
         # PATH
-        # 'weight_path': './runs/train/exp_RGB_BL_exp3_cuda/weights/best.pt',
-        'weight_path': './runs/train/exp_RGB_from_Scratch_4/weights/last.pt',
-
-
-        # 'weight_path': './runs/train/exp_IR_BL_640_100ms-from44RGB_2/weights/best_ap50.pt',
-        # 'weight_path': 'RGBT.pt',
-        # 'weight_path': './runs/train/aug/exp_IR320_MSMos_640for100_5/weights/best_ap50.pt',
+        'weight_path': './runs/train/last/exp_RGB320_50_from50BL/weights/last_049.pt',
+        # 'weight_path': './runs/train/last/exp_IR320_50_from50BL/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/last/exp_RGBT320_50_from50BLs/weights/best_ap50.pt',
 
         'task': 'test', # change to test only for the final test
 
         # large
-        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test/',
+        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Day/',
+        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev/',
 
         # mini
         # 'test_path' : DATASET_PP_PATH + '/mini_Train_Test_Split/test/',
@@ -346,7 +344,7 @@ if __name__ == '__main__':
         # test
         # best for rgb = 0.55
         # best for ir =
-        'iou_t': 0.55, # 0.65  # IoU test threshold
+        'iou_t': 0.5, # 0.65  # IoU test threshold
 
         'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)
         'hsv_s': 0.7,  # image HSV-Saturation augmentation (fraction)
