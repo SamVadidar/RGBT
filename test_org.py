@@ -132,7 +132,8 @@ def test(dict,
             # Run model
             t = time_synchronized()
             if dict['mode'] == 'fusion':
-                inf_out, train_out = model(img[:, :3, :, :], img[:, 3:, :, :], augment=augment)  # inference and training outputs
+                inf_out, train_out = model(img[:, 1:, :, :], img[:, :1, :, :], augment=augment) # (RGB, IR)
+                # inf_out, train_out = model(img[:, :3, :, :], img[:, 3:, :, :], augment=augment)  # inference and training outputs
             else:
                 inf_out, train_out = model(img, augment=augment)  # inference and training outputs
             t0 += time_synchronized() - t
@@ -301,8 +302,7 @@ if __name__ == '__main__':
         # Data loader
         'rect': True,
         'aug': False,
-        'img_format': '.jpg',
-        'mode': 'rgb',
+        'mode': 'ir',
 
         # test
         'nms_conf_t':0.001, #Confidence test threshold
@@ -318,9 +318,16 @@ if __name__ == '__main__':
         # TODO: Image Format, , Comment, Weight_path, Img size, Aug., train/val set
 
         # PATH
-        'weight_path': './runs/train/last/exp_RGB320_50_from50BL/weights/last_049.pt',
-        # 'weight_path': './runs/train/last/exp_IR320_50_from50BL/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/last/exp_RGBT320_50_from50BLs/weights/best_ap50.pt',
+        'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_val_loss.pt',
+
+        # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_val_loss.pt',
+
+        # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_val_loss.pt',
+
+        # 'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_ap50.pt',
 
         'task': 'test', # change to test only for the final test
 
@@ -361,6 +368,7 @@ if __name__ == '__main__':
     }
 
 
+    dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
     if not dict_['study']:  # run normally
         test(dict_, hyp, augment=dict_['aug']) # test augmentation
 

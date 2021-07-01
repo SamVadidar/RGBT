@@ -23,6 +23,7 @@ class CBM(torch.nn.Module):
     def forward(self,x):
         return self.act(self.batchnorm(self.conv(x)))
         
+
 class ResUnit(torch.nn.Module):
     def __init__(self, filters, first = False):
         super(ResUnit, self).__init__()
@@ -36,6 +37,7 @@ class ResUnit(torch.nn.Module):
         shortcut = x
         x = self.resroute(x)
         return x+shortcut
+
 
 class CSP(torch.nn.Module):
     def __init__(self, filters, nblocks):
@@ -55,9 +57,10 @@ class CSP(torch.nn.Module):
         x = torch.cat((x,shortcut),dim = 1)
         return self.last(x)
 
+
 class SPP(torch.nn.Module):
-    def __init__(self,filters):
-        super(SPP,self).__init__()
+    def __init__(self, filters):
+        super(SPP, self).__init__()
         self.maxpool5 = torch.nn.MaxPool2d(kernel_size=5,stride=1,padding = 5//2)
         self.maxpool9 = torch.nn.MaxPool2d(kernel_size=9,stride=1,padding = 9//2)
         self.maxpool13 = torch.nn.MaxPool2d(kernel_size=13,stride=1,padding = 13//2)
@@ -69,7 +72,7 @@ class SPP(torch.nn.Module):
 
 
 class rCSP(torch.nn.Module):
-    def __init__(self,filters,spp_block = False):
+    def __init__(self, filters, spp_block = False):
         super(rCSP,self).__init__()
         self.include_spp = spp_block
         if self.include_spp:
@@ -86,11 +89,12 @@ class rCSP(torch.nn.Module):
                                     CBM(in_filters=filters*4,out_filters=filters,kernel_size=1,stride=1)))
         self.module_list.append(CBM(in_filters=filters,out_filters=filters,kernel_size=3,stride=1))
         self.last = CBM(in_filters=filters*2,out_filters=filters,kernel_size=1,stride=1)
-    def forward(self,x):
+
+    def forward(self, x):
         shortcut = self.skip(x)
         for block in self.module_list:
             x = block(x)
-        x = torch.cat((x,shortcut),dim=1)
+        x = torch.cat((x, shortcut), dim=1)
         x = self.last(x)
         return x
 
