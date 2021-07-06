@@ -296,8 +296,8 @@ if __name__ == '__main__':
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         'img_size': 320, #Input image size. Must be a multiple of 32
-        'batch_size': 32,#train batch size
-        'test_size': 32,#test batch size
+        'batch_size': 64,#train batch size
+        'test_size': 64,#test batch size
 
         # Data loader
         'rect': True,
@@ -318,33 +318,29 @@ if __name__ == '__main__':
         # TODO: Image Format, , Comment, Weight_path, Img size, Aug., train/val set
 
         # PATH
-        'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_val_loss.pt',
+        # 'weight_path': './runs/train/exp_IR320_50noMSnoMos/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_IR320_75noMSnoMos/weights/best_ap50.pt',
+        'weight_path': './runs/train/exp_IR320_100noMSnoMos/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_ap50.pt',
 
         # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_val_loss.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_f300noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_50noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_75noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_100noMSnoMos_pre/weights/best_ap50.pt',
 
-        # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_val_loss.pt',
+
+        # 'weight_path': './runs/train/exp_RGBT320_50noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_50noMSnoMos_pre/weights/best_val_loss.pt',
 
         # 'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_val_loss.pt',
 
         'task': 'test', # change to test only for the final test
 
-        # large
-        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Day/',
         'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev/',
-
-        # mini
-        # 'test_path' : DATASET_PP_PATH + '/mini_Train_Test_Split/test/',
-
-        # # Day
-        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/train_Day/',
-        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test_Day/',
-
-        # # Night
-        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/train_Night/',
-        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test_Night/',
+        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Day/',
+        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Night/',
      }
 
     hyp = {

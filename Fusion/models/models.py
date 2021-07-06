@@ -100,8 +100,11 @@ class rCSP(torch.nn.Module):
 
 
 class Fused_Backbone(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, attention=False):
         super(Fused_Backbone,self).__init__()
+
+        self.attention = attention
+
         self.main3_rgb = torch.nn.Sequential(CBM(in_filters=3,out_filters=32,kernel_size=3,stride=1),
                                         CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
                                         ResUnit(filters = 64, first= True),
@@ -125,19 +128,34 @@ class Fused_Backbone(torch.nn.Module):
                                         CSP(filters=512,nblocks = 8))
         self.main5_ir = torch.nn.Sequential(CBM(in_filters=512,out_filters=1024,kernel_size=3,stride=2),
                                         CSP(filters=1024,nblocks = 4))
+
+        if self.attention:
+            # CBAM
+            self.cbam_x3 = CBAM(256)
+            self.cbam_x4 = CBAM(512)
+            self.cbam_x5 = CBAM(1024)       
         
         self.f_x3_Conv2d = torch.nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, stride=1, bias=False) # torch.Size([1, 512, 80, 80])
         self.f_x4_Conv2d = torch.nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, stride=1, bias=False)
         self.f_x5_Conv2d = torch.nn.Conv2d(in_channels=2048, out_channels=1024, kernel_size=1, stride=1, bias=False)
     
     def forward(self, rgb, ir):
-        rgb_x3 = self.main3_rgb(rgb)
-        rgb_x4 = self.main4_rgb(rgb_x3)
-        rgb_x5 = self.main5_rgb(rgb_x4)
+        if self.attention:
+            rgb_x3 = self.cbam_x3(self.main3_rgb(rgb))
+            rgb_x4 = self.cbam_x4(self.main4_rgb(rgb_x3))
+            rgb_x5 = self.cbam_x5(self.main5_rgb(rgb_x4))
 
-        ir_x3 = self.main3_ir(ir)
-        ir_x4 = self.main4_ir(ir_x3)
-        ir_x5 = self.main5_ir(ir_x4)
+            ir_x3 = self.cbam_x3(self.main3_ir(ir))
+            ir_x4 = self.cbam_x4(self.main4_ir(ir_x3))
+            ir_x5 = self.cbam_x5(self.main5_ir(ir_x4))
+        else:
+            rgb_x3 = self.main3_rgb(rgb)
+            rgb_x4 = self.main4_rgb(rgb_x3)
+            rgb_x5 = self.main5_rgb(rgb_x4)
+
+            ir_x3 = self.main3_ir(ir)
+            ir_x4 = self.main4_ir(ir_x3)
+            ir_x5 = self.main5_ir(ir_x4)
         
         f_x3 = torch.cat((rgb_x3, ir_x3), dim=1) # torch.Size([1, 512, 80, 80])
         f_x4 = torch.cat((rgb_x4, ir_x4), dim=1) # torch.Size([1, 1024, 40, 40])
@@ -419,7 +437,7 @@ class Fused_Darknets(torch.nn.Module):
         self.nclasses = dict['nclasses']
         self.anchors = dict['anchors_g']
         
-        self.fused_backbone = Fused_Backbone()
+        self.fused_backbone = Fused_Backbone(attention=dict['attention'])
         self.neck = Neck()
         self.head = Head(self.nclasses)
         self.yolo3 = YOLOLayer(self.anchors[0:3], self.nclasses, img_size, stride = 8)

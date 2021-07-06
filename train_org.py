@@ -600,7 +600,8 @@ if __name__ == '__main__':
         # Hyp. Para.
         'evolve': False,
 
-        # TODO: Image Format, , Comment, Weight_path, Img size, Aug., train/val set
+        # Modules
+        'attention': False,
 
         # PATH
         # 'weight_path': './miniRuns/exp8_mini320IR/weights/last.pt',
@@ -723,7 +724,7 @@ if __name__ == '__main__':
                 # hyp['mosaic'] = 0.0
                 # hyp['mixup'] = 0.0
                 # # hyp['fliplr'] = 0
-                # # hyp['hsv_h'] = 0                
+                # # hyp['hsv_h'] = 0
                 # # hyp['hsv_s'] = 0
                 # # hyp['hsv_v'] = 0
                 # # hyp['scale'] = 0
@@ -756,25 +757,25 @@ if __name__ == '__main__':
                 # tb_writer = SummaryWriter(dict_['project'])
                 # train(dict_, hyp, tb_writer, wandb=False)
 
-                dict_['img_size'] = 320
-                dict_['epochs'] = 50
-                dict_['batch_size'] = 32
-                dict_['test_size'] = 32
-                dict_['multi_scale'] = False
-                dict_['warmup'] = True
-                dict_['resume'] = False # for optimizer and epoch num.
-                dict_['mode'] = 'fusion'
-                dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
-                hyp['mosaic'] = 0.0
-                hyp['mixup'] = 0.0
-                dict_['comment'] = '_RGBT320_50noMSnoMos'
-                dict_['weight_path'] = './RGBT_pre.pt'
-                dict_['backbone_freeze'] = False
-                dict_['project'] = './runs/train'
-                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
-                tb_writer = None
-                tb_writer = SummaryWriter(dict_['project'])
-                train(dict_, hyp, tb_writer, wandb=False)
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 50
+                # dict_['batch_size'] = 32
+                # dict_['test_size'] = 32
+                # dict_['multi_scale'] = False
+                # dict_['warmup'] = True
+                # dict_['resume'] = False # for optimizer and epoch num.
+                # dict_['mode'] = 'fusion'
+                # dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
+                # hyp['mosaic'] = 0.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_RGBT320_50noMSnoMos'
+                # dict_['weight_path'] = './RGBT_pre.pt'
+                # dict_['backbone_freeze'] = False
+                # dict_['project'] = './runs/train'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
 
                 dict_['img_size'] = 320
                 dict_['epochs'] = 75
@@ -784,10 +785,31 @@ if __name__ == '__main__':
                 dict_['warmup'] = True
                 dict_['resume'] = False # for optimizer and epoch num.
                 dict_['mode'] = 'fusion'
+                dict_['attention'] = True
                 dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
                 hyp['mosaic'] = 0.0
                 hyp['mixup'] = 0.0
-                dict_['comment'] = '_RGBT320_75noMSnoMos'
+                dict_['comment'] = '_RGBT320_75noMSnoMos_att'
+                dict_['weight_path'] = './RGBT_pre.pt'
+                dict_['backbone_freeze'] = False
+                dict_['project'] = './runs/train'
+                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                tb_writer = None
+                tb_writer = SummaryWriter(dict_['project'])
+                train(dict_, hyp, tb_writer, wandb=False)
+
+                dict_['img_size'] = 320
+                dict_['epochs'] = 300
+                dict_['batch_size'] = 32
+                dict_['test_size'] = 32
+                dict_['multi_scale'] = False
+                dict_['warmup'] = True
+                dict_['resume'] = False # for optimizer and epoch num.
+                dict_['mode'] = 'fusion'
+                dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
+                hyp['mosaic'] = 0.0
+                hyp['mixup'] = 0.0
+                dict_['comment'] = '_RGBT320_300noMSnoMos_att'
                 dict_['weight_path'] = './RGBT_pre.pt'
                 dict_['backbone_freeze'] = False
                 dict_['project'] = './runs/train'
@@ -816,28 +838,28 @@ if __name__ == '__main__':
                 # tb_writer = None
                 # tb_writer = SummaryWriter(dict_['project'])
                 # train(dict_, hyp, tb_writer, wandb=False)
- 
+
 
 #============================================================================================ IR
 
-                dict_['img_size'] = 320
-                dict_['epochs'] = 50
-                dict_['batch_size'] = 64
-                dict_['test_size'] = 64
-                dict_['multi_scale'] = False
-                dict_['resume'] = False # for optimizer and epoch num.
-                dict_['warmup'] = True
-                dict_['mode'] = 'ir'
-                dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
-                hyp['mosaic'] = 0.0
-                hyp['mixup'] = 0.0
-                dict_['comment'] = '_IR320_50noMSnoMos'
-                dict_['weight_path'] = './IR.pt'
-                dict_['project'] = './runs/train'
-                dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
-                tb_writer = None
-                tb_writer = SummaryWriter(dict_['project'])
-                train(dict_, hyp, tb_writer, wandb=False)
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 50
+                # dict_['batch_size'] = 64
+                # dict_['test_size'] = 64
+                # dict_['multi_scale'] = False
+                # dict_['resume'] = False # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # dict_['mode'] = 'ir'
+                # dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
+                # hyp['mosaic'] = 0.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_IR320_50noMSnoMos'
+                # dict_['weight_path'] = './IR.pt'
+                # dict_['project'] = './runs/train'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
 
                 dict_['img_size'] = 320
                 dict_['epochs'] = 75
@@ -850,13 +872,32 @@ if __name__ == '__main__':
                 dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
                 hyp['mosaic'] = 0.0
                 hyp['mixup'] = 0.0
-                dict_['comment'] = '_IR320_75noMSnoMos'
-                dict_['weight_path'] = './IR.pt'
+                dict_['comment'] = '_IR320_75noMSnoMos_Pre'
+                dict_['weight_path'] = './runs/train/exp_IR320_300noMSnoMos/weights/best_ap50.pt'
                 dict_['project'] = './runs/train'
                 dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
                 tb_writer = None
                 tb_writer = SummaryWriter(dict_['project'])
                 train(dict_, hyp, tb_writer, wandb=False)
+
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 100
+                # dict_['batch_size'] = 64
+                # dict_['test_size'] = 64
+                # dict_['multi_scale'] = False
+                # dict_['resume'] = False # for optimizer and epoch num.
+                # dict_['warmup'] = True
+                # dict_['mode'] = 'ir'
+                # dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
+                # hyp['mosaic'] = 0.0
+                # hyp['mixup'] = 0.0
+                # dict_['comment'] = '_IR320_100noMSnoMos'
+                # dict_['weight_path'] = './IR.pt'
+                # dict_['project'] = './runs/train'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
 
 #################################################################################################################################################
             # Evolve hyperparameters (optional)
