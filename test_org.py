@@ -63,6 +63,7 @@ def test(dict,
         try:
             ckpt = torch.load(dict['weight_path']) # load checkpoint
             if ckpt['epoch'] != -1: print('Saved @ epoch: ', ckpt['epoch'])
+            
             ckpt['model'] = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
             model.load_state_dict(ckpt['model'], strict=False)
         except:
@@ -71,7 +72,8 @@ def test(dict,
         imgsz = check_img_size(dict['img_size'], s=64)  # check img_size
 
     # Half
-    half = device.type != 'cpu'  # half precision only supported on CUDA
+    # half = device.type != 'cpu'  # half precision only supported on CUDA
+    half = dict['half']  # half precision only supported on CUDA
     if half:
         model.half()
 
@@ -91,7 +93,10 @@ def test(dict,
     if not training:
         if dict['mode'] == 'fusion':
             img = torch.zeros((1, 4, imgsz, imgsz), device=device)  # init img
-            model(img[:, :3, :, :].half(), img[:, 3:, :, :].half(), augment=augment)
+            if half:
+                model(img[:, :3, :, :].half(), img[:, 3:, :, :].half(), augment=augment)
+            else:
+                model(img[:, :3, :, :], img[:, 3:, :, :], augment=augment)
         elif dict['mode'] == 'ir':
             img = torch.zeros((1, 1, imgsz, imgsz), device=device)  # init img
             _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
@@ -99,7 +104,7 @@ def test(dict,
             img = torch.zeros((1, 3, imgsz, imgsz), device=device)  # init img
             _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
         path = dict['test_path'] if dict['task'] == 'test' else dict['val_path']  # path to val/test images
-        dataloader = create_dataloader(path, imgsz, dict['batch_size'], 64, hyp=hyp, augment=dict['aug'], pad=0.5, rect=True, img_format=dict['img_format'], mode = dict['mode'])[0] # grid_size=32
+        dataloader = create_dataloader(path, imgsz, dict['batch_size'], 64, hyp=hyp, augment=dict['aug'], pad=0.5, rect=dict['rect'], img_format=dict['img_format'], mode = dict['mode'])[0] # grid_size=32
 
     seen = 0
 
@@ -233,7 +238,7 @@ def test(dict,
             stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
 
         # Plot images
-        if dict['plot'] and batch_i < 3:
+        if dict['plot'] and batch_i < 20:
             # f = save_dir / f'test_batch{batch_i}_labels.jpg'  # filename
             f = str(save_dir) + f'/test_batch{batch_i}_labels' + dict['img_format']  # filename
             plot_images(img, targets, paths, f, names)  # labels
@@ -296,38 +301,62 @@ if __name__ == '__main__':
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         'img_size': 320, #Input image size. Must be a multiple of 32
-        'batch_size': 64,#train batch size
-        'test_size': 64,#test batch size
+        'batch_size': 1,#train batch size
+        'test_size': 1,#test batch size
+        'half': False,  # half precision only supported on CUDA
 
         # Data loader
-        'rect': True,
+        'rect': False,
         'aug': False,
-        'mode': 'ir',
+        'mode': 'fusion',
 
         # test
         'nms_conf_t':0.001, #Confidence test threshold
         'nms_merge': True,
         'study': False,
 
-        #logs
+        # logs
         'save_txt': False,
         'save_conf': False,
         'plot': True,
         'wandb': False,
 
-        # TODO: Image Format, , Comment, Weight_path, Img size, Aug., train/val set
+        # Modules
+        'attention_bc' : False,
+        'attention_ac' : False,
+        'H_attention_bc' : False,
+        'H_attention_ac' : False,
 
         # PATH
         # 'weight_path': './runs/train/exp_IR320_50noMSnoMos/weights/best_ap50.pt',
         # 'weight_path': './runs/train/exp_IR320_75noMSnoMos/weights/best_ap50.pt',
-        'weight_path': './runs/train/exp_IR320_100noMSnoMos/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_IR320_100noMSnoMos/weights/best_ap50.pt',
         # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_IR320_1000_pre/weights/best_ap50.pt',
+
+        'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_HACBC/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_HBC/weights/best_ap50.pt',
 
         # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_ap50.pt',
+
+        # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_att/weights/best_ap50.pt',
+
         # 'weight_path': './runs/train/exp_RGBT320_f300noMSnoMos_pre/weights/best_ap50.pt',
+
         # 'weight_path': './runs/train/exp_RGBT320_50noMSnoMos_pre/weights/best_ap50.pt',
+
+
         # 'weight_path': './runs/train/exp_RGBT320_75noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_75noMSnoMos_pre/weights/best_val_loss.pt',
+
+        # 'weight_path': './runs/train/exp_RGBT320_75noMSnoMos_att/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_75noMSnoMos_attBC/weights/best_val_loss.pt',
+
+
         # 'weight_path': './runs/train/exp_RGBT320_100noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_pre/weights/best_ap50.pt',
 
 
         # 'weight_path': './runs/train/exp_RGBT320_50noMSnoMos_pre/weights/best_ap50.pt',
@@ -346,7 +375,6 @@ if __name__ == '__main__':
     hyp = {
         # test
         # best for rgb = 0.55
-        # best for ir =
         'iou_t': 0.5, # 0.65  # IoU test threshold
 
         'hsv_h': 0.015,  # image HSV-Hue augmentation (fraction)

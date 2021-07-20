@@ -62,12 +62,12 @@ class FocalLoss(nn.Module):
 
 def compute_loss(p, targets, hyp, dict):  # predictions, targets, model
     device = targets.device
-    lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device)
-    tcls, tbox, indices, anchors = build_targets(p, targets, hyp, dict)  # targets    
+    lcls, lbox, lobj = torch.zeros(1, device=device), torch.zeros(1, device=device), torch.zeros(1, device=device) # losses
+    tcls, tbox, indices, anchors = build_targets(p, targets, hyp, dict)  # targets
     h = hyp  # hyperparameters
 
     # Define criteria
-    BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([h['cls_pw']])).to(device)
+    BCEcls = nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([h['cls_pw']])).to(device) # BinaryCrossEntropy
     BCEobj = nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([h['obj_pw']])).to(device)
 
     # Class label smoothing https://arxiv.org/pdf/1902.04103.pdf eqn 3
@@ -144,8 +144,8 @@ def build_targets(p, targets, hyp, dict):
         gain[2:] = torch.tensor(p[i].shape)[[3, 2, 3, 2]]  # xyxy gain
 
         # Match targets to anchors
-        a, t, offsets = [], targets * gain, 0
-        if nt:
+        a, t, offsets = [], targets * gain, 0 # targets * gain = targets adapted to the feature map size
+        if nt: # number of targets
             na = anchors.shape[0]  # number of anchors
             at = torch.arange(na).view(na, 1).repeat(1, nt)  # anchor tensor, same as .repeat_interleave(nt)
             r = t[None, :, 4:6] / anchors[:, None]  # wh ratio

@@ -1,6 +1,9 @@
 import torch.nn.functional as F
+from torch.nn.functional import softmax
+from torch.distributions import Categorical
 
 from Fusion.utils.general import *
+import cv2
 
 import torch
 from torch import nn
@@ -39,9 +42,10 @@ class BasicConv(nn.Module):
         return x
 
 class ChannelGate(nn.Module):
-    def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max']):
+    def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], ent=False):
         super(ChannelGate, self).__init__()
         self.gate_channels = gate_channels
+        self.ent = ent
         self.mlp = nn.Sequential(
             Flatten(),
             nn.Linear(gate_channels, gate_channels // reduction_ratio),
@@ -50,28 +54,38 @@ class ChannelGate(nn.Module):
             )
         self.pool_types = pool_types
 
+    def entropy(self, x):
+        x_s = x.shape
+        prob_x = x.reshape((x_s[0],x_s[1],x_s[2]*x_s[3])).softmax(dim=2)#.reshape((x_s))#.permute(0, 2, 3, 1)
+        entropy = Categorical(probs = prob_x).entropy()#.unsqueeze(dim=-1).unsqueeze(dim=-1)
+        return entropy
+
     def forward(self, x):
         channel_att_sum = None
-        for pool_type in self.pool_types:
-            if pool_type=='avg':
-                avg_pool = F.avg_pool2d( x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-                channel_att_raw = self.mlp( avg_pool )
-            elif pool_type=='max':
-                max_pool = F.max_pool2d( x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-                channel_att_raw = self.mlp( max_pool )
-            elif pool_type=='lp':
-                lp_pool = F.lp_pool2d( x, 2, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-                channel_att_raw = self.mlp( lp_pool )
-            elif pool_type=='lse':
-                # LSE pool only
-                lse_pool = logsumexp_2d(x)
-                channel_att_raw = self.mlp( lse_pool )
 
-            if channel_att_sum is None:
-                channel_att_sum = channel_att_raw
-            else:
-                channel_att_sum = channel_att_sum + channel_att_raw
+        if self.ent:
+            channel_att_raw = self.mlp(self.entropy(x))
+        else:
+            for pool_type in self.pool_types:
+                if pool_type=='avg':
+                    avg_pool = F.avg_pool2d( x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
+                    channel_att_raw = self.mlp( avg_pool )
+                elif pool_type=='max':
+                    max_pool = F.max_pool2d( x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
+                    channel_att_raw = self.mlp( max_pool )
+                elif pool_type=='lp':
+                    lp_pool = F.lp_pool2d( x, 2, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
+                    channel_att_raw = self.mlp( lp_pool )
+                elif pool_type=='lse':
+                    # LSE pool only
+                    lse_pool = logsumexp_2d(x)
+                    channel_att_raw = self.mlp( lse_pool )
 
+        if channel_att_sum is None:
+            channel_att_sum = channel_att_raw
+        else:
+            channel_att_sum = channel_att_sum + channel_att_raw
+        
         scale = torch.sigmoid( channel_att_sum ).unsqueeze(2).unsqueeze(3).expand_as(x)
         return x * scale
 
@@ -98,13 +112,19 @@ class SpatialGate(nn.Module):
         x_compress = self.compress(x)
         x_out = self.spatial(x_compress)
         scale = torch.sigmoid(x_out) # broadcasting
+        # print(scale.shape)
+        # scale_png = scale.squeeze().to('cpu').numpy()
+        # print(scale.shape)
+        # scale_png = cv2.resize(scale_png, (320,320))
+        # cv2.imwrite('./att.png', scale_png)
+
         return x * scale
 
 
 class CBAM(nn.Module):
-    def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], spatial=True):
+    def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], spatial=True, ent=False):
         super(CBAM, self).__init__()
-        self.ChannelGate = ChannelGate(gate_channels, reduction_ratio, pool_types)
+        self.ChannelGate = ChannelGate(gate_channels, reduction_ratio, pool_types, ent)
         self.spatial=spatial
         if spatial:
             self.SpatialGate = SpatialGate()

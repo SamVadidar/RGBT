@@ -1,6 +1,7 @@
 from Fusion.utils.google_utils import *
 from Fusion.utils.layers import *
 from Fusion.utils import torch_utils
+import matplotlib.pyplot as plt
 
 ONNX_EXPORT = False
 
@@ -100,10 +101,14 @@ class rCSP(torch.nn.Module):
 
 
 class Fused_Backbone(torch.nn.Module):
-    def __init__(self, attention=False):
+    def __init__(self, att_bc=False, att_ac=False, H_att_bc=False, H_att_ac=False):
         super(Fused_Backbone,self).__init__()
 
-        self.attention = attention
+        self.attention_bc = att_bc # before concat
+        self.attention_ac = att_ac # after concat
+
+        self.H_attention_bc = H_att_bc # EntropyBasedAttention before concat
+        self.H_attention_ac = H_att_ac # EntropyBasedAttention after concat
 
         self.main3_rgb = torch.nn.Sequential(CBM(in_filters=3,out_filters=32,kernel_size=3,stride=1),
                                         CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
@@ -129,25 +134,57 @@ class Fused_Backbone(torch.nn.Module):
         self.main5_ir = torch.nn.Sequential(CBM(in_filters=512,out_filters=1024,kernel_size=3,stride=2),
                                         CSP(filters=1024,nblocks = 4))
 
-        if self.attention:
-            # CBAM
-            self.cbam_x3 = CBAM(256)
-            self.cbam_x4 = CBAM(512)
-            self.cbam_x5 = CBAM(1024)       
+        if self.H_attention_bc:
+            self.cbam_x3_bc = CBAM(256, spatial=False, ent=True)
+            self.cbam_x4_bc = CBAM(512, spatial=False, ent=True)
+            self.cbam_x5_bc = CBAM(1024, spatial=False, ent=True)
+        if self.attention_bc:
+            self.cbam_x3_bc = CBAM(256, spatial=True)
+            self.cbam_x4_bc = CBAM(512, spatial=True)
+            self.cbam_x5_bc = CBAM(1024, spatial=True)
+
+        if self.H_attention_ac:
+            self.cbam_x3_ac = CBAM(512, spatial=False, ent=True)
+            self.cbam_x4_ac = CBAM(1024, spatial=False, ent=True)
+            self.cbam_x5_ac = CBAM(2048, spatial=False, ent=True)
+        if self.attention_ac:
+            self.cbam_x3_ac = CBAM(512, spatial=True)
+            self.cbam_x4_ac = CBAM(1024, spatial=True)
+            self.cbam_x5_ac = CBAM(2048, spatial=True)
         
         self.f_x3_Conv2d = torch.nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, stride=1, bias=False) # torch.Size([1, 512, 80, 80])
         self.f_x4_Conv2d = torch.nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, stride=1, bias=False)
         self.f_x5_Conv2d = torch.nn.Conv2d(in_channels=2048, out_channels=1024, kernel_size=1, stride=1, bias=False)
-    
-    def forward(self, rgb, ir):
-        if self.attention:
-            rgb_x3 = self.cbam_x3(self.main3_rgb(rgb))
-            rgb_x4 = self.cbam_x4(self.main4_rgb(rgb_x3))
-            rgb_x5 = self.cbam_x5(self.main5_rgb(rgb_x4))
 
-            ir_x3 = self.cbam_x3(self.main3_ir(ir))
-            ir_x4 = self.cbam_x4(self.main4_ir(ir_x3))
-            ir_x5 = self.cbam_x5(self.main5_ir(ir_x4))
+    def forward(self, rgb, ir):
+        if self.attention_bc or self.H_attention_bc:
+            rgb_x3 = self.cbam_x3_bc(self.main3_rgb(rgb))
+            rgb_x4 = self.cbam_x4_bc(self.main4_rgb(rgb_x3))
+            rgb_x5 = self.cbam_x5_bc(self.main5_rgb(rgb_x4))
+            # plt.figure(figsize=(30, 30))
+            # print(rgb_x3.shape[1])
+            # plt.figure(figsize=(30, 30))
+            # for layer_num in range(rgb_x3.shape[1]):
+            #     layer_viz = rgb_x3[0, layer_num, :, :]
+            #     layer_viz = layer_viz.data.to('cpu').numpy().astype('int64')
+            #     # print(layer_viz.size())
+            #     # for i, filter in enumerate(layer_viz):
+            #     if layer_num == 64: # we will visualize only 8x8 blocks from each layer
+            #         break
+            #     plt.subplot(8, 8, layer_num + 1)
+            #     # layer_viz = layer_viz.to('cpu').numpy()
+            #     # layer_viz *= 255
+            #     plt.imshow(layer_viz, cmap='gray')
+            #     plt.axis("off")
+
+            #     print(f"Saving layer {layer_num} feature maps...")
+            #     # plt.show()
+            #     plt.savefig(f"./Att_layer_{layer_num}.png")
+            #     plt.close()
+
+            ir_x3 = self.cbam_x3_bc(self.main3_ir(ir))
+            ir_x4 = self.cbam_x4_bc(self.main4_ir(ir_x3))
+            ir_x5 = self.cbam_x5_bc(self.main5_ir(ir_x4))
         else:
             rgb_x3 = self.main3_rgb(rgb)
             rgb_x4 = self.main4_rgb(rgb_x3)
@@ -156,21 +193,32 @@ class Fused_Backbone(torch.nn.Module):
             ir_x3 = self.main3_ir(ir)
             ir_x4 = self.main4_ir(ir_x3)
             ir_x5 = self.main5_ir(ir_x4)
-        
+
         f_x3 = torch.cat((rgb_x3, ir_x3), dim=1) # torch.Size([1, 512, 80, 80])
         f_x4 = torch.cat((rgb_x4, ir_x4), dim=1) # torch.Size([1, 1024, 40, 40])
         f_x5 = torch.cat((rgb_x5, ir_x5), dim=1) # torch.Size([1, 2048, 20, 20])
 
-        f_x3 = self.f_x3_Conv2d(f_x3)
-        f_x4 = self.f_x4_Conv2d(f_x4)
-        f_x5 = self.f_x5_Conv2d(f_x5)
+        if self.attention_ac or self.H_attention_ac:
+            f_x3 = self.cbam_x3_ac(f_x3)
+            f_x4 = self.cbam_x4_ac(f_x4)
+            f_x5 = self.cbam_x5_ac(f_x5)
+
+            f_x3 = self.f_x3_Conv2d(f_x3)
+            f_x4 = self.f_x4_Conv2d(f_x4)
+            f_x5 = self.f_x5_Conv2d(f_x5)
+        else:
+            f_x3 = self.f_x3_Conv2d(f_x3)
+            f_x4 = self.f_x4_Conv2d(f_x4)
+            f_x5 = self.f_x5_Conv2d(f_x5)
 
         return (f_x3, f_x4, f_x5)
 
 
 class Backbone(torch.nn.Module):
-    def __init__(self, mode):
+    def __init__(self, mode, attention=False, H_attention=False):
         super(Backbone,self).__init__()
+        self.attention = attention
+        self.H_attention = H_attention
         if mode == 'rgb':
             self.main3 = torch.nn.Sequential(CBM(in_filters=3,out_filters=32,kernel_size=3,stride=1),
                                             CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
@@ -191,10 +239,25 @@ class Backbone(torch.nn.Module):
                                         CSP(filters=512,nblocks = 8))
         self.main5 = torch.nn.Sequential(CBM(in_filters=512,out_filters=1024,kernel_size=3,stride=2),
                                         CSP(filters=1024,nblocks = 4))
+
+        if self.attention:
+            self.cbam_x3 = CBAM(256)
+            self.cbam_x4 = CBAM(512)
+            self.cbam_x5 = CBAM(1024)
+        if self.H_attention:
+            self.cbam_x3 = CBAM(256, spatial=False, ent=True)
+            self.cbam_x4 = CBAM(512, spatial=False, ent=True)
+            self.cbam_x5 = CBAM(1024, spatial=False, ent=True)
+
     def forward(self,x):
-        x3 = self.main3(x)
-        x4 = self.main4(x3)
-        x5 = self.main5(x4)
+        if self.attention or self.H_attention:
+            x3 = self.cbam_x3(self.main3(x))
+            x4 = self.cbam_x4(self.main4(x3))
+            x5 = self.cbam_x5(self.main5(x4))
+        else:
+            x3 = self.main3(x)
+            x4 = self.main4(x3)
+            x5 = self.main5(x4)
         return (x3,x4,x5)
 
 
@@ -330,7 +393,12 @@ class YOLOLayer(torch.nn.Module):
 
         else:  # inference
             io = p.sigmoid()
-            io[..., :2] = (io[..., :2] * 2. - 0.5 + self.grid)
+            try:
+                io[..., :2] = (io[..., :2] * 2. - 0.5 + self.grid)
+            except:
+                self.create_grids((nx, ny), p.device)
+                io[..., :2] = (io[..., :2] * 2. - 0.5 + self.grid)
+
             io[..., 2:4] = (io[..., 2:4] * 2) ** 2 * self.anchor_wh
             io[..., :4] *= self.stride
             #io = p.clone()  # inference output
@@ -437,7 +505,8 @@ class Fused_Darknets(torch.nn.Module):
         self.nclasses = dict['nclasses']
         self.anchors = dict['anchors_g']
         
-        self.fused_backbone = Fused_Backbone(attention=dict['attention'])
+        self.fused_backbone = Fused_Backbone(att_bc=dict['attention_bc'], att_ac=dict['attention_ac'],
+                                             H_att_bc=dict['H_attention_bc'], H_att_ac=dict['H_attention_ac'])
         self.neck = Neck()
         self.head = Head(self.nclasses)
         self.yolo3 = YOLOLayer(self.anchors[0:3], self.nclasses, img_size, stride = 8)
@@ -543,7 +612,7 @@ class Darknet(torch.nn.Module):
         self.nclasses = dict['nclasses']
         self.anchors = dict['anchors_g']
         
-        self.backbone = Backbone(dict['mode']) # mode: rgb or ir
+        self.backbone = Backbone(dict['mode'], dict['attention_bc'], dict['H_attention_bc']) # mode: rgb or ir
         self.neck = Neck()
         self.head = Head(self.nclasses)
         self.yolo3 = YOLOLayer(self.anchors[0:3], self.nclasses, img_size, stride = 8)

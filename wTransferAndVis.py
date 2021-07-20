@@ -5,6 +5,8 @@ from torch.cuda import amp
 from torchviz import make_dot
 import torch.optim as optim
 import torch.nn as nn
+from torch.nn.functional import sigmoid, softmax
+from torch.distributions import Categorical
 from torchvision import models, transforms
 import os
 
@@ -21,8 +23,9 @@ dict_= {
     'names' : ['person', 'bicycle', 'car'],
     'img_size': 320, #Input image size. Must be a multiple of 32
     'img_format': '.jpg',
+    'batch_size': 1, #train batch size
     'mode': 'rgb',
-    'weight_path': './runs/train/exp_RGB320_350noMSnoMos_from150_200/weights/last_348.pt',
+    'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_ap50.pt',
     'task': 'test', # change to test only for the final test,
     'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev/',
     }
@@ -143,6 +146,17 @@ def gui_vis():
     # plt.imshow(img)
     # plt.show()
 
+def load_weights(model, dict_):
+    try:
+        ckpt = torch.load(dict_['weight_path']) # load checkpoint
+        if ckpt['epoch'] != -1: print('Saved @ epoch: ', ckpt['epoch'])
+        ckpt['model'] = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
+        model.load_state_dict(ckpt['model'], strict=False)
+    except:
+        raise ValueError('The Weight does not exist!')
+    
+    return model
+
 def conv_vis(model, dict_):
     try:
         ckpt = torch.load(dict_['weight_path']) # load checkpoint
@@ -154,7 +168,8 @@ def conv_vis(model, dict_):
 
     model_weights = [] # we will save the conv layer weights in this list
     conv_layers = [] # we will save the 49 conv layers in this list
-    num_of_layers = 0 
+    num_of_layers = 0
+
 
     # for i, key in enumerate(ckpt['model']):
     #     if 'weight' in key and 'batchnorm' not in key: # 'conv' in key and 
@@ -163,9 +178,11 @@ def conv_vis(model, dict_):
     #         num_of_layers += 1
     #         # print(key)
     # print(f"Total convolutional layers: {counter}")
-    print(model)
+
+    # print(model)
     model_children=list(model.children())
 
+    # get all the conv. layers in sub-branches
     for child in model_children:
         child2 = child.children()
         for layer in child2:
@@ -209,6 +226,19 @@ def conv_vis(model, dict_):
                                                                 num_of_layers+=1
                                                                 conv_layers.append(layer)
 
+    i = 0
+    for element in ckpt['model']:
+    # # for i in range (len(ckpt['model'])):
+        if 'conv.weight' in element or 'head.final3.weight' in element\
+                                    or 'head.final4.weight' in element\
+                                    or 'head.final5.weight' in element:
+            print(conv_layers[i], '\n', element, ' Conv-idx:{}'.format(i), '\n')
+            i +=1
+
+
+    #         # print(element)
+    #         model_weights.append(ckpt['model'][element])
+
     # print(num_of_layers)
 
     # # Kernel Vis.
@@ -250,7 +280,14 @@ def conv_vis(model, dict_):
               '\nW_in_next:', conv_layers[i+1].in_channels,
               '\nConvL: ', results[-1].shape)
         # pass the result from the last layer to the next layer
-        results.append(conv_layers[i](results[-1]))
+        try:
+            results.append(conv_layers[i](results[-1]))
+        except:
+            # swap the current layer with the next layer
+            temp = conv_layers[i]
+            conv_layers[i] = conv_layers[i+1]
+            conv_layers[i+1] = temp
+            results.append(conv_layers[i](results[-1]))
     # make a copy of the `results`
     outputs = results
 
@@ -306,12 +343,12 @@ if '__main__' == __name__:
     #=================================================================================
     # Weight Transfer for Fusion
 
-    fusion_state_dict = torch.load("./RGBT_init.pt")
-    ir_state_dict = torch.load("./runs/train/exp_IR320_300noMSnoMos/weights/best_val_loss.pt")['model']
-    rgb_state_dict = torch.load("./runs/train/exp_RGB320_300noMSnoMos/weights/best_val_loss.pt")['model']
-    # ir_state_dict = torch.load("./IR.pt")['model']
-    # rgb_state_dict = torch.load("./yolo_pre_3c.pt")['model']
-    BLs_W_to_RGBT(rgb_state_dict, ir_state_dict, fusion_state_dict)
+    # fusion_state_dict = torch.load("./RGBT_init.pt")
+    # ir_state_dict = torch.load("./runs/train/exp_IR320_300noMSnoMos/weights/best_val_loss.pt")['model']
+    # rgb_state_dict = torch.load("./runs/train/exp_RGB320_300noMSnoMos/weights/best_val_loss.pt")['model']
+    # # ir_state_dict = torch.load("./IR.pt")['model']
+    # # rgb_state_dict = torch.load("./yolo_pre_3c.pt")['model']
+    # BLs_W_to_RGBT(rgb_state_dict, ir_state_dict, fusion_state_dict)
 
     #=================================================================================
     # Weight Transfer for IR
@@ -327,3 +364,98 @@ if '__main__' == __name__:
     # model = Darknet(dict_, img_size=(dict_['img_size'], dict_['img_size']))
     # # print(model)
     # conv_vis(model, dict_)
+
+    #=================================================================================
+    # # GFLOPS
+    # from fvcore.nn import FlopCountAnalysis
+    # from fvcore.nn import flop_count_table
+    # from fvcore.nn import flop_count_str
+    # from Fusion.utils.torch_utils import select_device
+
+    # device = select_device(device=dict_['device_num'], batch_size=dict_['batch_size'])
+    # model = Darknet(dict_, img_size=(dict_['img_size'], dict_['img_size'])).to(device)
+    
+    # img = cv2.imread(os.path.join(DATASET_PP_PATH, 'samples/FLIR_00145.jpg'))
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    # transform = transforms.Compose([
+    #     transforms.ToPILImage(),
+    #     transforms.Resize((320, 320)),
+    #     transforms.ToTensor(),
+    # ])
+    # img = np.array(img)
+    # img = transform(img)
+    # # unsqueeze to add a batch dimension
+    # img = img.unsqueeze(0)
+    # img = img.to(device)
+
+    # flops = FlopCountAnalysis(model, img)
+    # print(flop_count_table(flops))
+    # # print(flops.by_module_and_operator()) # flops.by_module(), flops.by_operator()
+
+    # #-------------------------------------------------------------------------------
+    # # FPS
+
+    # model = load_weights(model, dict_)
+    # model.eval()
+
+    # # Half
+    # half = device.type != 'cpu'  # half precision only supported on CUDA
+    # if half:
+    #     model.half()
+
+    # # Run Once
+    # imgsz = img.shape
+    # img_test = torch.zeros((1, 3, imgsz[-1], imgsz[-1]), device=device)  # init img
+    # _ = model(img_test.half() if half else img_test) if device.type != 'cpu' else None  # run once
+
+    # img = img.to(device, non_blocking=True)
+    # img = img.half() if half else img.float()  # uint8 to fp16/32
+    # img /= 255.0  # 0 - 255 to 0.0 - 1.0
+    # if len(img.shape) == 3: #  ir mode
+    #     img = torch.unsqueeze(img, axis=1)
+
+    # RUN_NUM = 30
+    # WARM_UP_RUNS = 5
+
+    # with torch.no_grad():
+    #     for i in range(RUN_NUM):
+    #         if i == WARM_UP_RUNS:
+    #             start_time = time.time()
+    #         pred = model(img.half() if half else img) if device.type != 'cpu' else None
+
+    # end_time = time.time()
+    # total_forward = end_time - start_time
+    # print('Total forward time is %4.2f seconds' % total_forward)
+    # actual_num_runs = RUN_NUM - WARM_UP_RUNS
+    # latency = total_forward / actual_num_runs
+    # fps = 1/latency
+    # # fps = (cfg.CONFIG.DATA.CLIP_LEN * cfg.CONFIG.DATA.FRAME_RATE) * actual_num_runs / total_forward
+
+    # print("FPS: ", fps, "; Latency: ", latency)
+
+    #=================================================================================
+    # # Entropy
+    # p = np.array([0.1, 0.2, 0.4, 0.3])
+    # p = np.array([0.1, 0.1, 0.1, 1])
+    # logp = np.log(p)
+    # entropy1 = np.sum(-p*logp)
+    # print(entropy1)
+
+    # tensor = torch.Tensor([[[[0.1, 0.2], [0.1, 0.2]], [[0.1, 0.2], [0.1, 0.2]], [[0.1, 0.2], [0.1, 0.2]], [[0.4, 0.3], [0.1, 0.2]]],
+    #                          [[[0.1, 0.2], [0.1, 0.2]], [[0.4, 0.3], [0.1, 0.2]], [[0.4, 0.3], [0.1, 0.2]], [[0.4, 0.3], [0.1, 0.2]]]])
+
+    tensor = torch.Tensor([[[5,4], [4,5], [5,4], [4,5]]])
+    tensor = tensor.reshape((1,8)).softmax(dim=1).reshape((1,4,2))
+    # tensor *= 10
+    tensor_p = softmax(tensor, dim=2)#.permute(0, 2, 3, 1)
+    print(tensor_p)
+    entropy2 = Categorical(probs = tensor_p).entropy().unsqueeze(dim=1)
+    print(entropy2)
+    tensor *= entropy2
+    print(tensor)
+
+    # def entropy(self, x):
+    #     prob_x = softmax(x, dim=1).permute(0, 2, 3, 1)
+    #     entropy = Categorical(probs = prob_x).entropy().unsqueeze(dim=1)
+    #     return x*entropy
