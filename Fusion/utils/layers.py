@@ -10,7 +10,7 @@ from torch import nn
 
 try:
     from mish_cuda import MishCuda as Mish
-    
+
 except:
     class Mish(nn.Module):  # https://github.com/digantamisra98/Mish
         def forward(self, x):
@@ -85,7 +85,7 @@ class ChannelGate(nn.Module):
             channel_att_sum = channel_att_raw
         else:
             channel_att_sum = channel_att_sum + channel_att_raw
-        
+
         scale = torch.sigmoid( channel_att_sum ).unsqueeze(2).unsqueeze(3).expand_as(x)
         return x * scale
 
@@ -102,16 +102,29 @@ class ChannelPool(nn.Module):
 
 
 class SpatialGate(nn.Module):
-    def __init__(self):
+    def __init__(self, ent):
         super(SpatialGate, self).__init__()
         kernel_size = 7
+        self.ent = ent
         self.compress = ChannelPool()
-        self.spatial = BasicConv(2, 1, kernel_size, stride=1, padding=(kernel_size-1) // 2, relu=False)
+        if self.ent:
+            self.spatial = BasicConv(1, 1, kernel_size, stride=1, padding=(kernel_size-1) // 2, relu=False)
+        else:
+            self.spatial = BasicConv(2, 1, kernel_size, stride=1, padding=(kernel_size-1) // 2, relu=False)
+
+    def entropy(self, x):
+        prob_x = x.softmax(dim=1).permute(0,2,3,1)
+        entropy = Categorical(probs = prob_x).entropy().unsqueeze(dim=1)#.unsqueeze(dim=-1).unsqueeze(dim=-1)
+        return entropy
 
     def forward(self, x):
-        x_compress = self.compress(x)
+        if self.ent:
+            x_compress = self.entropy(x)
+        else:
+            x_compress = self.compress(x) # Max & Avg.
         x_out = self.spatial(x_compress)
         scale = torch.sigmoid(x_out) # broadcasting
+
         # print(scale.shape)
         # scale_png = scale.squeeze().to('cpu').numpy()
         # print(scale.shape)
@@ -122,12 +135,12 @@ class SpatialGate(nn.Module):
 
 
 class CBAM(nn.Module):
-    def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], spatial=True, ent=False):
+    def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], spatial=False, ent=False):
         super(CBAM, self).__init__()
         self.ChannelGate = ChannelGate(gate_channels, reduction_ratio, pool_types, ent)
         self.spatial=spatial
         if spatial:
-            self.SpatialGate = SpatialGate()
+            self.SpatialGate = SpatialGate(ent)
 
     def forward(self, x):
         x_out = self.ChannelGate(x)
@@ -460,14 +473,14 @@ class GAP(nn.Module):
         super(GAP, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
     def forward(self, x):
-        #b, c, _, _ = x.size()        
+        #b, c, _, _ = x.size()
         return self.avg_pool(x)#.view(b, c)
-    
-    
+
+
 class Silence(nn.Module):
     def __init__(self):
         super(Silence, self).__init__()
-    def forward(self, x):    
+    def forward(self, x):
         return x
 
 

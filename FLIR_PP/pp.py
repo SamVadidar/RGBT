@@ -659,5 +659,6 @@ if __name__ == "__main__":
     dst_path = 'mini_Train_Test_Split'
     train_test_split(DATASET_PP_PATH, dst_path, train_size=0.21, dev_size=0.06, test_size=0.12, mini=True)
 
+    # Seperate Day from Night images
     path_to_split = os.path.join(DATASET_PP_PATH, 'Train_Test_Split')
-    day_night_split(path_to_split, whichset='test')
+    day_night_split(path_to_split, whichset='dev')

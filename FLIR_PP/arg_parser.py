@@ -9,7 +9,7 @@ args = dataset_path_parser.parse_args()
 input_path = args.Path
 
 if not os.path.isdir(input_path):
-    print('The Path does not exist')
+    print('Dataset Path does not exist')
     sys.exit()
 
 else:

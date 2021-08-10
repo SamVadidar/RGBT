@@ -17,13 +17,13 @@ class Mish(torch.nn.Module):
 
 class CBM(torch.nn.Module):
     def __init__(self,in_filters, out_filters, kernel_size, stride):
-        super(CBM,self).__init__()                               
-        self.conv = torch.nn.Conv2d(in_channels=in_filters,out_channels=out_filters,kernel_size=kernel_size,stride=stride,padding=kernel_size//2,bias=False)   
+        super(CBM,self).__init__()
+        self.conv = torch.nn.Conv2d(in_channels=in_filters,out_channels=out_filters,kernel_size=kernel_size,stride=stride,padding=kernel_size//2,bias=False)
         self.batchnorm = torch.nn.BatchNorm2d(num_features=out_filters,momentum=0.03, eps=1E-4)
         self.act = Mish()
     def forward(self,x):
         return self.act(self.batchnorm(self.conv(x)))
-        
+
 
 class ResUnit(torch.nn.Module):
     def __init__(self, filters, first = False):
@@ -31,9 +31,9 @@ class ResUnit(torch.nn.Module):
         if first:
             self.out_filters = filters//2
         else:
-            self.out_filters = filters         
+            self.out_filters = filters
         self.resroute= torch.nn.Sequential(CBM(filters, self.out_filters, kernel_size=1, stride=1),
-                                                    CBM(self.out_filters, filters, kernel_size=3, stride=1))       
+                                                    CBM(self.out_filters, filters, kernel_size=3, stride=1))
     def forward(self, x):
         shortcut = x
         x = self.resroute(x)
@@ -48,9 +48,9 @@ class CSP(torch.nn.Module):
         self.route_list.append(CBM(in_filters=filters,out_filters=filters//2,kernel_size=1,stride=1))
         for block in range(nblocks):
             self.route_list.append(ResUnit(filters=filters//2))
-        self.route_list.append(CBM(in_filters=filters//2,out_filters=filters//2,kernel_size=1,stride=1))                                         
+        self.route_list.append(CBM(in_filters=filters//2,out_filters=filters//2,kernel_size=1,stride=1))
         self.last = CBM(in_filters=filters,out_filters=filters,kernel_size=1,stride=1)
-        
+
     def forward(self,x):
         shortcut = self.skip(x)
         for block in self.route_list:
@@ -114,7 +114,7 @@ class Fused_Backbone(torch.nn.Module):
                                         CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
                                         ResUnit(filters = 64, first= True),
                                         CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
-                                        CSP(filters=128,nblocks = 2), 
+                                        CSP(filters=128,nblocks = 2),
                                         CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2),
                                         CSP(filters=256,nblocks = 8))
         self.main4_rgb = torch.nn.Sequential(CBM(in_filters=256,out_filters=512,kernel_size=3,stride=2),
@@ -126,7 +126,7 @@ class Fused_Backbone(torch.nn.Module):
                                         CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
                                         ResUnit(filters = 64, first= True),
                                         CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
-                                        CSP(filters=128,nblocks = 2), 
+                                        CSP(filters=128,nblocks = 2),
                                         CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2),
                                         CSP(filters=256,nblocks = 8))
         self.main4_ir = torch.nn.Sequential(CBM(in_filters=256,out_filters=512,kernel_size=3,stride=2),
@@ -135,23 +135,23 @@ class Fused_Backbone(torch.nn.Module):
                                         CSP(filters=1024,nblocks = 4))
 
         if self.H_attention_bc:
-            self.cbam_x3_bc = CBAM(256, spatial=False, ent=True)
-            self.cbam_x4_bc = CBAM(512, spatial=False, ent=True)
-            self.cbam_x5_bc = CBAM(1024, spatial=False, ent=True)
+            self.cbam_x3_bc = CBAM(256, spatial=True, ent=True)
+            self.cbam_x4_bc = CBAM(512, spatial=True, ent=True)
+            self.cbam_x5_bc = CBAM(1024, spatial=True, ent=True)
         if self.attention_bc:
             self.cbam_x3_bc = CBAM(256, spatial=True)
             self.cbam_x4_bc = CBAM(512, spatial=True)
             self.cbam_x5_bc = CBAM(1024, spatial=True)
 
         if self.H_attention_ac:
-            self.cbam_x3_ac = CBAM(512, spatial=False, ent=True)
-            self.cbam_x4_ac = CBAM(1024, spatial=False, ent=True)
-            self.cbam_x5_ac = CBAM(2048, spatial=False, ent=True)
+            self.cbam_x3_ac = CBAM(512, spatial=True, ent=True)
+            self.cbam_x4_ac = CBAM(1024, spatial=True, ent=True)
+            self.cbam_x5_ac = CBAM(2048, spatial=True, ent=True)
         if self.attention_ac:
             self.cbam_x3_ac = CBAM(512, spatial=True)
             self.cbam_x4_ac = CBAM(1024, spatial=True)
             self.cbam_x5_ac = CBAM(2048, spatial=True)
-        
+
         self.f_x3_Conv2d = torch.nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, stride=1, bias=False) # torch.Size([1, 512, 80, 80])
         self.f_x4_Conv2d = torch.nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, stride=1, bias=False)
         self.f_x5_Conv2d = torch.nn.Conv2d(in_channels=2048, out_channels=1024, kernel_size=1, stride=1, bias=False)
@@ -224,7 +224,7 @@ class Backbone(torch.nn.Module):
                                             CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
                                             ResUnit(filters = 64, first= True),
                                             CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
-                                            CSP(filters=128,nblocks = 2), 
+                                            CSP(filters=128,nblocks = 2),
                                             CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2),
                                             CSP(filters=256,nblocks = 8))
         elif mode == 'ir':
@@ -232,7 +232,7 @@ class Backbone(torch.nn.Module):
                                             CBM(in_filters=32,out_filters=64,kernel_size=3,stride=2),
                                             ResUnit(filters = 64, first= True),
                                             CBM(in_filters=64,out_filters=128,kernel_size=3,stride=2),
-                                            CSP(filters=128,nblocks = 2), 
+                                            CSP(filters=128,nblocks = 2),
                                             CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2),
                                             CSP(filters=256,nblocks = 8))
         self.main4 = torch.nn.Sequential(CBM(in_filters=256,out_filters=512,kernel_size=3,stride=2),
@@ -264,7 +264,7 @@ class Backbone(torch.nn.Module):
 def up(filters):
         return torch.nn.Sequential(CBM(in_filters=filters,out_filters=filters//2,kernel_size=1,stride=1),
                                         torch.nn.Upsample(scale_factor=2))
-    
+
 
 class Neck(torch.nn.Module):
     def __init__(self):
@@ -284,21 +284,21 @@ class Neck(torch.nn.Module):
         x4 = self.main4(self.conv2(torch.cat((self.conv1(x4),self.up5(x5)),dim=1)))
         x3 = self.main3(self.conv4(torch.cat((self.conv3(x3),self.up4(x4)),dim=1)))
         return (x3,x4,x5)
-    
+
 
 class Head(torch.nn.Module):
     def __init__(self,nclasses):
         super(Head,self).__init__()
         self.last_layers = 3*(4+1+nclasses)
         self.last3 = CBM(in_filters=128,out_filters=256,kernel_size=3,stride=1)
-        self.final3 = torch.nn.Conv2d(in_channels=256,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True) 
-        
+        self.final3 = torch.nn.Conv2d(in_channels=256,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True)
+
         self.conv1 = CBM(in_filters=128,out_filters=256,kernel_size=3,stride=2)
         self.conv2 = CBM(in_filters=512,out_filters=256,kernel_size=1,stride=1)
         self.main4 = rCSP(256)
         self.last4 = CBM(in_filters=256,out_filters=512,kernel_size=3,stride=1)
         self.final4 = torch.nn.Conv2d(in_channels=512,out_channels=self.last_layers,kernel_size=1,stride=1,bias=True)
-        
+
         self.conv3 = CBM(in_filters=256,out_filters=512,kernel_size=3,stride=2)
         self.conv4 = CBM(in_filters=1024,out_filters=512,kernel_size=1,stride=1)
         self.main5 = rCSP(512)
@@ -504,7 +504,7 @@ class Fused_Darknets(torch.nn.Module):
         super(Fused_Darknets, self).__init__()
         self.nclasses = dict['nclasses']
         self.anchors = dict['anchors_g']
-        
+
         self.fused_backbone = Fused_Backbone(att_bc=dict['attention_bc'], att_ac=dict['attention_ac'],
                                              H_att_bc=dict['H_attention_bc'], H_att_ac=dict['H_attention_ac'])
         self.neck = Neck()
@@ -548,10 +548,10 @@ class Fused_Darknets(torch.nn.Module):
         # x3_ir, x4_ir, x5_ir = self.backbone(y)
         # self.x3_f, self.x4_f, self.x5_f = torch.cat((x3_ir, x3_rgb)), torch.cat((x4_ir, x4_rgb)), torch.cat((x5_ir, x5_rgb))
         # y3,y4,y5 = self.head(self.neck([self.x3_f, self.x4_f, self.x5_f]))
-        
+
         # a = self.fused_backbone(rgb, ir)
         # print(a[0].shape)
-        
+
         y3,y4,y5 = self.head(self.neck(self.fused_backbone(rgb, ir)))
         y3 = self.yolo3(y3)
         y4 = self.yolo4(y4)
@@ -572,7 +572,7 @@ class Fused_Darknets(torch.nn.Module):
 
         if self.training:  # train
             return yolo_out
-        elif ONNX_EXPORT:  # export 
+        elif ONNX_EXPORT:  # export
             x = [torch.cat(x, 0) for x in zip(*yolo_out)]
             return x[0], torch.cat(x[1:3], 1)  # scores, boxes: 3780x80, 3780x4
         else:  # inference or test
@@ -606,12 +606,12 @@ class Darknet(torch.nn.Module):
         # self.version = np.array([0, 2, 5], dtype=np.int32)  # (int32) version info: major, minor, revision
         # self.seen = np.array([0], dtype=np.int64)  # (int64) number of images seen during training
         # self.info(verbose) if not ONNX_EXPORT else None  # print model description
-    
+
     def __init__(self, dict, img_size=(416, 416), verbose=False):
         super(Darknet, self).__init__()
         self.nclasses = dict['nclasses']
         self.anchors = dict['anchors_g']
-        
+
         self.backbone = Backbone(dict['mode'], dict['attention_bc'], dict['H_attention_bc']) # mode: rgb or ir
         self.neck = Neck()
         self.head = Head(self.nclasses)
@@ -696,7 +696,7 @@ class Darknet(torch.nn.Module):
             #     str = ''
         if self.training:  # train
             return yolo_out
-        elif ONNX_EXPORT:  # export 
+        elif ONNX_EXPORT:  # export
             x = [torch.cat(x, 0) for x in zip(*yolo_out)]
             return x[0], torch.cat(x[1:3], 1)  # scores, boxes: 3780x80, 3780x4
         else:  # inference or test

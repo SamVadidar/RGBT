@@ -50,7 +50,7 @@ def test(dict,
         merge = dict['nms_merge']
 
         # Directories
-        save_dir = Path(increment_path((Path('./runs/test') / 'exp'), exist_ok=False, sep='_'))  # increment run
+        save_dir = Path(increment_path(('./runs/test/exp'+dict['comment']), exist_ok=False, sep='_'))  # increment run
         (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
         img_size = dict['img_size']
@@ -67,7 +67,7 @@ def test(dict,
             ckpt['model'] = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
             model.load_state_dict(ckpt['model'], strict=False)
         except:
-            raise ValueError('The Weight does not exist!')
+            raise ValueError('Check the "mode" in your dict! Or maybe the Weight does not exist!')
 
         imgsz = check_img_size(dict['img_size'], s=64)  # check img_size
 
@@ -107,6 +107,10 @@ def test(dict,
         dataloader = create_dataloader(path, imgsz, dict['batch_size'], 64, hyp=hyp, augment=dict['aug'], pad=0.5, rect=dict['rect'], img_format=dict['img_format'], mode = dict['mode'])[0] # grid_size=32
 
     seen = 0
+    min_r = 1
+    min_p = 1
+    max_r = 0
+    max_p = 0
 
     names = dict['names']
     s = ('%20s' + '%12s' * 6) % ('Class', 'Images', 'Targets', 'P', 'R', 'mAP@.5', 'mAP@.5:.95')
@@ -238,7 +242,7 @@ def test(dict,
             stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
 
         # Plot images
-        if dict['plot'] and batch_i < 20:
+        if dict['plot'] and batch_i < 30:
             # f = save_dir / f'test_batch{batch_i}_labels.jpg'  # filename
             f = str(save_dir) + f'/test_batch{batch_i}_labels' + dict['img_format']  # filename
             plot_images(img, targets, paths, f, names)  # labels
@@ -258,6 +262,35 @@ def test(dict,
     else:
         nt = torch.zeros(1)
 
+
+        # if dict['plot'] and batch_i < 10 and r < min_r: # Plot images
+        #     f = str(save_dir) + f'/minr_test_batch{batch_i}_labels' + dict['img_format']  # filename
+        #     plot_images(img, targets, paths, f, names)  # labels
+        #     f = str(save_dir) + f'/minr_test_batch{batch_i}_pred' + dict['img_format']  # filename
+        #     plot_images(img, output_to_target(output, width, height), paths, f, names)  # predictions
+        #     min_r = r
+
+        # if dict['plot'] and batch_i < 10 and p < min_p: # Plot images
+        #     f = str(save_dir) + f'/minp_test_batch{batch_i}_labels' + dict['img_format']  # filename
+        #     plot_images(img, targets, paths, f, names)  # labels
+        #     f = str(save_dir) + f'/minp_test_batch{batch_i}_pred' + dict['img_format']  # filename
+        #     plot_images(img, output_to_target(output, width, height), paths, f, names)  # predictions
+        #     min_p = p
+
+        # if dict['plot'] and batch_i < 10 and r > max_r: # Plot images
+        #     f = str(save_dir) + f'/maxr_test_batch{batch_i}_labels' + dict['img_format']  # filename
+        #     plot_images(img, targets, paths, f, names)  # labels
+        #     f = str(save_dir) + f'/maxr_test_batch{batch_i}_pred' + dict['img_format']  # filename
+        #     plot_images(img, output_to_target(output, width, height), paths, f, names)  # predictions
+        #     max_r = r
+
+        # if dict['plot'] and batch_i < 10 and p > max_p: # Plot images
+        #     f = str(save_dir) + f'/maxp_test_batch{batch_i}_labels' + dict['img_format']  # filename
+        #     plot_images(img, targets, paths, f, names)  # labels
+        #     f = str(save_dir) + f'/maxp_test_batch{batch_i}_pred' + dict['img_format']  # filename
+        #     plot_images(img, output_to_target(output, width, height), paths, f, names)  # predictions
+        #     max_p = p
+    
     # # W&B logging
     # if dict['plot'] and dict['wandb']:
     #     wandb.log({"Images": wandb_images})
@@ -308,7 +341,8 @@ if __name__ == '__main__':
         # Data loader
         'rect': False,
         'aug': False,
-        'mode': 'fusion',
+        'mode': 'rgb', # ir / rgb / fusion
+        'comment': '',
 
         # test
         'nms_conf_t':0.001, #Confidence test threshold
@@ -334,42 +368,23 @@ if __name__ == '__main__':
         # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_ap50.pt',
         # 'weight_path': './runs/train/exp_IR320_1000_pre/weights/best_ap50.pt',
 
-        'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_HACBC/weights/best_ap50.pt',
+        # 'weight_path': '/home/efs-gx/RGBT/runs/train/exp_RGBT320_300noMSnoMos_HACBC/weights/best_r.pt',
         # 'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_HBC/weights/best_ap50.pt',
 
         # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_ap50.pt',
 
         # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_att/weights/best_ap50.pt',
 
-        # 'weight_path': './runs/train/exp_RGBT320_f300noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_pre/weights/best_val_loss.pt',
 
-        # 'weight_path': './runs/train/exp_RGBT320_50noMSnoMos_pre/weights/best_ap50.pt',
-
-
-        # 'weight_path': './runs/train/exp_RGBT320_75noMSnoMos_pre/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_RGBT320_75noMSnoMos_pre/weights/best_val_loss.pt',
-
-        # 'weight_path': './runs/train/exp_RGBT320_75noMSnoMos_att/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_RGBT320_75noMSnoMos_attBC/weights/best_val_loss.pt',
-
-
-        # 'weight_path': './runs/train/exp_RGBT320_100noMSnoMos_pre/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_pre/weights/best_ap50.pt',
-
-
-        # 'weight_path': './runs/train/exp_RGBT320_50noMSnoMos_pre/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_RGBT320_50noMSnoMos_pre/weights/best_val_loss.pt',
-
-        # 'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_ap50.pt',
+        'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_ap50.pt',
         # 'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_val_loss.pt',
 
         'task': 'test', # change to test only for the final test
 
-        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev/',
+        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev/',
         # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Day/',
-        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Night/',
+        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Night/',
      }
 
     hyp = {
@@ -393,6 +408,8 @@ if __name__ == '__main__':
 
 
     dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
+    dict_['comment'] = dict_['weight_path'][(dict_['weight_path'].find('_')+1):]
+    dict_['comment'] = dict_['comment'][:dict_['comment'].find('/')]
     if not dict_['study']:  # run normally
         test(dict_, hyp, augment=dict_['aug']) # test augmentation
 

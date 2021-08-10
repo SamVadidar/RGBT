@@ -150,7 +150,7 @@ def build_targets(p, targets, hyp, dict):
             at = torch.arange(na).view(na, 1).repeat(1, nt)  # anchor tensor, same as .repeat_interleave(nt)
             r = t[None, :, 4:6] / anchors[:, None]  # wh ratio
             # j = torch.max(r, 1. / r).max(2)[0] < model.hyp['anchor_t']  # compare
-            j = torch.max(r, 1. / r).max(2)[0] < hyp['anchor_t']  # compare
+            j = torch.max(r, 1. / r).max(2)[0] < hyp['anchor_t']  # comparison between label-wh and prior- (anchor)-wh
             a, t = at[j], t.repeat(na, 1, 1)[j]  # filter
 
             # overlaps
