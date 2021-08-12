@@ -101,7 +101,7 @@ class rCSP(torch.nn.Module):
 
 
 class Fused_Backbone(torch.nn.Module):
-    def __init__(self, att_bc=False, att_ac=False, H_att_bc=False, H_att_ac=False):
+    def __init__(self, att_bc=False, att_ac=False, H_att_bc=False, H_att_ac=False, spatial=False, ent_C=True, ent_S=False):
         super(Fused_Backbone,self).__init__()
 
         self.attention_bc = att_bc # before concat
@@ -135,18 +135,18 @@ class Fused_Backbone(torch.nn.Module):
                                         CSP(filters=1024,nblocks = 4))
 
         if self.H_attention_bc:
-            self.cbam_x3_bc = CBAM(256, spatial=True, ent=True)
-            self.cbam_x4_bc = CBAM(512, spatial=True, ent=True)
-            self.cbam_x5_bc = CBAM(1024, spatial=True, ent=True)
+            self.cbam_x3_bc = CBAM(256, spatial=spatial, ent_C=ent_C, ent_S=ent_S)
+            self.cbam_x4_bc = CBAM(512, spatial=spatial, ent_C=ent_C, ent_S=ent_S)
+            self.cbam_x5_bc = CBAM(1024, spatial=spatial, ent_C=ent_C, ent_S=ent_S)
         if self.attention_bc:
             self.cbam_x3_bc = CBAM(256, spatial=True)
             self.cbam_x4_bc = CBAM(512, spatial=True)
             self.cbam_x5_bc = CBAM(1024, spatial=True)
 
         if self.H_attention_ac:
-            self.cbam_x3_ac = CBAM(512, spatial=True, ent=True)
-            self.cbam_x4_ac = CBAM(1024, spatial=True, ent=True)
-            self.cbam_x5_ac = CBAM(2048, spatial=True, ent=True)
+            self.cbam_x3_ac = CBAM(512, spatial=spatial, ent_C=ent_C, ent_S=ent_S)
+            self.cbam_x4_ac = CBAM(1024, spatial=spatial, ent_C=ent_C, ent_S=ent_S)
+            self.cbam_x5_ac = CBAM(2048, spatial=spatial, ent_C=ent_C, ent_S=ent_S)
         if self.attention_ac:
             self.cbam_x3_ac = CBAM(512, spatial=True)
             self.cbam_x4_ac = CBAM(1024, spatial=True)
@@ -215,7 +215,7 @@ class Fused_Backbone(torch.nn.Module):
 
 
 class Backbone(torch.nn.Module):
-    def __init__(self, mode, attention=False, H_attention=False):
+    def __init__(self, mode, attention=False, H_attention=False, spatial=False, ent_C=True, ent_S=False):
         super(Backbone,self).__init__()
         self.attention = attention
         self.H_attention = H_attention
@@ -241,13 +241,13 @@ class Backbone(torch.nn.Module):
                                         CSP(filters=1024,nblocks = 4))
 
         if self.attention:
-            self.cbam_x3 = CBAM(256)
-            self.cbam_x4 = CBAM(512)
-            self.cbam_x5 = CBAM(1024)
+            self.cbam_x3 = CBAM(256, spatial=True)
+            self.cbam_x4 = CBAM(512, spatial=True)
+            self.cbam_x5 = CBAM(1024, spatial=True)
         if self.H_attention:
-            self.cbam_x3 = CBAM(256, spatial=False, ent=True)
-            self.cbam_x4 = CBAM(512, spatial=False, ent=True)
-            self.cbam_x5 = CBAM(1024, spatial=False, ent=True)
+            self.cbam_x3 = CBAM(256, spatial=spatial, ent_C=ent_C, ent_S=ent_S)
+            self.cbam_x4 = CBAM(512, spatial=spatial, ent_C=ent_C, ent_S=ent_S)
+            self.cbam_x5 = CBAM(1024, spatial=spatial, ent_C=ent_C, ent_S=ent_S)
 
     def forward(self,x):
         if self.attention or self.H_attention:
@@ -506,7 +506,8 @@ class Fused_Darknets(torch.nn.Module):
         self.anchors = dict['anchors_g']
 
         self.fused_backbone = Fused_Backbone(att_bc=dict['attention_bc'], att_ac=dict['attention_ac'],
-                                             H_att_bc=dict['H_attention_bc'], H_att_ac=dict['H_attention_ac'])
+                                             H_att_bc=dict['H_attention_bc'], H_att_ac=dict['H_attention_ac'],
+                                             spatial=dict['spatial'], ent_C=dict['ent_C'], ent_S=dict['ent_S'])
         self.neck = Neck()
         self.head = Head(self.nclasses)
         self.yolo3 = YOLOLayer(self.anchors[0:3], self.nclasses, img_size, stride = 8)
@@ -612,7 +613,8 @@ class Darknet(torch.nn.Module):
         self.nclasses = dict['nclasses']
         self.anchors = dict['anchors_g']
 
-        self.backbone = Backbone(dict['mode'], dict['attention_bc'], dict['H_attention_bc']) # mode: rgb or ir
+        self.backbone = Backbone(dict['mode'], dict['attention_bc'], dict['H_attention_bc'], 
+                                 dict['spatial'], dict['ent_C'], dict['ent_S']) # mode: rgb or ir
         self.neck = Neck()
         self.head = Head(self.nclasses)
         self.yolo3 = YOLOLayer(self.anchors[0:3], self.nclasses, img_size, stride = 8)

@@ -67,7 +67,7 @@ def test(dict,
             ckpt['model'] = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
             model.load_state_dict(ckpt['model'], strict=False)
         except:
-            raise ValueError('Check the "mode" in your dict! Or maybe the Weight does not exist!')
+            raise ValueError('Check the "mode"/"modules" in your dict! Or maybe the Weight does not exist!')
 
         imgsz = check_img_size(dict['img_size'], s=64)  # check img_size
 
@@ -334,14 +334,14 @@ if __name__ == '__main__':
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         'img_size': 320, #Input image size. Must be a multiple of 32
-        'batch_size': 1,#train batch size
-        'test_size': 1,#test batch size
+        'batch_size': 64,#train batch size
+        'test_size': 64,#test batch size
         'half': False,  # half precision only supported on CUDA
 
         # Data loader
         'rect': False,
         'aug': False,
-        'mode': 'rgb', # ir / rgb / fusion
+        'mode': 'fusion', # ir / rgb / fusion
         'comment': '',
 
         # test
@@ -356,35 +356,29 @@ if __name__ == '__main__':
         'wandb': False,
 
         # Modules
-        'attention_bc' : False,
-        'attention_ac' : False,
-        'H_attention_bc' : False,
-        'H_attention_ac' : False,
+        'attention_bc' : False, # before concat.
+        'attention_ac' : False, # after concat.
+        'H_attention_bc' : True, # entropy based att. before concat.
+        'H_attention_ac' : True, # entropy based att. after concat.
+        'spatial': True, # spatial attention off/on (channel is always by default on!)
+        'ent_C':False, # entropy based channel wise attention
+        'ent_S':False, # entropy based spatial wise attention
 
         # PATH
-        # 'weight_path': './runs/train/exp_IR320_50noMSnoMos/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_IR320_75noMSnoMos/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_IR320_100noMSnoMos/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_IR320_1000_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_val_loss.pt',
 
-        # 'weight_path': '/home/efs-gx/RGBT/runs/train/exp_RGBT320_300noMSnoMos_HACBC/weights/best_r.pt',
-        # 'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_HBC/weights/best_ap50.pt',
-
-        # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_ap50.pt',
-
-        # 'weight_path': './runs/train/exp_RGBT320_300noMSnoMos_pre/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_val_loss.pt',
+        # 'weight_path': './runs/train/exp_IR320_150noMSnoMos_1att/weights/best_val_loss.pt', # here attention_bc has to be True
 
         # 'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_pre/weights/best_val_loss.pt',
-
-        'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_ap50.pt',
-        # 'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_val_loss.pt',
+        # 'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_1attBC/weights/best_val_loss.pt',
+        'weight_path': './runs/train/exp_RGBT320_150_attACBC/weights/best_val_loss.pt', # H_spatial has to be False
 
         'task': 'test', # change to test only for the final test
 
-        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev/',
+        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test/',
         # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Day/',
-        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Night/',
+        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Night/',
      }
 
     hyp = {
