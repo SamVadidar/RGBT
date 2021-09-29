@@ -126,7 +126,7 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
         # images = images[:, np.newaxis, :, :]
         images = np.repeat(images, 3, axis=1)
 
-    tl = 3  # line thickness
+    tl = 2  # line thickness # 3
     tf = max(tl - 1, 1)  # font thickness
     bs, _, h, w = images.shape  # batch size, _, height, width
 
@@ -189,7 +189,7 @@ def plot_images(images, targets, paths=None, fname='images.jpg', names=None, max
                         lineType=cv2.LINE_AA)
 
         # Image border
-        cv2.rectangle(mosaic, (block_x, block_y), (block_x + w, block_y + h), (255, 255, 255), thickness=3)
+        cv2.rectangle(mosaic, (block_x, block_y), (block_x + w, block_y + h), (255, 255, 255), thickness=2) # thickness=3
 
     if fname:
         r = min(1280. / max(h, w) / ns, 1.0)  # ratio to limit image size

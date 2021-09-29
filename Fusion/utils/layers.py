@@ -42,51 +42,25 @@ class BasicConv(nn.Module):
         return x
 
 class ChannelGate(nn.Module):
-    def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], ent_C=False):
+    def __init__(self, gate_channels, reduction_ratio=16):
         super(ChannelGate, self).__init__()
         self.gate_channels = gate_channels
-        self.ent_C = ent_C
         self.mlp = nn.Sequential(
             Flatten(),
             nn.Linear(gate_channels, gate_channels // reduction_ratio),
             nn.ReLU(),
             nn.Linear(gate_channels // reduction_ratio, gate_channels)
             )
-        self.pool_types = pool_types
 
     def entropy(self, x):
         x_s = x.shape
-        prob_x = x.reshape((x_s[0],x_s[1],x_s[2]*x_s[3])).softmax(dim=2)#.reshape((x_s))#.permute(0, 2, 3, 1)
-        entropy = Categorical(probs = prob_x).entropy()#.unsqueeze(dim=-1).unsqueeze(dim=-1)
+        prob_x = x.reshape((x_s[0],x_s[1],x_s[2]*x_s[3])).softmax(dim=2)
+        entropy = Categorical(probs = prob_x).entropy()
         return entropy
 
     def forward(self, x):
-        channel_att_sum = None
-
-        if self.ent_C:
-            channel_att_raw = self.mlp(self.entropy(x))
-        else:
-            for pool_type in self.pool_types:
-                if pool_type=='avg':
-                    avg_pool = F.avg_pool2d( x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-                    channel_att_raw = self.mlp( avg_pool )
-                elif pool_type=='max':
-                    max_pool = F.max_pool2d( x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-                    channel_att_raw = self.mlp( max_pool )
-                elif pool_type=='lp':
-                    lp_pool = F.lp_pool2d( x, 2, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-                    channel_att_raw = self.mlp( lp_pool )
-                elif pool_type=='lse':
-                    # LSE pool only
-                    lse_pool = logsumexp_2d(x)
-                    channel_att_raw = self.mlp( lse_pool )
-
-        if channel_att_sum is None:
-            channel_att_sum = channel_att_raw
-        else:
-            channel_att_sum = channel_att_sum + channel_att_raw
-
-        scale = torch.sigmoid( channel_att_sum ).unsqueeze(2).unsqueeze(3).expand_as(x)
+        channel_att_raw = self.mlp(self.entropy(x))
+        scale = torch.sigmoid(channel_att_raw).unsqueeze(2).unsqueeze(3).expand_as(x)
         return x * scale
 
 def logsumexp_2d(tensor):
@@ -102,52 +76,35 @@ class ChannelPool(nn.Module):
 
 
 class SpatialGate(nn.Module):
-    def __init__(self, ent_S):
+    def __init__(self):
         super(SpatialGate, self).__init__()
         kernel_size = 7
-        self.ent_S = ent_S
         self.compress = ChannelPool()
-        if self.ent_S == '1' or self.ent_S == '2':
-            self.spatial = BasicConv(1, 1, kernel_size, stride=1, padding=(kernel_size-1) // 2, relu=False)
-        else:
-            self.spatial = BasicConv(2, 1, kernel_size, stride=1, padding=(kernel_size-1) // 2, relu=False)
+        self.spatial = BasicConv(1, 1, kernel_size, stride=1, padding=(kernel_size-1) // 2, relu=False)
 
     def entropy(self, x):
         prob_x = x.softmax(dim=1).permute(0,2,3,1)
         entropy = Categorical(probs = prob_x).entropy().unsqueeze(dim=1)
-        if self.ent_S == '2':
-            entropy_s = entropy.shape
-            softmax = entropy.reshape((entropy_s[0],entropy_s[1],entropy_s[2]*entropy_s[3])).softmax(dim=2)
-            entropy = (1 - softmax.reshape((entropy_s)))
+        entropy_s = entropy.shape
+        entropy_matrix = entropy.reshape((entropy_s[0], entropy_s[1], entropy_s[2]*entropy_s[3]))
+        max = torch.max(entropy_matrix, dim = 2, keepdim = True)[0] # 0 is value and 1 is index values
+        entropy = (1 - (entropy_matrix / max)).reshape((entropy_s[0], entropy_s[1], entropy_s[2], entropy_s[3]))
         return entropy
 
     def forward(self, x):
-        if self.ent_S == '1' or self.ent_S == '2':
-            x_compress = self.entropy(x)
-        else:
-            x_compress = self.compress(x) # Max & Avg.
+        x_compress = self.entropy(x)
         x_out = self.spatial(x_compress)
-
-        if self.ent_S == '1':
-            scale = torch.sigmoid(x_out) # broadcasting
-            return x * scale
-        elif self.ent_S == '2':
-            return x * x_out
-
-        # print(scale.shape)
-        # scale_png = scale.squeeze().to('cpu').numpy()
-        # print(scale.shape)
-        # scale_png = cv2.resize(scale_png, (320,320))
-        # cv2.imwrite('./att.png', scale_png)
+        scale = torch.sigmoid(x_out) # broadcasting
+        return x * scale
 
 
-class CBAM(nn.Module):
-    def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], spatial=True, ent_C=True, ent_S='1'):
-        super(CBAM, self).__init__()
-        self.ChannelGate = ChannelGate(gate_channels, reduction_ratio, pool_types, ent_C)
+class EBAM(nn.Module):
+    def __init__(self, gate_channels, reduction_ratio=16, spatial=True):
+        super(EBAM, self).__init__()
+        self.ChannelGate = ChannelGate(gate_channels, reduction_ratio)
         self.spatial=spatial
         if spatial:
-            self.SpatialGate = SpatialGate(ent_S)
+            self.SpatialGate = SpatialGate()
 
     def forward(self, x):
         x_out = self.ChannelGate(x)

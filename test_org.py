@@ -242,7 +242,7 @@ def test(dict,
             stats.append((correct.cpu(), pred[:, 4].cpu(), pred[:, 5].cpu(), tcls))
 
         # Plot images
-        if dict['plot'] and batch_i < 30:
+        if dict['plot'] and batch_i < 10:
             # f = save_dir / f'test_batch{batch_i}_labels.jpg'  # filename
             f = str(save_dir) + f'/test_batch{batch_i}_labels' + dict['img_format']  # filename
             plot_images(img, targets, paths, f, names)  # labels
@@ -327,22 +327,12 @@ if __name__ == '__main__':
 
         # Kmeans on COCO
         'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
-
-        # # Kmeans on FLIR
-        # 'anchors_g': [[7, 16], [16, 15], [12, 30], [28, 24], [18, 57], [49, 39], [43, 99], [113, 74], [163, 168]],
-
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         'img_size': 320, #Input image size. Must be a multiple of 32
         'batch_size': 64,#train batch size
         'test_size': 64,#test batch size
         'half': False,  # half precision only supported on CUDA
-
-        # Data loader
-        'rect': False,
-        'aug': False,
-        'mode': 'fusion', # ir / rgb / fusion
-        'comment': '',
 
         # test
         'nms_conf_t':0.001, #Confidence test threshold
@@ -355,30 +345,23 @@ if __name__ == '__main__':
         'plot': True,
         'wandb': False,
 
+        # Data loader
+        'rect': False,
+        'aug': False,
+        'mode': 'fusion', #Options: ir / rgb / fusion
+        'comment': '',
+
         # Modules
-        'attention_bc' : False, # before concat.
-        'attention_ac' : False, # after concat.
-        'H_attention_bc' : True, # entropy based att. before concat.
-        'H_attention_ac' : True, # entropy based att. after concat.
+        'H_attention_bc' : False, # entropy based att. before concat.
+        'H_attention_ac' : False, # entropy based att. after concat.
         'spatial': True, # spatial attention off/on (channel is always by default on!)
-        'ent_C':False, # entropy based channel wise attention
-        'ent_S':False, # entropy based spatial wise attention
 
-        # PATH
-        # 'weight_path': './runs/train/exp_RGB320_300noMSnoMos/weights/best_val_loss.pt',
 
-        # 'weight_path': './runs/train/exp_IR320_300noMSnoMos/weights/best_val_loss.pt',
-        # 'weight_path': './runs/train/exp_IR320_150noMSnoMos_1att/weights/best_val_loss.pt', # here attention_bc has to be True
-
-        # 'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_pre/weights/best_val_loss.pt',
-        # 'weight_path': './runs/train/exp_RGBT320_150noMSnoMos_1attBC/weights/best_val_loss.pt',
-        'weight_path': './runs/train/exp_RGBT320_150_attACBC/weights/best_val_loss.pt', # H_spatial has to be False
+        'weight_path': './runs/train/exp_RGBT320_150_attACBC/weights/best_ap50.pt',
 
         'task': 'test', # change to test only for the final test
 
-        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test/',
-        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Day/',
-        # 'test_path' : DATASET_PP_PATH + '/Train_Test_Split/dev_Night/',
+        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test_Day/',
      }
 
     hyp = {
@@ -406,16 +389,3 @@ if __name__ == '__main__':
     dict_['comment'] = dict_['comment'][:dict_['comment'].find('/')]
     if not dict_['study']:  # run normally
         test(dict_, hyp, augment=dict_['aug']) # test augmentation
-
-    # else:  # run over a range of settings and save/plot
-    #     for weights in ['yolov4-csp.pt', 'yolov4-csp-x.pt']:
-    #         f = 'study_%s_%s.txt' % (Path(opt.data).stem, Path(weights).stem)  # filename to save to
-    #         x = list(range(320, 800, 64))  # x axis
-    #         y = []  # y axis
-    #         for i in x:  # img-size
-    #             print('\nRunning %s point %s...' % (f, i))
-    #             r, _, t = test(opt.data, weights, opt.batch_size, i, opt.conf_thres, opt.iou_thres, opt.save_json)
-    #             y.append(r + t)  # results and times
-    #         np.savetxt(f, y, fmt='%10.4g')  # save
-    #     os.system('zip -r study.zip study_*.txt')
-    #     # utils.general.plot_study_txt(f, x)  # plot

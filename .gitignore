@@ -20,3 +20,7 @@ BL
 *.pdf
 *.gv
 *.jpg
+DEHB/
+Fusion/test.py
+dehb/
+temp/
