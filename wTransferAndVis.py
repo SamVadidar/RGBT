@@ -2,7 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 from torch.cuda import amp
-from torchviz import make_dot
+# from torchviz import make_dot
 import torch.optim as optim
 import torch.nn as nn
 from torch.nn.functional import sigmoid, softmax
@@ -123,6 +123,52 @@ def ir_weight_transfer(ir_state_dict, ir_init_state_dict):
 
     torch.save(weight_dict, './IR.pt')
 
+def update_WeightFile_ver(state_dict, dst_path):
+    model_state_dict = state_dict['model']
+    keys = list(model_state_dict)
+    for i, key in enumerate(keys):
+        if str(key).find("cbam")!=-1:
+            keys[i] = key.replace("cbam", "ebam")
+            # print(keys[i])
+    
+    state_dict_ver2 = dict(zip(keys, list(model_state_dict.values())))
+    # for i, key in enumerate(state_dict):
+    #     if str(key).find("cbam")!=-1 and i==818:
+    #         print(key)
+    # for i, key in enumerate(state_dict_ver2):
+    #     if str(key).find("ebam")!=-1 and i==818:
+    #         print(key)
+
+    # for i, key in enumerate(state_dict):
+    #     # state_dict_ver2[key] = state_dict[keys[i]]
+    #     # str(key).find("cbam")
+    #     if str(key).find("cbam")!=-1:
+    #         new_key = key.replace("cbam", "ebam")
+    #         print(state_dict[i])
+
+
+
+    #     try:
+    #         key.replace("cbam", "ebam")
+    #         print(key)
+    #     except:
+    #         pass
+    # #     ir_init_state_dict[key] = ir_state_dict[ir_keys[i]]
+
+    weight_dict = {'epoch':state_dict['epoch'],
+                'best_fitness': state_dict['best_fitness'],
+                'best_fitness_p': state_dict['best_fitness_p'],
+                'best_fitness_r': state_dict['best_fitness_r'],
+                'best_fitness_ap50': state_dict['best_fitness_ap50'],
+                'best_fitness_ap': state_dict['best_fitness_ap'],
+                'best_fitness_f': state_dict['best_fitness_f'],
+                'training_results': state_dict['training_results'],
+                'model': state_dict_ver2,
+                'optimizer': state_dict['optimizer'],
+                'wandb_id': state_dict['wandb_id']
+                }
+
+    torch.save(weight_dict, dst_path)
 
 def gui_vis():
     import cv2
@@ -445,17 +491,22 @@ if '__main__' == __name__:
     # tensor = torch.Tensor([[[[0.1, 0.2], [0.1, 0.2]], [[0.1, 0.2], [0.1, 0.2]], [[0.1, 0.2], [0.1, 0.2]], [[0.4, 0.3], [0.1, 0.2]]],
     #                          [[[0.1, 0.2], [0.1, 0.2]], [[0.4, 0.3], [0.1, 0.2]], [[0.4, 0.3], [0.1, 0.2]], [[0.4, 0.3], [0.1, 0.2]]]])
 
-    tensor = torch.Tensor([[[5,4], [4,5], [5,4], [4,5]]])
-    tensor = tensor.reshape((1,8)).softmax(dim=1).reshape((1,4,2))
-    # tensor *= 10
-    tensor_p = softmax(tensor, dim=2)#.permute(0, 2, 3, 1)
-    print(tensor_p)
-    entropy2 = Categorical(probs = tensor_p).entropy().unsqueeze(dim=1)
-    print(entropy2)
-    tensor *= entropy2
-    print(tensor)
+    # tensor = torch.Tensor([[[5,4], [4,5], [5,4], [4,5]]])
+    # tensor = tensor.reshape((1,8)).softmax(dim=1).reshape((1,4,2))
+    # # tensor *= 10
+    # tensor_p = softmax(tensor, dim=2)#.permute(0, 2, 3, 1)
+    # print(tensor_p)
+    # entropy2 = Categorical(probs = tensor_p).entropy().unsqueeze(dim=1)
+    # print(entropy2)
+    # tensor *= entropy2
+    # print(tensor)
 
     # def entropy(self, x):
     #     prob_x = softmax(x, dim=1).permute(0, 2, 3, 1)
     #     entropy = Categorical(probs = prob_x).entropy().unsqueeze(dim=1)
     #     return x*entropy
+    #=================================================================================
+    # state_dict = torch.load("./runs/train/exp_RGBT640_500_HACBC_CS/weights/best_ap50.pt")['model']
+    path = "./runs/train/exp_RGBT640_500_HACBC_CS2/weights/best_val_loss.pt"
+    state_dict = torch.load(path)
+    update_WeightFile_ver(state_dict, path[:-3]+"_Ver2"+path[-3:])
