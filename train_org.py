@@ -566,7 +566,7 @@ def train(dict_, hyp, tb_writer=None, wandb=None, budget = None):
 if __name__ == '__main__':
     dict_ = {
         'device':'cuda', #Intialise device as cpu. Later check if cuda is avaialbel and change to cuda
-        'device_num': '1',
+        'device_num': '0',
 
         # Kmeans on COCO
         'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
