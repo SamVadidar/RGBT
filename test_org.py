@@ -393,8 +393,7 @@ if __name__ == '__main__':
         # 'test_path' : DATASET_PP_PATH + '/mini_Train_Test_Split/test/',
         'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test/',
 
-
-        'cam': True,
+        'cam': False,
      }
 
     hyp = {
