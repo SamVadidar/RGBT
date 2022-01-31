@@ -21,10 +21,10 @@ Remark: Before running the python scripts, make sure you are in the RGBT folder,
 
 
 
-## Repo Structure:\
+## Repo Structure:
 Datasets: A summary of all available dataset with IR-RGB image pair\
 FLIR_PP: Preprocessing of the FLIR dataset - The cross-labeling algorithm can be used by using pp.py\
 Fusion: The implementation of the RGBT fusion network\
 Related_Works: Literature Review\
 **To Train** use the train_org.py\
-**To Test** use the test_org.py\
+**To Test** use the test_org.py
