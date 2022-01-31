@@ -16,7 +16,7 @@
   - <a name=""></a> 16-12-Yolov2 [[Paper](https://arxiv.org/abs/1612.08242)]
   - <a name=""></a> 16-05-Yolov1 [[Paper](https://arxiv.org/abs/1506.02640)]
 
-## 2. RGBT Fusion:
+## 2. RGB-IR Fusion:
 
   **Summary** [[Link](https://github.com/SamVadidar/RGBT/blob/main/readmeFiles/RGBT_Fusion_Summary.docx)]
 
