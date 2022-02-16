@@ -1,5 +1,5 @@
 # RGB and Thermal Feature-level Sensor Fusion (RGBT)
-Download the FLIR pre-processed dataset [[**here**](https://drive.google.com/file/d/1M8N90Y9fexxu3TzGpLOGr6u9SB3ATiV1/view?usp=sharing)]
+Download the FLIR pre-processed dataset [**here**(https://drive.google.com/file/d/1M8N90Y9fexxu3TzGpLOGr6u9SB3ATiV1/view?usp=sharing)]
 
 ## ToDo List
 
