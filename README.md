@@ -1,6 +1,5 @@
 # RGB and Thermal Feature-level Sensor Fusion (RGBT)
-Download the FLIR pre-processed dataset **here** [[Link](https://drive.google.com/file/d/1M8N90Y9fexxu3TzGpLOGr6u9SB3ATiV1/view?usp=sharing)]
-Remark: Before running the python scripts, make sure you are in the RGBT folder, to avoid relative path issues!
+Download the FLIR pre-processed dataset **here** [[Link](https://drive.google.com/file/d/1M8N90Y9fexxu3TzGpLOGr6u9SB3ATiV1/view?usp=sharing)]\
 
 ## ToDo List
 
@@ -20,16 +19,8 @@ Remark: Before running the python scripts, make sure you are in the RGBT folder,
 - [x] EBAM Fusion Training
 - [x] Day & Night Analysis
 - [x] Synthetic Fog Analysis
-
-
-
-## Repo Structure:
-Datasets: A summary of all available dataset with IR-RGB image pair\
-FLIR_PP: Preprocessing of the FLIR dataset - The cross-labeling algorithm can be used by using pp.py\
-Fusion: The implementation of the RGBT fusion network\
-Related_Works: Literature Review\
-**To Train** use the train_org.py\
-**To Test** use the test_org.py
+- [ ] TensorRT and Latency Results
+- [ ] Installation and User Guidlines
 
 | Model | Test Size | Person<sub>AP@.5</sub><sup>test</sup> | Bicycle<sub>AP@.5</sub><sup>test</sup> | Car<sub>AP@.5</sub><sup>test</sup> | Overall<sub>mAP@.5</sub><sup>test</sup> | Num. of Param. |
 | :-- | :-: | :-: | :-: | :-: | :-: | :-: |
@@ -44,3 +35,10 @@ Related_Works: Literature Review\
 | **RGBT** | 640 | **80.1%** | **76.7%** | **91.8%** | **82.9%** | **82.7%** | 
 |  |  |  |  |  |
 
+## Repo Structure:
+Datasets: A summary of all available dataset with IR-RGB image pair\
+FLIR_PP: Preprocessing of the FLIR dataset - The cross-labeling algorithm can be used by using pp.py\
+Fusion: The implementation of the RGBT fusion network\
+Related_Works: Literature Review\
+**To Train** use the train_org.py\
+**To Test** use the test_org.py
