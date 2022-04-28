@@ -246,15 +246,119 @@ def plot_yoloFormat_labels(dataset_path, which_set):
         plt.imshow(cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB))
         plt.show()
 
+def xml2YoloFortmat(CFR_folder, dst_path):
+    from bs4 import BeautifulSoup
+    import re
+
+    FRAME_WIDTH = 640
+    FRAME_HEIGHT = 512
+
+    for xml in Path(CFR_folder).rglob('*.xml'):
+
+        # Reading the data inside the xml
+        with open(xml, 'r') as f:
+            data = f.read()
+
+        # Passing the stored data inside xml
+        Bs_data = BeautifulSoup(data, "xml")
+
+        # Finding all instances of a tag
+        filename = Bs_data.find_all('filename')
+        filename = str(filename)[11:21]
+        file = open(str(dst_path) + str(filename) + '.txt', 'w+')
+
+        objects = Bs_data.find_all('object')
+        for object in objects:
+            converted_results = []
+
+            name = str(object.find_all('name'))
+            if name =='[<name>person</name>]': cls=0
+            elif name == '[<name>bicycle</name>]': cls=1
+            else: cls=2
+
+            cords = str(object.find_all('bndbox'))
+            cords = re.findall('\d+', cords)
+            x1, y1, x2, y2 = int(cords[0]), int(cords[1]), int(cords[2]), int(cords[3])
+
+            x_center, y_center = (x1+x2)/2, (y1+y2)/2
+            bbox_width, bbox_height = x2-x1, y2-y1
+
+            # Yolo expects relative values wrt image width&height
+            x_rel, y_rel = x_center/FRAME_WIDTH, y_center/FRAME_HEIGHT
+            w_rel, h_rel = bbox_width/FRAME_WIDTH, bbox_height/FRAME_HEIGHT
+            converted_results.append(
+                (cls, x_rel, y_rel, w_rel, h_rel))
+
+            file.write('\n'.join('%d %.6f %.6f %.6f %.6f' % res for res in converted_results))
+            file.write('\n')
+        file.close()
+
+def cpyNrename_AlingnedVersion_Files(CFR_folder, dst_path):
+    for img in Path(CFR_folder+'JPEGImages/').rglob('*.*'):
+        _, img_name = os.path.split(img)
+        img_num = int(img_name[5:10])
+        if img_name[-2] == 'e': # jpeg images --- IR
+            shutil.copyfile(img, (dst_path+'FLIR_'+str(img_num).zfill(5)+'.jpeg'))
+        else: # jpg imager  --- RGB
+            shutil.copyfile(img, (dst_path+'FLIR_'+str(img_num).zfill(5)+'.jpg'))
+
+    os.mkdir(os.path.join(dst_path, 'train'))
+    os.mkdir(os.path.join(dst_path, 'val'))
+
+    file = open(CFR_folder+'align_train.txt', "r")
+    lines = file.readlines()
+
+    for line in lines:
+        src_rgb = dst_path+line[0:10]+'.jpg'
+        dst_rgb = dst_path+'train/'+line[0:10]+'.jpg'
+        src_ir = dst_path+line[0:10]+'.jpeg'
+        dst_ir = dst_path+'train/'+line[0:10]+'.jpeg'
+        src_gt = dst_path+line[0:10]+'.txt'
+        dst_gt = dst_path+'train/'+line[0:10]+'.txt'
+        shutil.move(src_rgb, dst_rgb)
+        shutil.move(src_ir, dst_ir)
+        shutil.move(src_gt, dst_gt)
+
+    file = open(CFR_folder+'align_validation.txt', "r")
+    lines = file.readlines()
+
+    for line in lines:
+        src_rgb = dst_path+line[0:10]+'.jpg'
+        dst_rgb = dst_path+'val/'+line[0:10]+'.jpg'
+        src_ir = dst_path+line[0:10]+'.jpeg'
+        dst_ir = dst_path+'val/'+line[0:10]+'.jpeg'
+        src_gt = dst_path+line[0:10]+'.txt'
+        dst_gt = dst_path+'val/'+line[0:10]+'.txt'
+        shutil.move(src_rgb, dst_rgb)
+        shutil.move(src_ir, dst_ir)
+        shutil.move(src_gt, dst_gt)
+
+    # # Using find() to extract attributes
+    # # of the first instance of the tag
+    # b_name = Bs_data.find('object', {'name:car'})
+
+    # print(b_name)
+
+    # # Extracting the data stored in a
+    # # specific attribute of the
+    # # `child` tag
+    # value = b_name.get('test')
+
+    # print(value)
+    
+
 
 if __name__ == '__main__':
-    # draw_rgb_annotation_from_json(DATASET_PP_PATH, 'val')
-    count_objects_all(DATASET_PP_PATH)
+    # # draw_rgb_annotation_from_json(DATASET_PP_PATH, 'val')
+    # count_objects_all(DATASET_PP_PATH)
 
-    # convert_labels_to_yolo_format(DATASET_PP_PATH, 'train')
-    # convert_labels_to_yolo_format(DATASET_PP_PATH, 'val')
-    # convert_labels_to_yolo_format(DATASET_PP_PATH, 'video')
+    # # convert_labels_to_yolo_format(DATASET_PP_PATH, 'train')
+    # # convert_labels_to_yolo_format(DATASET_PP_PATH, 'val')
+    # # convert_labels_to_yolo_format(DATASET_PP_PATH, 'video')
 
-    # manually_added_labels = './FLIR_PP/manual_data_cleaning/label_RGB_manual'
-    # merge_labels(DATASET_PP_PATH, manually_added_labels)
-    plot_yoloFormat_labels(DATASET_PP_PATH, 'train')
+    # # manually_added_labels = './FLIR_PP/manual_data_cleaning/label_RGB_manual'
+    # # merge_labels(DATASET_PP_PATH, manually_added_labels)
+    # plot_yoloFormat_labels(DATASET_PP_PATH, 'train')
+
+    xml2YoloFortmat('/home/efs-gx/Sam/FLIR/aligned/align/Annotations/', '/home/efs-gx/RGBT/CFR/')
+    cpyNrename_AlingnedVersion_Files('/home/efs-gx/Sam/FLIR/aligned/align/', '/home/efs-gx/RGBT/CFR/')
