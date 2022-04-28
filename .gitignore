@@ -1,4 +1,5 @@
 *.vscode
+analysis.py
 *.config
 *.txt
 *.png

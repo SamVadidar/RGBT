@@ -93,8 +93,8 @@ def train(dict_, hyp, tb_writer=None, wandb=None, budget = None):
                     ckpt = torch.load(str(file), map_location=device)  # load checkpoint
 
         # Making sure the weight file is not corrupted
-        if ckpt['epoch'] != None:
-            ckpt, dict_['weight_path'] = weight_sanity(ckpt, dict_)
+        # if ckpt['epoch'] != None:
+        #     ckpt, dict_['weight_path'] = weight_sanity(ckpt, dict_)
         if dict_['mode'] == 'fusion':
             model = Fused_Darknets(dict_, (img_size, img_size)).to(device) # create
         else:
@@ -566,21 +566,21 @@ def train(dict_, hyp, tb_writer=None, wandb=None, budget = None):
 if __name__ == '__main__':
     dict_ = {
         'device':'cuda', #Intialise device as cpu. Later check if cuda is avaialbel and change to cuda
-        'device_num': '1',
+        'device_num': '0',
 
         # Kmeans on COCO
         'anchors_g': [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]],
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         # 'gs': 32, #Image size multiples
-        'img_size': 320, #Input image size. Must be a multiple of 32
+        'img_size': 640, #Input image size. Must be a multiple of 32
         'strides': [8,16,32], #strides of p3,p4,p5
-        'epochs': 2, #number of epochs
-        'batch_size': 32, #train batch size
-        'test_size': 32, #test batch size
+        'epochs': 150, #number of epochs
+        'batch_size': 16, #train batch size
+        'test_size': 16, #test batch size
         'use_adam': False, #Bool to use Adam optimiser
         'use_ema': True, #Exponential moving average control
-        'multi_scale': False, #Bool to do multi-scale training
+        'multi_scale': True, #Bool to do multi-scale training
         'gr' : 1.0, # giou loss ratio (obj_loss = 1.0 or giou)
         'nms_conf_t':0.001, #0.2 Confidence training threshold
         'nms_merge': True, # it is passed to the test function
@@ -619,15 +619,17 @@ if __name__ == '__main__':
         'evolve': False,
 
         # Modules
-        'H_attention_bc' : True, # entropy based att. before concat.
-        'H_attention_ac' : True, # entropy based att. after concat.
-        'spatial': True, # spatial attention off/on (channel is always by default on!)
+        'H_attention_bc' : False, # entropy based att. before concat.
+        'H_attention_ac' : False, # entropy based att. after concat.
+        'spatial': False, # spatial attention off/on (channel is always by default on!)
 
         # PATH
         'weight_path': './yolo_pre_3c.pt',
         'task': 'val',
         'train_path': DATASET_PP_PATH + '/Train_Test_Split/train/',
         'val_path': DATASET_PP_PATH + '/Train_Test_Split/dev/',
+
+        'cam': False,
      }
 
     hyp = {
@@ -719,12 +721,16 @@ if __name__ == '__main__':
                 dict_['train_path'] = DATASET_PP_PATH + '/Train_Test_Split/train/'
                 dict_['val_path'] = DATASET_PP_PATH + '/Train_Test_Split/dev/'
 
+                # dict_['train_path'] = '/home/efs-gx/RGBT/CFR/val/'
+                # dict_['val_path'] = '/home/efs-gx/RGBT/CFR/val'
+
+
 #============================================================================================ RGB
 
-                # dict_['img_size'] = 320
-                # dict_['epochs'] = 1000
-                # dict_['batch_size'] = 16
-                # dict_['test_size'] = 16
+                # dict_['img_size'] = 640
+                # dict_['epochs'] = 150
+                # dict_['batch_size'] = 8
+                # dict_['test_size'] = 8
                 # dict_['multi_scale'] = True
                 # dict_['resume'] = False # for optimizer and epoch num.
                 # dict_['warmup'] = True
@@ -732,8 +738,8 @@ if __name__ == '__main__':
                 # dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
                 # hyp['mosaic'] = 1.0
                 # hyp['mixup'] = 0.0
-                # dict_['comment'] = '_RGB320_1000'
-                # dict_['weight_path'] = './yolo_pre_3c.pt'
+                # dict_['comment'] = '_RGB320_1000_RGB640_150'
+                # dict_['weight_path'] = './runs/train/exp_RGB320_1000/weights/best_val_loss.pt'
                 # dict_['project'] = './runs/train'
                 # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
                 # tb_writer = None
@@ -766,8 +772,31 @@ if __name__ == '__main__':
 
 #============================================================================================ Fusion
 
+                # dict_['img_size'] = 320
+                # dict_['epochs'] = 150
+                # dict_['batch_size'] = 16
+                # dict_['test_size'] = 16
+                # dict_['warmup'] = True
+                # dict_['resume'] = False # for optimizer and epoch num.
+                # dict_['mode'] = 'fusion'
+                # dict_['img_format'] = '.jpg' if dict_['mode'] != 'ir' else '.jpeg'
+                # dict_['multi_scale'] = True
+                # hyp['mosaic'] = 1.0
+                # hyp['mixup'] = 0.0
+                # dict_['H_attention_bc'] = True
+                # dict_['H_attention_ac'] = True
+                # dict_['spatial'] = True
+                # dict_['comment'] = '_RGBT320_AlignedData_pre'
+                # dict_['weight_path'] = './runs/train/exp_RGBT320_150_HACBC/weights/best_val_loss.pt'
+                # dict_['backbone_freeze'] = False
+                # dict_['project'] = './runs/train'
+                # dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run
+                # tb_writer = None
+                # tb_writer = SummaryWriter(dict_['project'])
+                # train(dict_, hyp, tb_writer, wandb=False)
+
                 dict_['img_size'] = 320
-                dict_['epochs'] = 500
+                dict_['epochs'] = 150
                 dict_['batch_size'] = 8
                 dict_['test_size'] = 8
                 dict_['warmup'] = True
@@ -780,8 +809,8 @@ if __name__ == '__main__':
                 dict_['H_attention_bc'] = True
                 dict_['H_attention_ac'] = True
                 dict_['spatial'] = True
-                dict_['comment'] = '_RGBT640_500_HACBC_CS'
-                dict_['weight_path'] = './RGBT.pt'
+                dict_['comment'] = '_RGBT320_EBAM'
+                dict_['weight_path'] = './RGBT_pre.pt'
                 dict_['backbone_freeze'] = False
                 dict_['project'] = './runs/train'
                 dict_['project'] = increment_path(Path(dict_['project']) / ('exp'+dict_['comment']), exist_ok=False | dict_['evolve'])  # increment run

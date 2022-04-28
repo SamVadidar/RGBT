@@ -63,7 +63,7 @@ def test(dict,
         try:
             ckpt = torch.load(dict['weight_path']) # load checkpoint
             if ckpt['epoch'] != -1: print('Saved @ epoch: ', ckpt['epoch'])
-            
+
             ckpt['model'] = {k: v for k, v in ckpt['model'].items() if model.state_dict()[k].numel() == v.numel()}
             model.load_state_dict(ckpt['model'], strict=False)
         except:
@@ -107,6 +107,35 @@ def test(dict,
         dataloader = create_dataloader(path, imgsz, dict['batch_size'], 64, hyp=hyp, augment=dict['aug'], pad=0.5, rect=dict['rect'], img_format=dict['img_format'], mode = dict['mode'])[0] # grid_size=32
 
     seen = 0
+    if dict['cam'] == True:
+        from pytorch_grad_cam import LayerCAM
+        from pytorch_grad_cam.utils.image import show_cam_on_image
+        from PIL import Image, ImageDraw
+
+        import cv2
+
+        cam = LayerCAM(model=model, target_layers=[model.fused_backbone.main3_rgb[0].batchnorm], use_cuda=0)
+        # cam = LayerCAM(model=model, target_layers=[model.fused_backbone.ebam_x3_ac.SpatialGate.spatial], use_cuda=True)
+        target_category = None
+        for i, data in enumerate(dataloader):
+            img = torch.tensor(data[0][0:1,:,:,:]/255.0, device="cuda")
+            # img = (data[0][0:1,:,:,:]/255.0).to("cuda")#.unsqueeze(0)
+            # print(img.shape)
+            grayscale_cam,activations_list,grads_list = cam(input_tensor = img, target_category = None)
+            grayscale_img_max = (np.max(grayscale_cam, axis = 0)*255).astype(np.uint8)
+            # blur = cv2.threshold(grayscale_img_max,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)[-1] #,cv.THRESH_BINARY+cv.THRESH_OTSU
+            #blur= Image.fromarray(blur)
+            #blur.save(os.path.join(saveroot,image_name + '_predict.png'))
+            img = img.permute(1,2,0)*255
+            visualization = show_cam_on_image(img, grayscale_img_max/255, use_rgb=True)
+            visualization = Image.fromarray(visualization)
+            # drawing text size
+            draw = ImageDraw.Draw(visualization)
+            visualization_a = np.array(visualization)
+            #plt.imshow(visualization_a)
+            #plt.show()
+            visualization = Image.fromarray(visualization_a)
+
     min_r = 1
     min_p = 1
     max_r = 0
@@ -290,7 +319,7 @@ def test(dict,
         #     f = str(save_dir) + f'/maxp_test_batch{batch_i}_pred' + dict['img_format']  # filename
         #     plot_images(img, output_to_target(output, width, height), paths, f, names)  # predictions
         #     max_p = p
-    
+
     # # W&B logging
     # if dict['plot'] and dict['wandb']:
     #     wandb.log({"Images": wandb_images})
@@ -330,8 +359,8 @@ if __name__ == '__main__':
         'nclasses': 3, #Number of classes
         'names' : ['person', 'bicycle', 'car'],
         'img_size': 320, #Input image size. Must be a multiple of 32
-        'batch_size': 64,#train batch size
-        'test_size': 64,#test batch size
+        'batch_size':1,#train batch size
+        'test_size': 1,#test batch size
         'half': False,  # half precision only supported on CUDA
 
         # test
@@ -352,16 +381,22 @@ if __name__ == '__main__':
         'comment': '',
 
         # Modules
-        'H_attention_bc' : False, # entropy based att. before concat.
-        'H_attention_ac' : False, # entropy based att. after concat.
+        'H_attention_bc' : True, # entropy based att. before concat.
+        'H_attention_ac' : True, # entropy based att. after concat.
         'spatial': True, # spatial attention off/on (channel is always by default on!)
 
 
-        'weight_path': './runs/train/exp_RGBT320_150_attACBC/weights/best_ap50.pt',
+        # 'weight_path': './runs/train/exp_RGBT640_500_HACBC_CS2/weights/best_val_loss_Ver2.pt', # best so far
+        # 'weight_path': './runs/train/exp_IR320_1000_pre/weights/best_val_loss.pt', # best so far
+        # 'weight_path': './runs/train/exp_RGBT640_AlignedData_300_YOLOinit3/weights/best_ap50.pt',
+        'weight_path': './runs/train/exp_RGBT640_AlignedData_300_YOLOinit3/weights/best_ap50.pt',
 
         'task': 'test', # change to test only for the final test
 
-        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test_Day/',
+        'test_path' : DATASET_PP_PATH + '/samples/',
+        # 'test_path' : '/home/efs-gx/RGBT/CFR/val',
+
+        'cam': False,
      }
 
     hyp = {
