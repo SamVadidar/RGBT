@@ -487,7 +487,11 @@ class Fused_Darknets(torch.nn.Module):
         self.seen = np.array([0], dtype=np.int64)  # (int64) number of images seen during training
         self.info(verbose) if not ONNX_EXPORT else None  # print model description
 
-    def forward(self, x, y, augment=False, verbose=False):
+    def forward(self, x, y=None, augment=False, verbose=False):
+
+        if y is None:
+            y = x[:,-1,:,:].unsqueeze(0).to("cuda")
+            x = x[:,:3,:,:].to("cuda")
 
         if not augment:
             return self.forward_once(x, y)
