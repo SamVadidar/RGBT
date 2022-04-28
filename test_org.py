@@ -393,8 +393,8 @@ if __name__ == '__main__':
 
         'task': 'test', # change to test only for the final test
 
-        'test_path' : DATASET_PP_PATH + '/samples/',
-        # 'test_path' : '/home/efs-gx/RGBT/CFR/val',
+        # 'test_path' : DATASET_PP_PATH + '/mini_Train_Test_Split/test/',
+        'test_path' : DATASET_PP_PATH + '/Train_Test_Split/test/',
 
         'cam': False,
      }

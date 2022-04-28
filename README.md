@@ -1,5 +1,6 @@
 # RGB and Thermal Feature-level Sensor Fusion (RGBT)
-Remark: Before running the python scripts, make sure you are in the RGBT folder, to avoid relative path issues!
+Download the FLIR pre-processed dataset [**here**](https://drive.google.com/file/d/1M8N90Y9fexxu3TzGpLOGr6u9SB3ATiV1/view?usp=sharing)
+
 ## ToDo List
 
 - [x] Finish literature review of both Object Detection and Fusion 
@@ -18,28 +19,26 @@ Remark: Before running the python scripts, make sure you are in the RGBT folder,
 - [x] EBAM Fusion Training
 - [x] Day & Night Analysis
 - [x] Synthetic Fog Analysis
+- [ ] TensorRT and Latency Results
+- [ ] Installation and User Guidlines
 
+| Model | Test Size | Person<sub>AP@.5</sub><sup>test</sup> | Bicycle<sub>AP@.5</sub><sup>test</sup> | Car<sub>AP@.5</sub><sup>test</sup> | Overall<sub>mAP@.5</sub><sup>test</sup> | Num. of Param. |
+| :-- | :-: | :-: | :-: | :-: | :-: | :-: |
+| **RGB Baseline** | 320 | 39.6% | 50.4% | 79.4% | 56.6% | 52.5 | 
+| **IR Baseline** | 320 | 49.6% | 54.9% | 84.4% | 63.0% | 52.5 | 
+|  |  |  |  |  |
+| **Vanila Fusion** | 320 | 56.9% | 56.7% | 82.0% | 65.2% | 81.8 | 
+| **Fusion + CBAM** | 320 | 57.6% | 60.5% | 83.6% | 67.2% | 82.7 | 
+| **Fusion + EBAM_C** | 320 | 62.6% | 65.9% | 86.0% | 71.5% | 82.7% | 
+| **RGBT** | 320 | 63.7% | 67.1% | 86.4% | 72.4% | 82.7 | 
+| **CFR_3** | 640 | 74.4% | 57.7% | 84.9% | 72.3% | 276 | 
+| **RGBT** | 640 | **80.1%** | **76.7%** | **91.8%** | **82.9%** | **82.7%** | 
+|  |  |  |  |  |
 
-## Studied Networks Performances
-| Network        | \multicolumn{4}{c|}{mAP@.5} | Img. Size        | Layer Num.       | Para.            |
-|----------------|-----------------------------|------------------|------------------|------------------|
-|                | Person                      | Bicycle          | Car              | Overall          |                  |                        |            |
-| RGB Baseline   | 39.60\%                     | 50.40\%          | 79.40\%          | 56.60\%          | \hspace{14px}320 | \hspace{18px}539       | 52.5 M     |
-| IR Baseline    | 49.60\%                     | 54.90\%          | 84.40\%          | 63.00\%          | \hspace{14px}320 | \hspace{18px}539       | 52.5 M     |
-| Vanilla Fusion | 56.90\%                     | 56.70\%          | 82.00\%          | 65.20\%          | \hspace{14px}320 | \hspace{18px}871       | 81.8 M     |
-| Fusion + CBAM  | 57.60\%                     | 60.50\%          | 83.60\%          | 67.20\%          | \hspace{14px}320 | \hspace{18px}943       | 82.7 M     |
-| Fusion + H\_C  | 62.60\%                     | 65.90\%          | 86.00\%          | 71.50\%          | \hspace{14px}320 | \hspace{18px}913       | 82.7 M     |
-| RGBT           | 63.70\%                     | 67.10\%          | 86.40\%          | 72.40\%          | \hspace{14px}320 | \hspace{18px}943       | 82.7 M     |
-| CFR\_3         | 74.49\%                     | 57.77\%          | 84.91\%          | 72.39\%          | \hspace{14px}640 | \hspace{2px} Not Given | $> $ 276 M |
-| RGBT           | extbf{80.10\%}              | \textbf{76.70\%} | \textbf{91.80\%} | \textbf{82.90\%} | \hspace{14px}640 | \hspace{18px}943       | 82.7 M     |
-
-
-## Studied Networks Performances in Different Scenarios
-| Network  | \multicolumn{4}{c|}{mAP@.5} | Img. Size       |
-|----------|-----------------------------|-----------------|
-|          | Day                         | Night           | Foggy Day                    | Foggy Night                   |                     |
-| RGB      | 62.8\%                      | 52.9\%          | \hspace{12px}29.7\%          | \hspace{14px}25.8\%           | \hspace{14px}320    |
-| IR       | 70.3\%                      | 59.3\%          | \hspace{24px}-               | \hspace{26px}-                | \hspace{14px}320    |
-| Fusion \ | CBAM                        | 71.4\%          | 70.8\%                       | \hspace{12px}60.6\%           | \hspace{14px}64.4\% | \hspace{14px}320 |
-| RGBT     | 74.3\%                      | 72.6\%          | \hspace{12px}62.5\%          | \hspace{14px}68.6\%           | \hspace{14px}320    |
-| RGBT     | extbf{84.5\%}               | \textbf{82.2\%} | \hspace{9px} \textbf{78.6\%} | \hspace{11px} \textbf{80.9\%} | \hspace{14px}640    |
+## Repo Structure:
+Datasets: A summary of all available dataset with IR-RGB image pair\
+FLIR_PP: Preprocessing of the FLIR dataset - The cross-labeling algorithm can be used by using pp.py\
+Fusion: The implementation of the RGBT fusion network\
+Related_Works: Literature Review\
+**To Train** use the train_org.py\
+**To Test** use the test_org.py

@@ -513,8 +513,15 @@ if '__main__' == __name__:
     #     entropy = Categorical(probs = prob_x).entropy().unsqueeze(dim=1)
     #     return x*entropy
     #=================================================================================
+<<<<<<< HEAD
     # # update_WeightFile_ver cbam->ebam
     # state_dict = torch.load("./runs/train/exp_RGBT640_500_HACBC_CS/weights/best_ap50.pt")['model']
     # path = "./runs/train/exp_RGBT640_500_HACBC_CS2/weights/best_val_loss.pt"
     # state_dict = torch.load(path)
     # update_WeightFile_ver(state_dict, path[:-3]+"_Ver2"+path[-3:])
+=======
+    # state_dict = torch.load("./runs/train/exp_RGBT640_500_HACBC_CS/weights/best_ap50.pt")['model']
+    path = "./runs/train/exp_RGBT640_500_HACBC_CS2/weights/best_val_loss.pt"
+    state_dict = torch.load(path)
+    update_WeightFile_ver(state_dict, path[:-3]+"_Ver2"+path[-3:])
+>>>>>>> 397e761653fca860ebfb5dfe09df43b63ebf1f99
