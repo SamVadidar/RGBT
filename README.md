@@ -42,3 +42,18 @@ Fusion: The implementation of the RGBT fusion network\
 Related_Works: Literature Review\
 **To Train** use the train_org.py\
 **To Test** use the test_org.py
+
+
+## Citation
+
+```
+@INPROCEEDINGS{9827087,
+  author={Vadidar, Mohsen and Kariminezhad, Ali and Mayr, Christian and Kloeker, Laurent and Eckstein, Lutz},
+  booktitle={2022 IEEE Intelligent Vehicles Symposium (IV)}, 
+  title={Robust Environment Perception for Automated Driving: A Unified Learning Pipeline for Visual-Infrared Object Detection}, 
+  year={2022},
+  volume={},
+  number={},
+  pages={367-374},
+  doi={10.1109/IV51971.2022.9827087}}
+```
