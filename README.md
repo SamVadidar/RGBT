@@ -48,12 +48,13 @@ Related_Works: Literature Review\
 
 ```
 @INPROCEEDINGS{9827087,
-  author={Vadidar, Mohsen and Kariminezhad, Ali and Mayr, Christian and Kloeker, Laurent and Eckstein, Lutz},
+  author={Vadidar, Sam and Kariminezhad, Ali and Mayr, Christian and Kloeker, Laurent and Eckstein, Lutz},
   booktitle={2022 IEEE Intelligent Vehicles Symposium (IV)}, 
   title={Robust Environment Perception for Automated Driving: A Unified Learning Pipeline for Visual-Infrared Object Detection}, 
   year={2022},
   volume={},
   number={},
   pages={367-374},
+  keywords={Visualization;Intelligent vehicles;Fuses;Roads;Pipelines;Object detection;Thermal sensors},
   doi={10.1109/IV51971.2022.9827087}}
 ```
